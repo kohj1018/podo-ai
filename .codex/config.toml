@@ -1,0 +1,23 @@
+# Codex CLI project config — see ADR-010
+# References:
+#   https://developers.openai.com/codex/permissions
+
+model = "gpt-5.5"
+approval_policy = "on-request"
+
+# Native Windows `unelevated` sandbox cannot enforce split read/write carveouts
+# such as "workspace is writable, but .env is denied". Use the legacy
+# workspace-write sandbox here so shell tools work on Windows without elevated
+# setup. Secret files remain protected by AGENTS.md policy; use WSL or
+# `windows.sandbox = "elevated"` plus permission profiles when OS-level
+# secret-deny enforcement is required.
+sandbox_mode = "workspace-write"
+
+[sandbox_workspace_write]
+network_access = true
+
+[windows]
+sandbox = "unelevated"
+
+[features]
+unified_exec = false
