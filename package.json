@@ -1,0 +1,11 @@
+{
+  "name": "podo-ai",
+  "private": true,
+  "scripts": {
+    "validate": "node scripts/verify.mjs",
+    "validate:e2e": "node scripts/verify.mjs --e2e"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
