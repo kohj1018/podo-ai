@@ -29,6 +29,7 @@
 | discovery template | `docs/10-charter/_templates/DISCOVERY_TEMPLATE.md` | 수동 (boilerplate 제공) | Reference | baseline |
 | research note | `docs/10-charter/insights/<date>-<slug>.md` | `/research-pack` | Record | generated |
 | architecture overview | `docs/20-system/ARCHITECTURE_OVERVIEW.md` | `/bootstrap-project`, `/bootstrap-stack` | Living | baseline |
+| scoring pipeline spec (Scorer 알고리즘 SSOT) | `docs/20-system/SCORING_PIPELINE_SPEC.md` | architect / `/plan-workitem` | Living | generated |
 | design (UI only) | `docs/20-system/DESIGN.md` | `/bootstrap-design` (UI 스택 포함 시) | Living | conditional |
 | design research note (UI only) | `docs/20-system/DESIGN_RESEARCH.md` | `/bootstrap-design` (R0 레퍼런스 + R2 선택 근거) | Reference | conditional |
 | design concept mockups (UI only, 검토용 임시 — 선택·승인 후 삭제) | `docs/20-system/design-concepts/concept-*.html` | `/bootstrap-design` (R2, 선택 후 R6 삭제) | ephemeral | conditional |
