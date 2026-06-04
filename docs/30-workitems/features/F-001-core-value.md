@@ -59,13 +59,12 @@ feature
 - **FAC-5:** LLM 호출 실패 시 가짜 점수가 노출되지 않고 보류 상태가 표시된다.
 
 ## 7-1. FAC ↔ AC 매핑표 (subsection of ## 7)
-<!-- /plan-workitem이 task 분해 시 본 subsection을 채운다 (영속 SSOT — plan 출력은 echo).
-     형식: FAC-N → T-NNN:AC-N, T-MMM:AC-M (다대다 허용). 현재 task 미분해 → 미매핑. -->
-- FAC-1 → (task 미분해 — /plan-workitem M1에서 매핑)
-- FAC-2 → (task 미분해)
-- FAC-3 → (task 미분해)
-- FAC-4 → (task 미분해)
-- FAC-5 → (task 미분해)
+<!-- 영속 SSOT — plan 출력은 echo. 형식: FAC-N → T-NNN:AC-N (다대다 허용). -->
+- FAC-1 (GS-1 캐시 hit 변동 0) → T-004:AC-2 (캐시 키 결정성), T-014:AC-2 (불변식 회귀 캐시 격리), T-016:AC-3 (GS-1 hit 변동 측정)
+- FAC-2 (GS-1 miss top-k 변동 0) → T-011:AC-3 (오케스트레이션 결정성), T-016:AC-3
+- FAC-3 (GS-2 hallucination ≤2%) → T-005:AC-2 (프롬프트 evidence_id-only 계약), T-006:AC-1 (코드가 verbatim 인용 구성), T-007:AC-1·AC-2 (비추출 제거·verifier 강등), T-016:AC-2 (GS-2 사실성 측정)
+- FAC-4 (F7 이력서↔JD 1:1 매핑 노출) → T-006:AC-1 (MatchRow 매핑·인용), T-011:AC-2 (리포트/JSONB 계약 노출)
+- FAC-5 (LLM 실패 보류) → T-004:AC-3 (게이트웨이 재시도/실패), T-011:AC-1 (miss 실패 시 보류 상태)
 
 ## 8. Non-functional Requirements
 - **재현성(지배):** GS-1 — 동일 입력 동일 출력. 결정론 캐시 경계(ARCH §3-1)가 구조적 보증.
@@ -97,6 +96,8 @@ feature
 - Milestone: [M1-foundation](../milestones/M1-foundation.md)
 - Charter: [PROJECT_CHARTER](../../10-charter/PROJECT_CHARTER.md) (§4 G2·G4, §6 GS-1·GS-2)
 - Architecture: [ARCHITECTURE_OVERVIEW](../../20-system/ARCHITECTURE_OVERVIEW.md) (§3-1 결정론·grounding 경계, §4 Score·Evidence)
+- Architecture-Iface: [ARCH ## 7-3 백엔드](../../20-system/ARCHITECTURE_OVERVIEW.md#arch-7-3) (결정론 캐시 키·grounding 검증 — Worker 책임)
+- Algorithm SSOT: [SCORING_PIPELINE_SPEC](../../20-system/SCORING_PIPELINE_SPEC.md) (§3 데이터 계약, §4 compute_fit, §6 매칭·검증, §7-1·7-2 추출, §8 캐시)
 - ADR: [ADR-100](../../90-decisions/project/ADR-100-initial-project-decisions.md) (D1 게이트 우선, D3 결정론 캐시)
 
 ## 12. 열린 질문

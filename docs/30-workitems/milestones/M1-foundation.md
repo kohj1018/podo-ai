@@ -9,13 +9,25 @@ draft
 ## 2. 범위
 토스·당근 2곳 수집 골격 + 결정론 캐시 스코어링 + JD grounding 근거 + 커버리지 투명성 패널 + 최소 피드. 게이트 측정 경로(test-retest·근거 사실성 라벨링)를 함께 세운다.
 
-> **선행 의존 (해소):** 스택 확정(ADR-101)·design 확정(DESIGN.md)·A-1 검증(크롤링 실증, 2026-06-04) 완료 → `/plan-workitem M1` 착수 가능. 남은 pre-impl 게이트는 A-3(상대 랭킹 Kendall τ) 1건 — 분해 시 *A-3 검증을 첫 task로 박고* 스코어러 구현은 그 뒤(Charter §6 Discovery exit check).
+> **선행 의존 (해소):** 스택 확정(ADR-101)·design 확정(DESIGN.md)·A-1 검증(크롤링 실증, 2026-06-04) 완료 → 분해 착수 가능.
+>
+> **A-3 시퀀싱 (재해석 명시):** 마일스톤 원안은 "A-3(상대 랭킹 Kendall τ) 검증을 첫 task로". 그러나 A-3 τ 프록시는 *모델 랭킹 vs 창업자 수기 랭킹*을 비교하므로 **랭커가 선재해야 측정 가능**하다(닭-달걀). 본 분해는 스코어링 알고리즘 본체가 외부에서 충분히 검증된 자산임을 전제로, **알고리즘(상대 랭킹 포함)을 먼저 이식 → 평가 하니스(골든 페어 = τ 프록시)로 A-3를 조기 측정**한다. `τ<0.6`(또는 자명 페어 위반율 >5%)이면 **F5 *제품화* 범위를 재검토**(코드 이식 자체를 차단하는 것이 아님)한다 (Charter §6 Discovery exit check / §9 A-3 No-go). 알고리즘 명세 SSOT: [SCORING_PIPELINE_SPEC](../../20-system/SCORING_PIPELINE_SPEC.md).
 
 ## 3. 포함되는 기능
-- **F-001 (core-value)** — 결정론 스코어링 + JD grounding 근거 (게이트 핵심 — 본 bootstrap이 생성).
-- F2 커버리지 투명성 패널 (Fail #3 차단 — `/plan-workitem`에서 feature 분해).
-- F1·F3 수집 골격 + 신규/마감 diff (토스·당근 2곳 — `/plan-workitem`에서 분해).
-- 최소 피드(단일 리스트 + 밴드 표시) — 게이트 실증에 필요한 만큼만.
+> 본 마일스톤의 알고리즘 본체(Scorer/Collector/Eval)는 [SCORING_PIPELINE_SPEC](../../20-system/SCORING_PIPELINE_SPEC.md)를 SSOT로 이식한다. 아래 workitem feature 문서(F-NNN)는 DISCOVERY feature(F1~F7)에 매핑된다.
+- **F-001 (core-value)** — 결정론 *쌍 단위* 스코어링 + JD grounding 근거 + cap (게이트 핵심). = DISCOVERY F4·F6·F7. 데이터 계약·추출·매칭·검증·compute_fit·캐시·프롬프트·LLM 게이트웨이.
+- **F-002 (collector)** — 토스·당근 수집 골격 + 도메인 인지 선택 + 신규/마감 diff. = DISCOVERY F1·F3. `crawler`.
+- **F-003 (relative-ranking)** — listwise + pairwise + Bradley-Terry + 랭킹 모드(domain_fit_bt) + 도메인 우선순위 가드. = DISCOVERY F5 (A-3 시퀀싱은 §2 참조 — 이식 후 τ 측정).
+- **F-004 (eval-harness)** — 불변식 회귀(GS-1) + 멀티-페르소나 진단 + 골든 페어 정확도(GS-2·GS-3 τ 프록시). technical-enabler — 게이트 측정 경로. `ai/eval`.
+- (별도 분해 — 본 알고리즘 포트 비범위) F2 커버리지 투명성 패널 + 최소 피드(단일 리스트 + 밴드) — Feed UI surface(Next.js), `/plan-workitem`에서 별 feature로 분해.
+
+> **분해 범위 경계 (정직 고지):** 현재 태스크 셋 **T-001~T-017**은 "**알고리즘 + 오프라인 평가**"까지를 *함수/JSONB 계약 + pytest 검증* 수준으로 이식한다(= 게이트 측정 가능한 코어). M1 §1의 "수집→스코어링→근거 표시가 *한 줄로 동작*"하는 **돌아가는 서비스**가 되려면 아래 *서비스 와이어링*이 추가로 필요하며, 이는 본 알고리즘 포트의 비범위로 후속 분해 대상이다:
+> - **DB 스키마/영속** — `job_postings`·`ranking_runs.result`(JSONB) 등 Prisma 마이그레이션(`podo/apps/api`, TS) + worker의 실제 read/write 어댑터(현재 T-004/T-011은 dict/JSONB 계약까지).
+> - **워커 엔트리 + 크론 트리거** — `ai/worker` 실행 진입점 + crawler `crawl-jobs` 매일 cron(GitHub Actions, ARCH §7-3). 현재 T-012는 fetch+upsert+diff *함수*까지, 스케줄 트리거 없음.
+> - **API 서빙** — NestJS가 worker 산출 JSONB를 pass-through 서빙(ARCH §7-1). 비범위.
+> - **Feed/커버리지 UI** — 위 F2/피드.
+>
+> 즉 T-001~T-017 완료 = "알고리즘·플로우·평가·프롬프트·캐시·수집·도메인선택이 빠짐없이, 캘리브레이션까지 보존된 채 검증됨". 제품 end-to-end는 위 와이어링 후속을 거쳐 완성된다.
 
 ## 4. 제외되는 기능
 - 다채널 풀커버리지(7개+) — Charter §5 비목표.
@@ -35,7 +47,9 @@ draft
 
 ## 6. 관련 문서
 - Charter: [PROJECT_CHARTER](../../10-charter/PROJECT_CHARTER.md) (§4 목표, §6 성공 기준)
-- Architecture: [ARCHITECTURE_OVERVIEW](../../20-system/ARCHITECTURE_OVERVIEW.md) (§3 모듈, §3-1 의존성 규칙)
+- Architecture: [ARCHITECTURE_OVERVIEW](../../20-system/ARCHITECTURE_OVERVIEW.md) (§3 모듈, §3-1 의존성 규칙, §3-2 폴리글랏 매핑)
+- Algorithm SSOT: [SCORING_PIPELINE_SPEC](../../20-system/SCORING_PIPELINE_SPEC.md) (Scorer·Collector·Eval 알고리즘 본체 — 이식 SSOT)
+- Features: [F-001](../features/F-001-core-value.md) · [F-002](../features/F-002-collector.md) · [F-003](../features/F-003-relative-ranking.md) · [F-004](../features/F-004-eval-harness.md)
 - ADR: [ADR-100](../../90-decisions/project/ADR-100-initial-project-decisions.md) (D1 게이트 우선, D3 결정론 캐시)
 
 ## 7. 열린 질문
