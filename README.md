@@ -27,19 +27,20 @@ Out of scope (Charter §5): full multi-channel coverage, resume/cover-letter aut
 
 ## Status
 
-Early bootstrap. **Stack is undecided** — no stack-specific automation (hooks / CI / lint / test) has been added yet. All discovery assumptions (A-1…A-12) are **unverified** (pre-interview, pre-research). See the [assumption tracker](docs/10-charter/DISCOVERY.md) §12.
+Early build. **Stack locked** ([ADR-101](docs/90-decisions/project/ADR-101-stack-selection.md)): polyglot TypeScript (Next.js web / NestJS+Prisma api) + Python (OpenAI-SDK worker / crawler / eval) on Postgres+pgvector — polyglot monorepo scaffolded. **Design system defined** ([DESIGN.md](docs/20-system/DESIGN.md), concept "포도 친구"). **A-1 (crawling feasibility) verified** (2026-06-04); the other discovery assumptions (A-2…A-12) remain **unverified** (pre-interview). See the [assumption tracker](docs/10-charter/DISCOVERY.md) §12.
 
 ## Docs
 
 - [DISCOVERY.md](docs/10-charter/DISCOVERY.md) — persona / pain / scenarios (SSOT)
 - [PROJECT_CHARTER.md](docs/10-charter/PROJECT_CHARTER.md) — scope, goals, non-goals, success gates
 - [ARCHITECTURE_OVERVIEW.md](docs/20-system/ARCHITECTURE_OVERVIEW.md) — modules (Collector / Scorer / Feed) + dependency rules
-- [ADR-100](docs/90-decisions/project/ADR-100-initial-project-decisions.md) — initial decisions (trust gate, no 4-layer, deterministic cache)
+- [ADR-100](docs/90-decisions/project/ADR-100-initial-project-decisions.md) — initial decisions (trust gate, no 4-layer, deterministic cache) · [ADR-101](docs/90-decisions/project/ADR-101-stack-selection.md) — stack selection
+- [DESIGN.md](docs/20-system/DESIGN.md) — UI design system SSOT (tokens / components / motion)
 - [WORKFLOW.md](docs/00-meta/WORKFLOW.md) · [STRUCTURE.md](docs/00-meta/STRUCTURE.md) — document-first dev process (inherited from the harness)
 
 ## Next steps
 
-This project was bootstrapped from a document-first agentic harness. Recommended next command: `/bootstrap-stack` to lock the stack (the deterministic cache store and crawling approach must be chosen against GS-1 / A-1), then `/plan-workitem M1`.
+Stack (`/bootstrap-stack`) and design (`/bootstrap-design`) are done. Recommended next command: **`/plan-workitem M1`** to decompose the foundation milestone — putting A-3 (relative-ranking Kendall τ) verification as the first task before building the scorer (Charter §6 discovery exit check).
 
 ## License
 

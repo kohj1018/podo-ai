@@ -75,7 +75,7 @@ feature
 
 ## 8-1. UX 흐름 품질
 <!-- UI feature 한정. 본 feature는 점수·근거 *산출*이 핵심이고 노출 surface는 피드 feature와 공유 —
-     스택/UI 미정이라 흐름 세부는 /bootstrap-design + 피드 feature에서 확정. 현재 방향만 명시. -->
+     스택 확정(ADR-101)·UI 디자인 확정(DESIGN.md). 흐름의 시각 구현 세부는 피드 feature에서 확정. 현재 방향만 명시. -->
 - primary task: 공고의 점수·근거를 신뢰하고 지원/스킵을 결정.
 - error 흐름: LLM 실패 시 *가짜 점수 대신* 보류 상태 — "틀린 것보다 없는 게 낫다" 원칙을 UX에서도 관철.
 - copy 톤: 근거는 단정 대신 JD 인용 기반("JD에 X 요구됨"). 과약속 표현 금지.

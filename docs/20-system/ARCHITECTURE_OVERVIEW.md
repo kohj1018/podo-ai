@@ -3,7 +3,7 @@
 ## 0. Status
 draft
 
-> 입력 SSOT: [PROJECT_CHARTER.md](../10-charter/PROJECT_CHARTER.md) (← [DISCOVERY.md](../10-charter/DISCOVERY.md)). 스택 미정 — 기술 선택은 가정/미정으로 표기하고 `/bootstrap-stack`이 확정한다.
+> 입력 SSOT: [PROJECT_CHARTER.md](../10-charter/PROJECT_CHARTER.md) (← [DISCOVERY.md](../10-charter/DISCOVERY.md)). **스택 확정 (ADR-101)** — §7 기술 선택 표 + §3-2 물리 배치 참조. 잔존 미정 축(인증·푸시 채널)만 미정 표기.
 
 ## 1. 기술 요약
 채용공고 수집 → 결정론적 LLM 스코어링 → 추천 피드로 이어지는 3단 파이프라인 SaaS. 핵심 비기능 제약은 **점수 재현성(GS-1)** 과 **근거 사실성(GS-2)** 이며, 이 두 게이트가 아키텍처의 1차 설계 동인이다. 구체 런타임·프레임워크·DB·배포는 **미정** (제약: Charter §7).
@@ -26,7 +26,7 @@ draft
 **신뢰 경계:** 외부 사이트(비신뢰 입력, ToS·구조변경 리스크) / LLM 제공자(비결정 출력원) / 사용자 이력서(민감 PII). 입력 검증·에러 핸들링은 이 세 경계에만 둔다 (AGENTS.md 단순성 규율).
 
 ## 3. 상위 아키텍처
-> C4 Container 레벨. 실행 단위가 스택 확정 전이라 *논리 모듈* 기준으로 적는다 (물리 배치는 `/bootstrap-stack`).
+> C4 Container 레벨. *논리 모듈* 기준으로 적는다. 물리 배치(실행 단위 매핑)는 §3-2에 스택 확정(ADR-101) 기준으로 채워졌다.
 
 논리 모듈 3개 + 공유 데이터 저장:
 
@@ -37,7 +37,7 @@ draft
 데이터 흐름은 단방향: `Collector → (저장) → Scorer → (저장) → Feed`. Feed는 Collector/Scorer를 직접 호출하지 않고 저장된 결과만 읽는다.
 
 ## 3-1. 레이어 경계 + 의존성 규칙
-> **self-check (ADR-006):** 프로젝트 규모가 4-layer Clean Architecture(Domain/UseCase/Adapter/Framework)를 정당화하는가? → **아니다.** 단일 개발자 MVP, 스택 미정. 따라서 **단일 layer + 모듈 단위 의존성 규칙**을 채택한다 (ADR-006 단순성 1순위). 다만 모듈이 3개(Collector/Scorer/Feed)로 분리되고, 그중 **Scorer의 결정론 경계는 GS-1 게이트의 구조적 전제**라 아래 한 가지 의존성 규칙만 명시적으로 못 박는다.
+> **self-check (ADR-006):** 프로젝트 규모가 4-layer Clean Architecture(Domain/UseCase/Adapter/Framework)를 정당화하는가? → **아니다.** 단일 개발자 MVP, 모듈 3개(Collector/Scorer/Feed) 규모. 따라서 **단일 layer + 모듈 단위 의존성 규칙**을 채택한다 (ADR-006 단순성 1순위). 다만 모듈이 3개(Collector/Scorer/Feed)로 분리되고, 그중 **Scorer의 결정론 경계는 GS-1 게이트의 구조적 전제**라 아래 한 가지 의존성 규칙만 명시적으로 못 박는다.
 
 **모듈 의존성 규칙 (drift 시 ADR로 변경):**
 - 세 모듈은 *데이터 저장*을 통해서만 통신한다. `Feed → Collector` / `Feed → Scorer` 직접 호출 금지 (저장된 결과만 읽음).
@@ -111,7 +111,7 @@ draft
 4. **알림 흐름:** 수집 diff에 신규/마감임박 발생 → 오전 푸시("신규 N / 마감임박 M"). 실패 시 Fail #1 치명.
 
 ## 6. 외부 연동 지점
-- **토스 채용 페이지 / 당근 채용 페이지** — Collector(crawler)가 **httpx 정적 fetch 우선**, 동적렌더링/anti-bot 시에만 Playwright headless로 승격(A-1 결과 의존). ToS/robots 준수가 비가역 제약. 트리거는 GitHub Actions 매일 오전 cron.
+- **토스 채용 페이지 / 당근 채용 페이지** — Collector(crawler)가 **httpx 정적 fetch 우선**, 동적렌더링/anti-bot 시에만 Playwright headless로 승격. **A-1 검증됨(2026-06-04 — 크롤링 실증 동작 확인)** → 입력 확보. ToS 준수는 운영 상시 원칙(리스크 아님). 트리거는 GitHub Actions 매일 오전 cron.
 - **LLM 제공자 — OpenAI (OpenAI SDK, Python Worker)** — 스코어링·근거 추출. 모델 ID·버전을 캐시 키에 핀(결정론 전제). 구체 모델 ID·temperature/seed 파라미터는 `## 7-3` 백엔드 결정 + ADR-101.
 - **푸시 알림 채널 (미정)** — 오전 신규/마감 알림. 채널 구현은 MVP 후반 — 현재 미정 (§10).
 - **데이터 저장 — PostgreSQL + pgvector (Docker Compose 로컬, 추후 AWS RDS 예정)** — 공고·이력서·점수·근거·vector embedding 영속. PII(이력서) 보관 → 보안 요구(§8). 스키마 SSOT는 Prisma.
@@ -235,7 +235,7 @@ draft
 
 ### 보안
 - 이력서 = 민감 PII. 저장·전송 보호, 외부 LLM 전송 시 최소 필요 정보 원칙. 구체 정책은 LLM 제공자·저장소 확정 후 ADR.
-- 외부 사이트 ToS/robots 준수 — 법적·비가역 리스크(A-1).
+- 외부 사이트 ToS/robots 준수 — 운영 상시 의무(A-1 크롤링 실현성 검증됨 2026-06-04 — 리스크 해소; 준수 자체는 지속 원칙).
 
 ### 신뢰성 (지배 속성)
 - **GS-1 재현성:** 동일 입력 → 동일 점수. 캐시 hit 변동 0, miss 재계산 top-k 순서 변동 0. 결정론 경계(§3-1)가 구조적 보증.
@@ -251,13 +251,13 @@ draft
 
 ## 9. 리스크
 - **R1 (최고) — A-3/GS-3:** LLM 상대 랭킹의 일관·정확성이 출시 전 검증 불가. 깨지면 F5·제품 차별화 붕괴. 완화: Kendall τ 프록시 + 결정론 캐시(GS-1).
-- **R2 — A-1 (비가역):** 토스·당근 ToS/anti-bot으로 수집 자체가 불가·위법할 수 있음. 파이프라인 입력 소실. 완화: robots/ToS 정독 + 7일 fetch 로그 선검증.
+- **R2 — A-1 (검증됨 2026-06-04 — 해소):** 토스·당근 크롤링이 anti-bot/동적렌더링 위에서 실제 동작함을 외부에서 직접 확인(차단·캡차 미관측). 파이프라인 입력 확보 → 리스크 해소. ToS 준수는 운영 상시 원칙.
 - **R3 — A-12:** LLM 비결정성 위 캐시 결정론이 실제로 변동 0을 보장 못 할 수 있음(캐시 키 설계 결함). 완화: 명시적 직렬화 키 규칙(§3-1) + 100회 반복 결정성 테스트.
 - **R4 — A-6:** self-proxy 일반화 실패 시 정확도 완벽해도 시장 부재. 완화: 외부 5~8인 인터뷰(코드 무관, 선행 가능).
-- **R5 — 스택 미정:** 결정론 캐시·크롤링 방식이 스택 선택에 강하게 의존 → 잘못된 스택 선택이 게이트 달성을 어렵게 함. 완화: `/bootstrap-stack`에서 GS-1·A-1을 선택 기준으로 명시.
+- **R5 — 스택 선택 (확정, ADR-101):** GS-1(결정론 캐시 저장소=Postgres)·A-1(크롤링 방식) 기준으로 스택 확정. 잔존 리스크는 폴리글랏 schema drift(R6 — §3-2 schema-contract test로 완화)로 이동.
 
 ## 10. 열린 질문
-- 크롤링을 정적 fetch로 충분히 처리할 수 있나, headless 브라우저가 필요한가? (A-1 결과 의존 — 스택 선택 직결)
+- 크롤링을 정적 fetch로 충분히 처리할 수 있나, headless 브라우저가 필요한가? (A-1 검증됨 — 크롤링 동작 확인. 정적 httpx 우선 → 필요 시 Playwright 승격은 구현 시 확정, ADR-101 D-CRAWL)
 - 결정론 캐시의 키 구성에 이력서 정규화를 어느 수준까지 포함할 것인가(과도 정규화 = 캐시 폭증, 과소 = 변동)? (A-12)
 - 직군 미확정(백엔드/데이터)에서 단일 스코어링 모델 vs 직군 분기 — 아키텍처상 Scorer 분기 비용은? (Charter §10 / A-7)
 - LLM 제공자/모델을 무엇으로 핀할 것이며, 버전 변경 시 기존 캐시·점수 마이그레이션 정책은? (GS-1)

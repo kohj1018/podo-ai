@@ -9,7 +9,7 @@ draft
 ## 2. 범위
 토스·당근 2곳 수집 골격 + 결정론 캐시 스코어링 + JD grounding 근거 + 커버리지 투명성 패널 + 최소 피드. 게이트 측정 경로(test-retest·근거 사실성 라벨링)를 함께 세운다.
 
-> **선행 의존:** 스택 미정이라 M1 task 분해(`/plan-workitem M1`)는 `/bootstrap-stack` 확정 후가 자연스럽다. 스택 확정 전 분해는 가짜 작업이 될 수 있다 (Charter §7 제약).
+> **선행 의존 (해소):** 스택 확정(ADR-101)·design 확정(DESIGN.md)·A-1 검증(크롤링 실증, 2026-06-04) 완료 → `/plan-workitem M1` 착수 가능. 남은 pre-impl 게이트는 A-3(상대 랭킹 Kendall τ) 1건 — 분해 시 *A-3 검증을 첫 task로 박고* 스코어러 구현은 그 뒤(Charter §6 Discovery exit check).
 
 ## 3. 포함되는 기능
 - **F-001 (core-value)** — 결정론 스코어링 + JD grounding 근거 (게이트 핵심 — 본 bootstrap이 생성).
@@ -39,8 +39,8 @@ draft
 - ADR: [ADR-100](../../90-decisions/project/ADR-100-initial-project-decisions.md) (D1 게이트 우선, D3 결정론 캐시)
 
 ## 7. 열린 질문
-- 스택 미정 — `/bootstrap-stack` 전까지 task 분해 보류 권장. 크롤링 방식(정적 fetch vs headless)이 A-1 결과에 의존.
-- A-1(토스·당근 ToS/anti-bot)·A-3(상대 랭킹 τ)이 M1 착수 전 선검증되어야 게이트 실증이 의미를 가짐 (DISCOVERY §12 / Charter §6 Discovery exit check).
+- 스택 확정(ADR-101)·A-1 검증(크롤링 동작 확인, 2026-06-04) 완료 → task 분해 가능. 크롤링 방식(정적 httpx 우선 → 필요 시 headless)은 구현 시 확정.
+- **A-1은 검증됨(2026-06-04 — 크롤링 실증).** 남은 A-3(상대 랭킹 τ)이 M1 구현 착수 전 선검증되어야 게이트 실증이 의미를 가짐 (DISCOVERY §12 / Charter §6 Discovery exit check). A-3 τ<0.6이면 F5(상대 랭킹) 범위 재검토.
 - M1에 상대 랭킹(F5)을 포함할지 — A-3 τ<0.6이면 범위 재검토(ADR-100 D1 / Charter §9 A-3 No-go).
 - 5단계 밴드 cut-off 미정(Charter §10) — 최소 피드의 밴드 표시 폭에 영향.
 

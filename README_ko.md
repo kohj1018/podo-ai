@@ -27,19 +27,20 @@
 
 ## 상태
 
-초기 bootstrap 단계. **스택 미정** — stack-specific 자동화(hooks/CI/lint/test) 미추가. 발굴 가정(A-1~A-12) 전부 **미검증**(인터뷰·딥리서치 전). [assumption tracker](docs/10-charter/DISCOVERY.md) §12 참조.
+초기 빌드 단계. **스택 확정** ([ADR-101](docs/90-decisions/project/ADR-101-stack-selection.md)): 폴리글랏 TS(Next.js web / NestJS+Prisma api) + Python(OpenAI SDK worker/crawler/eval), Postgres+pgvector — 폴리글랏 모노레포 스캐폴딩 완료. **디자인 시스템 정의** ([DESIGN.md](docs/20-system/DESIGN.md), concept "포도 친구"). **A-1(크롤링 실현성) 검증됨**(2026-06-04). 그 외 발굴 가정(A-2~A-12)은 **미검증**(인터뷰 전). [assumption tracker](docs/10-charter/DISCOVERY.md) §12 참조.
 
 ## 문서
 
 - [DISCOVERY.md](docs/10-charter/DISCOVERY.md) — 페르소나 / pain / 시나리오 (SSOT)
 - [PROJECT_CHARTER.md](docs/10-charter/PROJECT_CHARTER.md) — 범위·목표·비목표·성공 게이트
 - [ARCHITECTURE_OVERVIEW.md](docs/20-system/ARCHITECTURE_OVERVIEW.md) — 모듈(Collector/Scorer/Feed) + 의존성 규칙
-- [ADR-100](docs/90-decisions/project/ADR-100-initial-project-decisions.md) — 초기 결정(신뢰 게이트, 4-layer 미채택, 결정론 캐시)
+- [ADR-100](docs/90-decisions/project/ADR-100-initial-project-decisions.md) — 초기 결정(신뢰 게이트, 4-layer 미채택, 결정론 캐시) · [ADR-101](docs/90-decisions/project/ADR-101-stack-selection.md) — 스택 선택
+- [DESIGN.md](docs/20-system/DESIGN.md) — UI 디자인 시스템 SSOT(토큰/컴포넌트/모션)
 - [WORKFLOW.md](docs/00-meta/WORKFLOW.md) · [STRUCTURE.md](docs/00-meta/STRUCTURE.md) — document-first 개발 프로세스(harness 상속)
 
 ## 다음 단계
 
-본 프로젝트는 document-first agentic harness에서 bootstrap되었다. 권장 다음 명령: `/bootstrap-stack`으로 스택 확정(결정론 캐시 저장소·크롤링 방식을 GS-1 / A-1 기준으로 선택해야 함) 후 `/plan-workitem M1`.
+스택(`/bootstrap-stack`)·디자인(`/bootstrap-design`) 확정 완료. 권장 다음 명령: **`/plan-workitem M1`** — foundation 마일스톤을 분해하되, A-3(상대 랭킹 Kendall τ) 검증을 *첫 task*로 박고 스코어러 구현은 그 뒤(Charter §6 discovery exit check).
 
 ## 라이선스
 
