@@ -1,7 +1,7 @@
 # T-003-compute-fit
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 feature
@@ -15,7 +15,7 @@ feature
 - (비범위) `domain_alignment`은 ai/core 소유(T-002) — 본 task는 그 결과를 입력으로 받음.
 
 ## 3. 구현 항목
-- `ai/worker/rank_aggregate.py`(또는 `scoring.py`) — compute_fit + cap 사다리 + 도메인 cap(mismatch 동적) + coverage dict + dedup_audit.
+- `ai/worker/src/worker/rank_aggregate.py` — compute_fit + cap 사다리 + 도메인 cap(mismatch 동적) + coverage dict + dedup_audit. (경로: src-layout — ADR-102 D5)
 - 가중치·임계값(ratio≥0.80→5 …)·cap 규칙(role-defining critical/required ≥2→cap2, =1→cap3; minor crit crit_ratio≥0.8→cap4; domain cap)을 **SPEC §4 상수 그대로** (검증된 캘리브레이션 — 임의 변경 금지).
 - dedup: 교차타입·containment/Jaccard≥0.6/(same_cat&Jaccard≥0.4)·필수표현 유지·cap에서만 제외.
 
@@ -23,7 +23,7 @@ feature
 - BT/aggregate/정렬(T-008) · 매칭/검증(T-006·T-007) · dedup 기본값 승격(실험 유지, SPEC §10-4).
 
 ## 4-1. 변경 예정 파일/경로
-- `ai/worker/rank_aggregate.py`(compute_fit 부분), `ai/worker/tests/test_compute_fit.py`
+- `ai/worker/src/worker/rank_aggregate.py`(compute_fit 부분), `ai/worker/tests/test_compute_fit.py` (test는 co-located — ADR-102 D1)
 
 ## 5. 완료 조건
 명세 상수대로 fit 1~5와 cap 사유가 산출되고, dedup OFF가 baseline과 동일하며, 도메인 cap이 적용된다.
@@ -50,8 +50,13 @@ feature
 ## 8. 메모
 해석 확정: dedup은 *실험 플래그*로만 이식(기본 OFF) — SPEC §10-4 승격 4조건 미충족.
 
+### repair 결정 이력 (ADR-047 D7)
+- repair-workitem 2026-06-05 P0 ruff-format/mypy: Adopt — `ruff format` 2파일 + mypy type-arg 4건(bare `list`/`dict` → `list[MatchRow]`·`dict[str, object]`, L77·94·150). 구현 strict green. compute_fit 로직은 4 AC 통과(SPEC §4 정합) — 변경 없음.
+- repair-workitem 2026-06-05 P0 test 레이아웃(mypy `duplicate module` + 전체 validate 미수집): Adopt-modified — **컨벤션 정식 확정([ADR-102](../../90-decisions/project/ADR-102-python-test-layout.md))**: co-located 정식 지원(루트 `testpaths=["ai","crawler"]`·importlib, mypy·ruff(E501) test 제외, test `__init__.py` 제거). T-003 test는 plan대로 `ai/worker/tests/` 유지. (T-002 중앙화 회수 방식을 *대체* — 후속 14개 plan의 co-located 의도 정합.)
+- repair-workitem 2026-06-05 P1 구현 경로(src-layout): Adopt — §3·§4-1·§9를 `ai/worker/src/worker/rank_aggregate.py`로 정정(ADR-102 D5).
+
 ## 9. 의존성
 - depends_on: [T-002]
 - read_set: ["ai/core/models.py", "docs/20-system/SCORING_PIPELINE_SPEC.md"]
-- write_set: ["ai/worker/rank_aggregate.py", "ai/worker/tests/test_compute_fit.py"]
+- write_set: ["ai/worker/src/worker/rank_aggregate.py", "ai/worker/tests/test_compute_fit.py"]
 - verifier: "uv run pytest ai/worker/tests/test_compute_fit.py"
