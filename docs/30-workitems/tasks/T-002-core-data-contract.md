@@ -1,7 +1,7 @@
 # T-002-core-data-contract
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 technical-enabler
@@ -15,7 +15,7 @@ technical-enabler
 - **`domain_alignment(role_family, primary, secondary)`** (SPEC §4-3) — worker(스코어링)·crawler(도메인 선택)가 *둘 다* 쓰므로 ai/core에 둔다(crawler→worker import 방향 위반 방지, ARCH §3-1).
 
 ## 3. 구현 항목
-- `ai/core/models.py` — 상수 + Pydantic v2 모델(SPEC §3 그대로) + `domain_alignment`(SPEC §4-3, `ROLE_FAMILY_TO_DOMAINS`와 같은 파일). 순환 import 방지(모든 공유 스키마/순수 헬퍼 1파일).
+- `ai/core/src/core/models.py` — 상수 + Pydantic v2 모델(SPEC §3 그대로) + `domain_alignment`(SPEC §4-3, `ROLE_FAMILY_TO_DOMAINS`와 같은 파일). 순환 import 방지(모든 공유 스키마/순수 헬퍼 1파일). (경로: src-layout 정합 — `from core.models import` resolve)
 - enum 필드는 `clamp`로 허용값 외 입력을 default로 클램프(LLM 오출력 방어). 리스트 필드는 `as_list` 강제.
 - `FIT_LABELS`(1~5 한국어 라벨) 보존 — 합격확률/% 금지(Charter §5).
 
@@ -23,7 +23,7 @@ technical-enabler
 - DB 매핑(Prisma 스키마 — `podo/apps/api`) · 알고리즘 로직(compute_fit 등은 T-003~).
 
 ## 4-1. 변경 예정 파일/경로
-- `ai/core/models.py`, `ai/core/tests/test_models.py`
+- `ai/core/src/core/models.py`, `ai/tests/test_models.py` (테스트는 T-001 convention인 중앙 `ai/tests/`에 — testpaths·mypy 정합)
 
 ## 5. 완료 조건
 모델이 정상 입력을 검증·직렬화하고, enum 클램프와 리스트 강제가 명세대로 동작한다.
@@ -35,10 +35,10 @@ technical-enabler
 - AC-4 [Given] primary={"frontend","web"}, secondary={"backend"} [When] `domain_alignment(rf, primary, secondary)` [Then] rf="frontend"→"strong", rf="backend"→"adjacent", rf="marketing"→"mismatch", rf="data"→"weak"를 반환한다.
 
 ## 6-1. 테스트 시나리오 (TDD Red)
-- AC-1 → pytest::ai/core/tests/test_models.py::test_AC_1_roundtrip
-- AC-2 → pytest::ai/core/tests/test_models.py::test_AC_2_enum_clamp_and_list_coercion
-- AC-3 → pytest::ai/core/tests/test_models.py::test_AC_3_all_requirements
-- AC-4 → pytest::ai/core/tests/test_models.py::test_AC_4_domain_alignment
+- AC-1 → pytest::ai/tests/test_models.py::test_AC_1_roundtrip
+- AC-2 → pytest::ai/tests/test_models.py::test_AC_2_enum_clamp_and_list_coercion
+- AC-3 → pytest::ai/tests/test_models.py::test_AC_3_all_requirements
+- AC-4 → pytest::ai/tests/test_models.py::test_AC_4_domain_alignment
 
 ## 6-2. TDD opt-out
 <!-- TDD 적용. -->
@@ -50,8 +50,15 @@ technical-enabler
 
 ## 8. 메모
 
+### repair 결정 이력 (ADR-047 D7)
+- repair-workitem 2026-06-05 P0 구현-전무: Adopt — `ai/core/src/core/models.py` 구현(SPEC §3 enum/상수·Pydantic 모델 8종·clamp/as_list + §4-3 domain_alignment). 4 AC green(implement는 Red 테스트만 남기고 Green 미작성).
+- repair-workitem 2026-06-05 P0 ruff-format: Adopt — `ruff format` 적용 + Korean docstring/comment E501 단축(models.py·test).
+- repair-workitem 2026-06-05 P1 models.py 경로: Adopt — src-layout 정합 위해 `ai/core/models.py`→`ai/core/src/core/models.py`(test의 `from core.models import` resolve). §3·§4-1·§9 정정.
+- repair-workitem 2026-06-05 P1 test 경로/레이아웃: Adopt-modified — plan은 `ai/core/tests/`였으나 T-001 `ai/tests/`(testpaths=["ai/tests"])와 충돌: mypy `duplicate module "tests"` + 전체 validate 미수집. → `ai/tests/test_models.py`로 중앙화(T-001 convention 정합, 루트 config 무변경). §4-1·§6-1·§9 정정.
+- repair-workitem 2026-06-05 P1 mypy-strict test: Adopt-modified — enum 필드를 Literal 타입화(test의 `# type: ignore[arg-type]` 유효화) + `Model(**dict)`→`Model.model_validate(dict)`(mypy-clean idiom, dict 파싱 의미 보존).
+
 ## 9. 의존성
 - depends_on: [T-001]
 - read_set: ["docs/20-system/SCORING_PIPELINE_SPEC.md"]
-- write_set: ["ai/core/models.py", "ai/core/tests/test_models.py"]
-- verifier: "uv run pytest ai/core/tests/test_models.py"
+- write_set: ["ai/core/src/core/models.py", "ai/tests/test_models.py"]
+- verifier: "uv run pytest ai/tests/test_models.py"
