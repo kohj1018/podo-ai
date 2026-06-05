@@ -24,6 +24,7 @@ docs/20-system/design-concepts/
 docs/20-system/design-preview.html
 # Python uv workspace 산출물 (T-001 — .venv·캐시는 커밋 X, uv.lock은 커밋 O)
 .venv/
+.cache/
 __pycache__/
 *.py[cod]
 .mypy_cache/

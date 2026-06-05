@@ -13,7 +13,8 @@ import json
 import re
 from typing import Any, Callable
 
-from worker.config import LLM_SEED, OPENAI_API_KEY, OPENAI_MODEL
+from worker.cache import llm_cache_get, llm_cache_put, make_key
+from worker.config import LLM_SEED, OPENAI_API_KEY, OPENAI_MODEL, SCHEMA_VERSION
 
 # JSON_SYSTEM 시스템 프롬프트 (SPEC §8-1).
 # 프로토타입 검증 문구 — 추출형·사실성 보장 지시("never invent facts / follow
@@ -54,7 +55,15 @@ def _openai_call(system: str, user: str, max_tokens: int, temperature: float) ->
     max_completion_tokens를 요구하고 기본 temperature(=1)만 허용한다. 공통 형태를
     먼저 시도하고 API 에러 메시지에 따라 token 파라미터·seed·temperature를 순차
     fallback한다 — 모델명 하드코딩 없음 (SPEC §8-1).
+
+    재현성: 동일 (model, system, user, SCHEMA_VERSION)이면 디스크 캐시 응답을 반환해
+    LLM 비결정성을 제거한다 (cache miss일 때만 실제 API 호출). cache.llm_cache_* 참조.
     """
+    cache_key = make_key(OPENAI_MODEL, system, user, SCHEMA_VERSION)
+    cached = llm_cache_get(cache_key)
+    if cached is not None:
+        return cached
+
     import openai
 
     client = openai.OpenAI(api_key=OPENAI_API_KEY)
@@ -78,7 +87,9 @@ def _openai_call(system: str, user: str, max_tokens: int, temperature: float) ->
             kwargs["seed"] = LLM_SEED
         try:
             response = client.chat.completions.create(**kwargs)
-            return (response.choices[0].message.content or "").strip()
+            text = (response.choices[0].message.content or "").strip()
+            llm_cache_put(cache_key, text)
+            return text
         except Exception as exc:  # noqa: BLE001 — 시스템 경계: API 에러로 파라미터 적응
             msg = str(exc).lower()
             if token_param == "max_tokens" and "max_completion_tokens" in msg:

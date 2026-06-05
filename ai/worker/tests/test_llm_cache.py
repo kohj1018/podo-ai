@@ -129,3 +129,56 @@ def test_AC_3_failure_raises_not_fakes() -> None:
         )
     # LLMError가 raise됐으므로 가짜 결과가 반환되지 않았음이 보장된다.
     assert exc_info.value is not None
+
+
+# ---------------------------------------------------------------------------
+# 추가: LLM 응답 디스크 캐시 (재현성) — gpt-5.4-mini 비결정성 제거
+# ---------------------------------------------------------------------------
+
+
+def test_llm_disk_cache_roundtrip(tmp_path, monkeypatch) -> None:
+    """put 후 get이 동일 응답을 반환하고, 미스는 None."""
+    monkeypatch.setenv("LLM_CACHE_DIR", str(tmp_path))
+    monkeypatch.setenv("LLM_CACHE", "1")
+    monkeypatch.delenv("LLM_CACHE_REFRESH", raising=False)
+    from worker.cache import llm_cache_get, llm_cache_put
+
+    key = make_key("gpt-5.4-mini", "sys", "usr", SCHEMA_VERSION)
+    assert llm_cache_get(key) is None
+    llm_cache_put(key, '{"x": 1}')
+    assert llm_cache_get(key) == '{"x": 1}'
+
+
+def test_llm_disk_cache_refresh_forces_miss(tmp_path, monkeypatch) -> None:
+    """LLM_CACHE_REFRESH=1이면 기록이 있어도 강제 미스(신선 재호출 유도)."""
+    monkeypatch.setenv("LLM_CACHE_DIR", str(tmp_path))
+    monkeypatch.setenv("LLM_CACHE", "1")
+    from worker.cache import llm_cache_get, llm_cache_put
+
+    key = make_key("m", "s", "u", SCHEMA_VERSION)
+    llm_cache_put(key, "cached")
+    monkeypatch.setenv("LLM_CACHE_REFRESH", "1")
+    assert llm_cache_get(key) is None
+
+
+def test_openai_call_returns_cache_hit_without_api(tmp_path, monkeypatch) -> None:
+    """_openai_call: 캐시 히트면 OpenAI SDK를 호출하지 않고 캐시 응답을 반환한다."""
+    import openai
+
+    import worker.llm as worker_llm
+    from worker.cache import llm_cache_put
+    from worker.config import OPENAI_MODEL
+
+    monkeypatch.setenv("LLM_CACHE_DIR", str(tmp_path))
+    monkeypatch.setenv("LLM_CACHE", "1")
+    monkeypatch.delenv("LLM_CACHE_REFRESH", raising=False)
+
+    key = make_key(OPENAI_MODEL, "S", "U", SCHEMA_VERSION)
+    llm_cache_put(key, "CACHED-RESPONSE")
+
+    def _boom(*args, **kwargs):
+        raise AssertionError("OpenAI는 캐시 히트 시 호출되면 안 됨")
+
+    monkeypatch.setattr(openai, "OpenAI", _boom)
+    out = worker_llm._openai_call(system="S", user="U", max_tokens=10, temperature=0.0)
+    assert out == "CACHED-RESPONSE"
