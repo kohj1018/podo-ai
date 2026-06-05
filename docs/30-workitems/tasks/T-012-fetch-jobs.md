@@ -1,7 +1,7 @@
 # T-012-fetch-jobs
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 feature
@@ -52,6 +52,8 @@ feature
 ## 8. 메모
 - 외부 API(토스/당근) 연동 — 구현 전 엔드포인트 응답 형태 재확인(researcher/research-pack, ADR-040). ToS 준수 운영 원칙.
 - `User-Agent`는 서비스 식별자로 갱신.
+- repair-workitem 2026-06-05 P0 type-import: Adopt-modified — store.collect sources를 dict[str,Callable[[],list[RawJob]]]로 정확화(Any 불요+Callable 사용+mypy 해소)
+- repair-workitem 2026-06-05 P0 ruff-I001: Adopt — test_fetch.py import 정렬(ruff --fix)
 
 ## 9. 의존성
 - depends_on: [T-002]
