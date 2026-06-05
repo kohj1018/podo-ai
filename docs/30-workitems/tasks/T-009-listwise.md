@@ -1,7 +1,7 @@
 # T-009-listwise
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 feature
@@ -44,6 +44,10 @@ listwise가 모든 job_id를 정확히 한 번씩 포함하도록 보정하고, 
 - Algorithm SSOT: [SCORING_PIPELINE_SPEC §7-3](../../20-system/SCORING_PIPELINE_SPEC.md)
 
 ## 8. 메모
+- repair-workitem 2026-06-05 P0 ruff-format: Adopt — format hook가 2파일 자동 정렬, pnpm validate green
+- repair-workitem 2026-06-05 P0 E501x4: Adopt — impl 79/85/159/250 ruff format 자동 줄바꿈으로 해소
+- repair-workitem 2026-06-05 P0 F401: Adopt — test_listwise.py `import pytest` 미사용 제거
+- repair-workitem 2026-06-05 P0 F841: Adopt — test `warnings_str` dead 변수 제거(assert는 warnings 직접 사용)
 
 ## 9. 의존성
 - depends_on: [T-005]
