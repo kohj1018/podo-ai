@@ -24,6 +24,7 @@ color: cyan
 - 범위 밖 변경은 하지 않는다.
 - 작업 전 관련 문서의 범위와 비범위를 먼저 확인한다.
 - **완료 출력 직전 통합 검증 실행**: 코드를 산출했으면, 통합 validate 명령(`pnpm validate` / `npm run validate` / `make validate` / `task validate` 중 존재하는 것)을 돌려 format·lint·typecheck·test가 green인지 확인하고, 실패가 있으면 고친 뒤 재실행해 통과할 때만 완료를 출력한다. 통합 명령이 없으면 스택 표준 포맷터·린터·타입체커(예: `ruff format` + `ruff check --fix` + `mypy`)를 *변경 파일*에 실행한다. format/lint/type 누락이 곧 validate→repair 왕복을 만드는 *관측된* 실패 모드를 막는다(ADR-022 observed-failure 제약 / ADR-007 canonical 검증 = validate).
+- **Pydantic v2 `Literal` 필드 생성**: `Literal`(enum) 필드를 dict·LLM 파생 `str`로 채울 땐 `Model(field=str_var)` 대신 **`Model.model_validate(dict)`**를 쓴다 — 전자는 `mypy --strict`에서 `arg-type` 오류(런타임 `field_validator` clamp는 통과해도 정적 타입 불일치). *관측된 반복 패턴* (ADR-022).
 - 구현 후 아래를 짧게 요약한다.
   - 수정 파일
   - 핵심 변경 사항
