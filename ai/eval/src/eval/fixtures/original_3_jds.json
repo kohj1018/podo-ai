@@ -1,0 +1,108 @@
+{
+  "_synthetic": true,
+  "_note": "합성 회귀 골든 픽스처 — 실제 이력서/공고가 아님 (T-014, SPEC §10-1). 절대 fit 수치가 아닌 관계 불변식 검사용. 인용은 resume.raw_text에 verbatim 존재해 추출형 검사를 통과한다.",
+  "resume": {
+    "raw_text": "프론트엔드 엔지니어 지원. React 18 SPA를 3년간 설계·개발. Kotlin 안드로이드 앱 유지보수. TypeScript, Next.js 능숙.",
+    "primary_domains": ["frontend", "fullstack", "web"],
+    "secondary_domains": ["backend", "mobile"],
+    "evidence": [
+      {
+        "evidence_id": "E1",
+        "title": "프론트엔드 경력",
+        "source_section": "Experience",
+        "exact_quote": "React 18 SPA를 3년간 설계·개발",
+        "normalized_summary": "React 18 SPA 3년"
+      },
+      {
+        "evidence_id": "E2",
+        "title": "안드로이드 경험",
+        "source_section": "Experience",
+        "exact_quote": "Kotlin 안드로이드 앱 유지보수",
+        "normalized_summary": "Kotlin Android 유지보수"
+      }
+    ]
+  },
+  "ranking": [
+    {
+      "job_id": "fe-jd",
+      "company": "Toss",
+      "title": "Frontend Engineer",
+      "role_family": "frontend",
+      "domain_alignment": "strong",
+      "rank": 1,
+      "fit_level": 5
+    },
+    {
+      "job_id": "and-jd",
+      "company": "Daangn",
+      "title": "Android Device SWE",
+      "role_family": "android",
+      "domain_alignment": "adjacent",
+      "rank": 2,
+      "fit_level": 3
+    },
+    {
+      "job_id": "mkt-jd",
+      "company": "Naver",
+      "title": "Content Marketer Intern",
+      "role_family": "marketing",
+      "domain_alignment": "mismatch",
+      "rank": 3,
+      "fit_level": 1
+    }
+  ],
+  "tables": {
+    "fe-jd": {
+      "job_id": "fe-jd",
+      "company": "Toss",
+      "title": "Frontend Engineer",
+      "rows": [
+        {
+          "requirement_id": "fe-r1",
+          "match_level": "direct",
+          "evidence_quotes": ["React 18 SPA를 3년간 설계·개발"]
+        }
+      ]
+    },
+    "and-jd": {
+      "job_id": "and-jd",
+      "company": "Daangn",
+      "title": "Android Device SWE",
+      "rows": [
+        {
+          "requirement_id": "and-r1",
+          "match_level": "adjacent",
+          "evidence_quotes": ["Kotlin 안드로이드 앱 유지보수"]
+        }
+      ]
+    },
+    "mkt-jd": {
+      "job_id": "mkt-jd",
+      "company": "Naver",
+      "title": "Content Marketer Intern",
+      "rows": [
+        {
+          "requirement_id": "mkt-r1",
+          "match_level": "missing",
+          "evidence_quotes": []
+        }
+      ]
+    }
+  },
+  "pairwise": [
+    {
+      "job_a": "fe-jd",
+      "job_b": "and-jd",
+      "agreed": true,
+      "outcome": "fe-jd",
+      "confidence": "high"
+    },
+    {
+      "job_a": "fe-jd",
+      "job_b": "mkt-jd",
+      "agreed": false,
+      "outcome": "tie",
+      "confidence": "low"
+    }
+  ]
+}

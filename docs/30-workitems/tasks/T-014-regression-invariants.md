@@ -1,7 +1,7 @@
 # T-014-regression-invariants
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 feature
