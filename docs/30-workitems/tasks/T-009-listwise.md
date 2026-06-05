@@ -14,13 +14,13 @@ listwise 재랭킹(단계 7)을 `ai/worker`에 이식한다: 압축 매칭표만
 - `listwise_rank(tables, domain_ctx, fits)`: 프롬프트 `listwise_rerank` 호출 → 중복 제거 + 누락 시 재질의 1회 → 여전히 누락이면 `key=(fit_level, DOM_RANK)`로 안전 위치 삽입(맨끝 append 금지).
 
 ## 3. 구현 항목
-- `ai/worker/rerank_listwise.py` — `compress_table`, `listwise_rank`, `_ask_listwise`(validate: ranking 리스트·중복/누락 검출), warnings 수집.
+- `ai/worker/src/worker/rerank_listwise.py` — `compress_table`, `listwise_rank`, `_ask_listwise`(validate: ranking 리스트·중복/누락 검출), warnings 수집.
 
 ## 4. 제외 항목
 - pairwise(T-010) · aggregate(T-008) · 프롬프트 작성(T-005).
 
 ## 4-1. 변경 예정 파일/경로
-- `ai/worker/rerank_listwise.py`, `ai/worker/tests/test_listwise.py`
+- `ai/worker/src/worker/rerank_listwise.py`, `ai/worker/tests/test_listwise.py`
 
 ## 5. 완료 조건
 listwise가 모든 job_id를 정확히 한 번씩 포함하도록 보정하고, 누락분을 fit/domain 기준으로 안전 배치한다.
@@ -47,6 +47,6 @@ listwise가 모든 job_id를 정확히 한 번씩 포함하도록 보정하고, 
 
 ## 9. 의존성
 - depends_on: [T-005]
-- read_set: ["ai/core/models.py", "ai/worker/prompts/listwise_rerank.md", "ai/worker/llm.py"]
-- write_set: ["ai/worker/rerank_listwise.py", "ai/worker/tests/test_listwise.py"]
+- read_set: ["ai/core/src/core/models.py", "ai/worker/src/worker/prompts/listwise_rerank.md", "ai/worker/src/worker/llm.py"]
+- write_set: ["ai/worker/src/worker/rerank_listwise.py", "ai/worker/tests/test_listwise.py"]
 - verifier: "uv run pytest ai/worker/tests/test_listwise.py"

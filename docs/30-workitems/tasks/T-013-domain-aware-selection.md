@@ -16,14 +16,14 @@ feature
 - 선택 리포트(`fetch_selection_report` 동등: tier/role_family 분포, selected/skipped).
 
 ## 3. 구현 항목
-- `crawler/selection.py` — `ROLE_PATTERNS`/`classify_role_family`/`role_tier`/`build_pool`/`select_balanced`/선택 리포트.
+- `crawler/src/crawler/selection.py` — `ROLE_PATTERNS`/`classify_role_family`/`role_tier`/`build_pool`/`select_balanced`/선택 리포트.
 - `USER_PRIMARY/SECONDARY_DOMAINS`는 설정값(MVP 단일 사용자; 후속 후보별). **`domain_alignment`은 `ai/core`(T-002)에서 import** — crawler가 ai/worker를 import하지 않는다(의존 방향 정합, ARCH §3-1).
 
 ## 4. 제외 항목
 - fetch/upsert(T-012) · LLM role_family 확정(F-001 jd_extract가 최종 권위) · 후보별 도메인 프로파일(후속).
 
 ## 4-1. 변경 예정 파일/경로
-- `crawler/selection.py`, `crawler/tests/test_selection.py`
+- `crawler/src/crawler/selection.py`, `crawler/tests/test_selection.py`
 
 ## 5. 완료 조건
 제목으로 role_family를 분류하고, pool에서 도메인 균형으로 limit만큼 선택하며, 선택 내역을 리포트로 남긴다.
@@ -51,6 +51,6 @@ feature
 
 ## 9. 의존성
 - depends_on: [T-002, T-012]  # domain_alignment은 ai/core(T-002); compute_fit(T-003) 불필요
-- read_set: ["ai/core/models.py", "crawler/fetch_jobs.py"]
-- write_set: ["crawler/selection.py", "crawler/tests/test_selection.py"]
+- read_set: ["ai/core/src/core/models.py", "crawler/src/crawler/fetch_jobs.py"]
+- write_set: ["crawler/src/crawler/selection.py", "crawler/tests/test_selection.py"]
 - verifier: "uv run pytest crawler/tests/test_selection.py"

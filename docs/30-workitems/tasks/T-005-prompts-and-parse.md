@@ -15,22 +15,22 @@ feature
 - `parse_job`: LLM 구조화 + prerequisite_status default 규칙 + id 유일성.
 
 ## 3. 구현 항목
-- `ai/worker/prompts/*.md` 7종 — **SPEC 부록 A의 각 ````text 펜스 본문을 글자 그대로 복사**(`{{VAR}}` 플레이스홀더 포함). 패러프레이즈 금지(LLM IP). 스냅샷 테스트(AC-2)가 부록 A ↔ 파일 정규화 동일성을 강제.
-- `ai/worker/parse_resume.py` — `extract_evidence`(프롬프트 `resume_extract`) + `extract_skills_evidence`(결정적, Skills 헤딩 → 토큰) + id 충돌 `_x` suffix + `skills_debug`.
-- `ai/worker/parse_job.py` — `structure_job`(프롬프트 `jd_extract`) + `_requirements`(prerequisite default: behavioral→behavioral_preference, else prerequisite).
+- `ai/worker/src/worker/prompts/*.md` 7종 — **SPEC 부록 A의 각 ````text 펜스 본문을 글자 그대로 복사**(`{{VAR}}` 플레이스홀더 포함). 패러프레이즈 금지(LLM IP). 스냅샷 테스트(AC-2)가 부록 A ↔ 파일 정규화 동일성을 강제.
+- `ai/worker/src/worker/parse_resume.py` — `extract_evidence`(프롬프트 `resume_extract`) + `extract_skills_evidence`(결정적, Skills 헤딩 → 토큰) + id 충돌 `_x` suffix + `skills_debug`.
+- `ai/worker/src/worker/parse_job.py` — `structure_job`(프롬프트 `jd_extract`) + `_requirements`(prerequisite default: behavioral→behavioral_preference, else prerequisite).
 
 ## 4. 제외 항목
 - 매칭/rematch(T-006) · 검증(T-007) · listwise/pairwise 호출(T-009·T-010 — 프롬프트만 본 task가 작성).
 
 ## 4-1. 변경 예정 파일/경로
-- `ai/worker/prompts/` (7 파일), `ai/worker/parse_resume.py`, `ai/worker/parse_job.py`, `ai/worker/tests/test_parse.py`
+- `ai/worker/src/worker/prompts/` (7 파일), `ai/worker/src/worker/parse_resume.py`, `ai/worker/src/worker/parse_job.py`, `ai/worker/tests/test_parse.py`
 
 ## 5. 완료 조건
 프롬프트 7종이 존재하고, 이력서의 Skills 항목이 결정적으로 보강되며, JD가 prerequisite/product_duty로 분류된다.
 
 ## 6. Acceptance Criteria
 - AC-1 [Given] Skills 헤딩 + 불릿이 있는 이력서 텍스트 [When] `extract_skills_evidence` [Then] evidence_type="skills"·exact_quote=verbatim 불릿·skills=분해 토큰인 항목이 (LLM과 무관하게) 추가된다.
-- AC-2 [Given] 7개 프롬프트 파일 + SCORING_PIPELINE_SPEC.md 부록 A [When] 스냅샷 테스트가 부록 A의 각 `### A-N. \`<name>.md\`` ````text 펜스 본문을 추출해 `ai/worker/prompts/<name>.md`와 비교 [Then] 줄 단위 정규화(trailing whitespace·말미 개행 제거) 후 **글자 단위로 동일**하다(패러프레이즈/누락/순서변경 0 — verbatim 강제).
+- AC-2 [Given] 7개 프롬프트 파일 + SCORING_PIPELINE_SPEC.md 부록 A [When] 스냅샷 테스트가 부록 A의 각 `### A-N. \`<name>.md\`` ````text 펜스 본문을 추출해 `ai/worker/src/worker/prompts/<name>.md`와 비교 [Then] 줄 단위 정규화(trailing whitespace·말미 개행 제거) 후 **글자 단위로 동일**하다(패러프레이즈/누락/순서변경 0 — verbatim 강제).
 - AC-3 [Given] behavioral nature인데 prerequisite_status 누락한 JD 요구 [When] `structure_job` 파싱 [Then] 해당 요구는 `behavioral_preference`로, 그 외 누락은 `prerequisite`로 default된다.
 
 ## 6-1. 테스트 시나리오 (TDD Red)
@@ -51,6 +51,6 @@ feature
 
 ## 9. 의존성
 - depends_on: [T-002, T-004]
-- read_set: ["ai/core/models.py", "ai/worker/llm.py", "docs/20-system/SCORING_PIPELINE_SPEC.md"]
-- write_set: ["ai/worker/prompts/**", "ai/worker/parse_resume.py", "ai/worker/parse_job.py", "ai/worker/tests/test_parse.py"]
+- read_set: ["ai/core/src/core/models.py", "ai/worker/src/worker/llm.py", "docs/20-system/SCORING_PIPELINE_SPEC.md"]
+- write_set: ["ai/worker/src/worker/prompts/**", "ai/worker/src/worker/parse_resume.py", "ai/worker/src/worker/parse_job.py", "ai/worker/tests/test_parse.py"]
 - verifier: "uv run pytest ai/worker/tests/test_parse.py"

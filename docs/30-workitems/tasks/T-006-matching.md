@@ -14,14 +14,14 @@ feature
 - rematch 1회: `_needs_rematch`(over-claim 또는 missing/weak same-category 그룹) → `rematch_evidence` → 실패 시 invalid_match/genuine miss 표기. `GROUP_CATEGORIES` 보존.
 
 ## 3. 구현 항목
-- `ai/worker/matching.py` — `build_matching_table`, `_resolve_evidence`(id 검증 + quote/source verbatim), `_needs_rematch`, `_rematch`.
+- `ai/worker/src/worker/matching.py` — `build_matching_table`, `_resolve_evidence`(id 검증 + quote/source verbatim), `_needs_rematch`, `_rematch`.
 - evidence_quotes는 **항상 evidence의 exact_quote에서 복사**(LLM 작성 인용 금지 — 프롬프트가 id-only를 강제, 코드가 채움).
 
 ## 4. 제외 항목
 - 추출형 재검·verifier(T-007) · compute_fit(T-003) · 프롬프트 작성(T-005).
 
 ## 4-1. 변경 예정 파일/경로
-- `ai/worker/matching.py`, `ai/worker/tests/test_matching.py`
+- `ai/worker/src/worker/matching.py`, `ai/worker/tests/test_matching.py`
 
 ## 5. 완료 조건
 각 요구당 1행이 생성되고, 인용은 evidence에서 verbatim 복사되며, 유효 근거 없는 over-claim 행은 rematch 후 invalid 처리된다.
@@ -50,6 +50,6 @@ FAC-3(GS-2)·FAC-4(F7 매핑)의 핵심 — 인용 추출형 구성이 hallucina
 
 ## 9. 의존성
 - depends_on: [T-005]
-- read_set: ["ai/core/models.py", "ai/worker/prompts/**", "ai/worker/llm.py"]
-- write_set: ["ai/worker/matching.py", "ai/worker/tests/test_matching.py"]
+- read_set: ["ai/core/src/core/models.py", "ai/worker/src/worker/prompts/**", "ai/worker/src/worker/llm.py"]
+- write_set: ["ai/worker/src/worker/matching.py", "ai/worker/tests/test_matching.py"]
 - verifier: "uv run pytest ai/worker/tests/test_matching.py"

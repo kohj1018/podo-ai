@@ -13,13 +13,13 @@ pairwise 비교(단계 9)를 `ai/worker`에 이식한다: 후보 쌍을 A/B·B/A
 - `run_pairwise(tables, candidate_ids, domain_ctx)`: 압축표 기반 모든 후보 쌍 A/B + B/A 비교(`pairwise_compare` 프롬프트) → agreed면 outcome=공통 승자(confidence=min), 불일치면 outcome=tie/low.
 
 ## 3. 구현 항목
-- `ai/worker/compare_pairwise.py` — `_compare_once`(winner a/b/tie clamp) + `run_pairwise`(A/B·B/A, agreed 판정, PairwiseResult 조립). `compress_table`은 T-009에서 재사용(import).
+- `ai/worker/src/worker/compare_pairwise.py` — `_compare_once`(winner a/b/tie clamp) + `run_pairwise`(A/B·B/A, agreed 판정, PairwiseResult 조립). `compress_table`은 T-009에서 재사용(import).
 
 ## 4. 제외 항목
 - 후보 집합 *구성* 로직(T-011 오케스트레이션이 후보 ids 결정) · BT 집계(T-008) · 프롬프트 작성(T-005).
 
 ## 4-1. 변경 예정 파일/경로
-- `ai/worker/compare_pairwise.py`, `ai/worker/tests/test_pairwise.py`
+- `ai/worker/src/worker/compare_pairwise.py`, `ai/worker/tests/test_pairwise.py`
 
 ## 5. 완료 조건
 각 후보 쌍이 양방향 비교되고, 순서 불일치는 tie/low로 처리되어 순서 편향이 제거된다.
@@ -46,6 +46,6 @@ pairwise 비교(단계 9)를 `ai/worker`에 이식한다: 후보 쌍을 A/B·B/A
 
 ## 9. 의존성
 - depends_on: [T-005, T-009]
-- read_set: ["ai/core/models.py", "ai/worker/prompts/pairwise_compare.md", "ai/worker/rerank_listwise.py", "ai/worker/llm.py"]
-- write_set: ["ai/worker/compare_pairwise.py", "ai/worker/tests/test_pairwise.py"]
+- read_set: ["ai/core/src/core/models.py", "ai/worker/src/worker/prompts/pairwise_compare.md", "ai/worker/src/worker/rerank_listwise.py", "ai/worker/src/worker/llm.py"]
+- write_set: ["ai/worker/src/worker/compare_pairwise.py", "ai/worker/tests/test_pairwise.py"]
 - verifier: "uv run pytest ai/worker/tests/test_pairwise.py"

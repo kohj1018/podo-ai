@@ -15,14 +15,14 @@ feature
 - GS-1(N회 캐시 hit 변동 0 / miss top-k 변동 0) + GS-2(표본 ≥30 hallucinated requirement ≤2%) 측정 경로.
 
 ## 3. 구현 항목
-- `ai/eval/golden_pairs.py` — propose/load/evaluate/aggregate_metrics/rescore_persona + 산출물 reader(`_read_json`, unavailable 처리 — 재수집 X).
-- `ai/eval/gates.py` — GS-1 결정성(N=10 반복 hit/miss) + GS-2 사실성(근거 vs JD 원문 span) 측정 + 판정.
+- `ai/eval/src/eval/golden_pairs.py` — propose/load/evaluate/aggregate_metrics/rescore_persona + 산출물 reader(`_read_json`, unavailable 처리 — 재수집 X).
+- `ai/eval/src/eval/gates.py` — GS-1 결정성(N=10 반복 hit/miss) + GS-2 사실성(근거 vs JD 원문 span) 측정 + 판정.
 
 ## 4. 제외 항목
 - 회귀(T-014) · 페르소나 진단(T-015) · dedup 기본 승격(실험 유지) · A-3 τ 1회 실행(T-017).
 
 ## 4-1. 변경 예정 파일/경로
-- `ai/eval/golden_pairs.py`, `ai/eval/gates.py`, `ai/eval/tests/test_golden_pairs.py`
+- `ai/eval/src/eval/golden_pairs.py`, `ai/eval/src/eval/gates.py`, `ai/eval/tests/test_golden_pairs.py`
 
 ## 5. 완료 조건
 골든 페어 strict/tie-aware 정확도가 모드별로 산출되고, rescore가 LLM 없이 ablation하며, GS-1·GS-2 게이트가 측정·판정된다.
@@ -51,6 +51,6 @@ feature
 
 ## 9. 의존성
 - depends_on: [T-011]
-- read_set: ["ai/worker/**", "ai/core/models.py"]
-- write_set: ["ai/eval/golden_pairs.py", "ai/eval/gates.py", "ai/eval/tests/test_golden_pairs.py"]
+- read_set: ["ai/worker/**", "ai/core/src/core/models.py"]
+- write_set: ["ai/eval/src/eval/golden_pairs.py", "ai/eval/src/eval/gates.py", "ai/eval/tests/test_golden_pairs.py"]
 - verifier: "uv run pytest ai/eval/tests/test_golden_pairs.py"

@@ -15,14 +15,14 @@ feature
 - `--compare-ranking-modes`: 3 모드 실행 → `ranking_mode_comparison`(fit_rank/tier inversions, mismatch_violation).
 
 ## 3. 구현 항목
-- `ai/eval/eval_resumes.py` — 페르소나 로더(`expected_behavior` 동등) + 도메인 주입 + `diagnose`(6 불변식) + 모드 비교.
-- `ai/eval/fixtures/personas/*` — 합성 이력서 + expected_behavior(합성 표기, 실제 데이터 비덮어쓰기).
+- `ai/eval/src/eval/eval_resumes.py` — 페르소나 로더(`expected_behavior` 동등) + 도메인 주입 + `diagnose`(6 불변식) + 모드 비교.
+- `ai/eval/src/eval/fixtures/personas/*` — 합성 이력서 + expected_behavior(합성 표기, 실제 데이터 비덮어쓰기).
 
 ## 4. 제외 항목
 - 불변식 회귀(T-014) · 골든 페어(T-016) · 스코어링 변경.
 
 ## 4-1. 변경 예정 파일/경로
-- `ai/eval/eval_resumes.py`, `ai/eval/fixtures/personas/`, `ai/eval/tests/test_eval_resumes.py`
+- `ai/eval/src/eval/eval_resumes.py`, `ai/eval/src/eval/fixtures/personas/`, `ai/eval/tests/test_eval_resumes.py`
 
 ## 5. 완료 조건
 4 페르소나에 도메인 프로파일이 주입되어 방향성 불변식이 검사되고, 모드 비교가 산출된다.
@@ -50,6 +50,6 @@ feature
 
 ## 9. 의존성
 - depends_on: [T-011]
-- read_set: ["ai/worker/**", "ai/core/models.py"]
-- write_set: ["ai/eval/eval_resumes.py", "ai/eval/fixtures/personas/**", "ai/eval/tests/test_eval_resumes.py"]
+- read_set: ["ai/worker/**", "ai/core/src/core/models.py"]
+- write_set: ["ai/eval/src/eval/eval_resumes.py", "ai/eval/src/eval/fixtures/personas/**", "ai/eval/tests/test_eval_resumes.py"]
 - verifier: "uv run pytest ai/eval/tests/test_eval_resumes.py"

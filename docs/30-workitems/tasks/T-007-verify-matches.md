@@ -14,13 +14,13 @@ feature
 - `_llm_verify`(프롬프트 `match_verifier`) + `_apply_verifier`: severity 낮추기만(min), downgrade/exaggerated면 -1, confidence는 낮은 쪽, missing이면 low.
 
 ## 3. 구현 항목
-- `ai/worker/verify_matches.py` — `verify_table` = `_extractive_pass` → `_llm_verify`. `_norm`/`_build_haystack`/`_is_extractive`(불변식 회귀 T-014도 재사용). `MAX_RESUME_CHARS=9000`.
+- `ai/worker/src/worker/verify_matches.py` — `verify_table` = `_extractive_pass` → `_llm_verify`. `_norm`/`_build_haystack`/`_is_extractive`(불변식 회귀 T-014도 재사용). `MAX_RESUME_CHARS=9000`.
 
 ## 4. 제외 항목
 - 매칭/rematch(T-006) · compute_fit(T-003) · listwise/pairwise(T-009·T-010).
 
 ## 4-1. 변경 예정 파일/경로
-- `ai/worker/verify_matches.py`, `ai/worker/tests/test_verify.py`
+- `ai/worker/src/worker/verify_matches.py`, `ai/worker/tests/test_verify.py`
 
 ## 5. 완료 조건
 비추출 인용이 제거되고 근거 없는 주장 행이 invalid로 강등되며, verifier가 레벨을 낮추기만 한다.
@@ -49,6 +49,6 @@ feature
 
 ## 9. 의존성
 - depends_on: [T-006]
-- read_set: ["ai/core/models.py", "ai/worker/prompts/match_verifier.md", "ai/worker/llm.py"]
-- write_set: ["ai/worker/verify_matches.py", "ai/worker/tests/test_verify.py"]
+- read_set: ["ai/core/src/core/models.py", "ai/worker/src/worker/prompts/match_verifier.md", "ai/worker/src/worker/llm.py"]
+- write_set: ["ai/worker/src/worker/verify_matches.py", "ai/worker/tests/test_verify.py"]
 - verifier: "uv run pytest ai/worker/tests/test_verify.py"

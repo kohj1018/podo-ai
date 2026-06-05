@@ -14,15 +14,15 @@ feature
 - 불변식 10종 검사(SPEC §10-1): Frontend #1·fit≥4, Android<Frontend·fit≤3·<Frontend fit, Marketing 최하위·fit≤2, mismatch 가드, 추출형 인용 재검(`_is_extractive`), pairwise 불일치 보고 but top 불변.
 
 ## 3. 구현 항목
-- `ai/eval/regression.py` — `check_invariants(ranking, tables, pairwise, resume)` 10종 + 픽스처 로더 + 캐시 네임스페이스 격리(`fixture` — 일반 재계산이 골든을 흔들지 않게).
-- `ai/eval/fixtures/original_3_jds.json` — 고정 픽스처(합성/공개 데이터, 합성 표기).
+- `ai/eval/src/eval/regression.py` — `check_invariants(ranking, tables, pairwise, resume)` 10종 + 픽스처 로더 + 캐시 네임스페이스 격리(`fixture` — 일반 재계산이 골든을 흔들지 않게).
+- `ai/eval/src/eval/fixtures/original_3_jds.json` — 고정 픽스처(합성/공개 데이터, 합성 표기).
 - 추출형 재검은 `ai/worker/verify_matches._is_extractive`/`_build_haystack` 재사용.
 
 ## 4. 제외 항목
 - 멀티-페르소나(T-015) · 골든 페어(T-016) · 스코어링 변경.
 
 ## 4-1. 변경 예정 파일/경로
-- `ai/eval/regression.py`, `ai/eval/fixtures/original_3_jds.json`, `ai/eval/tests/test_regression.py`
+- `ai/eval/src/eval/regression.py`, `ai/eval/src/eval/fixtures/original_3_jds.json`, `ai/eval/tests/test_regression.py`
 
 ## 5. 완료 조건
 고정 픽스처에서 10종 불변식이 통과하고, 픽스처 캐시가 일반 캐시와 격리된다.
@@ -50,6 +50,6 @@ feature
 
 ## 9. 의존성
 - depends_on: [T-011]
-- read_set: ["ai/worker/**", "ai/core/models.py"]
-- write_set: ["ai/eval/regression.py", "ai/eval/fixtures/original_3_jds.json", "ai/eval/tests/test_regression.py"]
+- read_set: ["ai/worker/**", "ai/core/src/core/models.py"]
+- write_set: ["ai/eval/src/eval/regression.py", "ai/eval/src/eval/fixtures/original_3_jds.json", "ai/eval/tests/test_regression.py"]
 - verifier: "uv run pytest ai/eval/tests/test_regression.py"

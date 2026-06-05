@@ -16,15 +16,15 @@ feature
 - `jobs_manual` 동등 폴백(스크래핑 실패 시 수동 JD → 동일 raw 형식).
 
 ## 3. 구현 항목
-- `crawler/fetch_jobs.py` — `_norm`, `keyword_match`, 토스/당근 fetch, `_clean_html`, raw 공고 dict(job_id="{source}-{gid}", company, title, url, raw_text).
-- `crawler/store.py`(또는 동등) — `job_postings` upsert + diff 계산 + CoverageState 갱신. 실패율/캡차율 로깅(조용한 실패 금지).
-- `crawler/manual.py` — `parse_manual`(=== JOB === 블록) 폴백.
+- `crawler/src/crawler/fetch_jobs.py` — `_norm`, `keyword_match`, 토스/당근 fetch, `_clean_html`, raw 공고 dict(job_id="{source}-{gid}", company, title, url, raw_text).
+- `crawler/src/crawler/store.py`(또는 동등) — `job_postings` upsert + diff 계산 + CoverageState 갱신. 실패율/캡차율 로깅(조용한 실패 금지).
+- `crawler/src/crawler/manual.py` — `parse_manual`(=== JOB === 블록) 폴백.
 
 ## 4. 제외 항목
 - 도메인 인지 선택(T-013) · LLM 구조화(F-001 jd_extract) · Playwright 승격(A-1, 필요 시 후속) · 마감일 파싱 고도화(엣지, 후속).
 
 ## 4-1. 변경 예정 파일/경로
-- `crawler/fetch_jobs.py`, `crawler/store.py`, `crawler/manual.py`, `crawler/tests/test_fetch.py`
+- `crawler/src/crawler/fetch_jobs.py`, `crawler/src/crawler/store.py`, `crawler/src/crawler/manual.py`, `crawler/tests/test_fetch.py`
 
 ## 5. 완료 조건
 두 소스의 목록·상세를 파싱해 raw 공고로 정규화하고, 키워드 필터가 동작하며, job_postings upsert + diff가 산출된다.
@@ -55,6 +55,6 @@ feature
 
 ## 9. 의존성
 - depends_on: [T-002]
-- read_set: ["ai/core/models.py", "docs/20-system/SCORING_PIPELINE_SPEC.md"]
-- write_set: ["crawler/fetch_jobs.py", "crawler/store.py", "crawler/manual.py", "crawler/tests/test_fetch.py"]
+- read_set: ["ai/core/src/core/models.py", "docs/20-system/SCORING_PIPELINE_SPEC.md"]
+- write_set: ["crawler/src/crawler/fetch_jobs.py", "crawler/src/crawler/store.py", "crawler/src/crawler/manual.py", "crawler/tests/test_fetch.py"]
 - verifier: "uv run pytest crawler/tests/test_fetch.py"
