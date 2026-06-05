@@ -5,6 +5,7 @@ build
 coverage
 .env
 .env.*
+!.env.example
 secrets/
 CLAUDE.local.md
 .claude/settings.local.json

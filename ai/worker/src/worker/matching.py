@@ -20,7 +20,7 @@ from core.models import (
     MatchRow,
     Requirement,
 )
-from worker.llm import call_structured
+from worker.llm import JSON_SYSTEM, call_structured
 
 _PROMPTS_DIR = Path(__file__).parent / "prompts"
 
@@ -179,10 +179,10 @@ def _do_rematch(
     call_fn = _call_fn or call_structured
     try:
         result = call_fn(
-            system="You are a precise assistant. Respond with valid JSON only.",
+            system=JSON_SYSTEM,
             user=user,
             validate=_validate_rematch_response,
-            max_tokens=512,
+            max_tokens=2000,
         )
     except Exception:  # noqa: BLE001 — LLM 외부 경계 실패 → genuine miss 유지
         return row
@@ -267,12 +267,14 @@ def build_matching_table(
         EVIDENCE=evidence_json,
     )
 
+    # AI/ML 직군은 요구사항이 많고 reasoning 토큰이 예산을 먹으므로 여유를 둔다
+    # (프로토타입 검증값 — 잘림 시 행 누락 → missing backfill → fit 하락).
     call_fn = _call_fn or call_structured
     llm_result = call_fn(
-        system="You are a precise assistant. Respond with valid JSON only.",
+        system=JSON_SYSTEM,
         user=user,
         validate=_validate_match_response,
-        max_tokens=4096,
+        max_tokens=16000,
     )
 
     # --- 2. LLM 응답 → MatchRow 목록 (id 검증 + verbatim 복사) ---

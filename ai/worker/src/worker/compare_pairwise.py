@@ -21,10 +21,11 @@ from worker.rerank_listwise import compress_table
 _PROMPT_PATH = Path(__file__).parent / "prompts" / "pairwise_compare.md"
 _PROMPT_TEMPLATE: str = _PROMPT_PATH.read_text(encoding="utf-8")
 
-# JSON_SYSTEM (SPEC §8-1)
+# JSON_SYSTEM (SPEC §8-1) — 프로토타입 검증 문구(추출형·사실성 지시 포함).
 _JSON_SYSTEM = (
-    "You are a precise assistant. "
-    "Respond with valid JSON only. No markdown fences, no commentary."
+    "You are a careful, literal information-extraction and evaluation engine. "
+    "You follow instructions exactly, never invent facts, and output ONLY valid JSON "
+    "with no extra text, no markdown, and no code fences."
 )
 
 # confidence 우선순위 (낮은 것 선택용)
@@ -59,7 +60,7 @@ def _compare_once(
     raw = call_fn(
         system=_JSON_SYSTEM,
         user=user_prompt,
-        max_tokens=512,
+        max_tokens=800,
         temperature=0.0,
     )
     try:

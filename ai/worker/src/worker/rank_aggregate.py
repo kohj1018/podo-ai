@@ -140,14 +140,18 @@ def detect_required_preferred_dups(
                 else f"jaccard={jaccard:.2f}"
                 + (f" + same_category={h_row.requirement_category}" if same_cat else "")
             )
-            # preferred/optional 트윈을 cap에서만 제외 (행 자체는 유지)
-            result[l_idx] = {
+            # required/critical 행을 cap에서만 제외 (행 자체는 리포트에 유지).
+            # compute_fit의 role-defining cap 카운터는 critical/required 행 인덱스만
+            # excluded_cap으로 검사하므로 키는 반드시 h_idx여야 한다 — l_idx로 키잉하면
+            # 카운터에 절대 안 걸려 dedup이 no-op이 된다.
+            result[h_idx] = {
                 "duplicate_group_id": gid,
                 "duplicate_resolution": "excluded_from_cap",
                 "excluded_from_fit_cap": True,
                 "dedup_reason": reason,
-                "paired_required_idx": h_idx,
+                "paired_preferred_idx": l_idx,
             }
+            break  # 하나의 high 행당 첫 preferred 트윈만 (프로토타입 동작)
 
     return result
 

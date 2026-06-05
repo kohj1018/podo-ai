@@ -17,9 +17,12 @@ from core.models import EvidenceItem
 
 _PROMPTS_DIR = Path(__file__).parent / "prompts"
 
-# Skills 헤딩으로 인식할 정규식 패턴 (한/영 대소문자 포함)
+# Skills 헤딩으로 인식할 정규식 패턴 (한/영 대소문자 포함, h1~h6).
+# "Tech Stack"(영문 bare) · h4~h6 헤딩까지 포괄해야 결정적 추출이 누락되지 않는다
+# (프로토타입 검증 범위).
 _SKILLS_HEADING_RE = re.compile(
-    r"^#{1,3}\s*(Skills?|기술스택|기술\s*스택|기술|Tech(?:nical)?\s*Skills?|Technical\s*Stack)",
+    r"^#{1,6}\s*(Skills?|기술스택|기술\s*스택|기술\s*및\s*도구|기술|"
+    r"Tech(?:nical)?\s*(?:Skills?|Stack))",
     re.IGNORECASE | re.MULTILINE,
 )
 
@@ -66,9 +69,16 @@ def _parse_bullets_from_section(
 
 
 def _tokenize_skills(bullet_text: str) -> list[str]:
-    """불릿 텍스트를 쉼표/슬래시로 분해해 스킬 토큰 목록을 반환한다."""
+    """불릿 텍스트를 쉼표/슬래시/가운뎃점/세미콜론으로 분해해 토큰 목록을 반환한다.
+
+    한국어 이력서는 스킬을 ·/;로 구분하는 경우가 많으므로 구분자를 넓게 둔다.
+    선두 "Category:" 라벨은 제거한다 (프로토타입 검증 동작).
+    """
+    text = bullet_text
+    if ":" in text:  # 선두 "프론트엔드:" 같은 카테고리 라벨 제거
+        text = text.split(":", 1)[1]
     tokens: list[str] = []
-    for part in re.split(r"[,/]", bullet_text):
+    for part in re.split(r"[,/·;]", text):
         tok = part.strip()
         if tok:
             tokens.append(tok)
@@ -145,7 +155,7 @@ def extract_evidence(
         system=JSON_SYSTEM,
         user=user,
         validate=_validate,
-        max_tokens=4096,
+        max_tokens=8000,
         cache_label="resume_extract",
     )
 

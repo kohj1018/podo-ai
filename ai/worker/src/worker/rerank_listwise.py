@@ -26,10 +26,11 @@ from worker.rank_aggregate import DOM_RANK
 _PROMPT_PATH = Path(__file__).parent / "prompts" / "listwise_rerank.md"
 _PROMPT_TEMPLATE: str = _PROMPT_PATH.read_text(encoding="utf-8")
 
-# JSON_SYSTEM (SPEC §8-1)
+# JSON_SYSTEM (SPEC §8-1) — 프로토타입 검증 문구(추출형·사실성 지시 포함).
 _JSON_SYSTEM = (
-    "You are a precise assistant. "
-    "Respond with valid JSON only. No markdown fences, no commentary."
+    "You are a careful, literal information-extraction and evaluation engine. "
+    "You follow instructions exactly, never invent facts, and output ONLY valid JSON "
+    "with no extra text, no markdown, and no code fences."
 )
 
 
@@ -137,7 +138,9 @@ def compress_table(table: MatchingTable, ctx: dict[str, str]) -> dict[str, Any]:
         "preferred_technical_gaps": preferred_technical_gaps,
         "behavioral_gaps": behavioral_gaps,
         "product_duty_gaps_not_blocking": product_duty_gaps_not_blocking,
-        "invalid": invalid_count,
+        # 키 이름은 listwise_rerank/pairwise_compare 프롬프트가 참조하는 `invalid_matches`와
+        # 일치해야 한다 (프롬프트는 SPEC 고정 — 데이터를 프롬프트에 맞춘다).
+        "invalid_matches": invalid_count,
         "risks": risks[:8],  # SPEC §4-2 risks[:8] 상한 준수
     }
 
@@ -173,7 +176,7 @@ def _ask_listwise(
     raw = call_fn(
         system=_JSON_SYSTEM,
         user=user_prompt,
-        max_tokens=2048,
+        max_tokens=3000,
         temperature=0.0,
     )
     try:
@@ -296,11 +299,12 @@ def _safe_insert_missing(
     # fit이 높은 것부터 처리해야 삽입 위치가 안정적으로 결정된다
     for jid in sorted(missing, key=_key):
         jid_key = _key(jid)
-        # 기존 ranking에서 jid보다 낮은 key를 가진 첫 위치 앞에 삽입.
-        # 찾지 못하면 맨끝 (jid가 전체 중 가장 낮은 fit/dom인 경우).
+        # jid보다 낮은 fit/dom(= 더 큰 negated key)을 가진 첫 항목 앞에 삽입한다.
+        # 찾지 못하면 맨끝(jid가 전체 중 가장 낮은 fit/dom). `<=`는 더 좋은 항목 앞에
+        # 끼워넣어 누락 job을 맨앞으로 보내는 버그였으므로 `>`로 수정.
         insert_pos = len(result)
         for i, item in enumerate(result):
-            if _key(item["job_id"]) <= jid_key:
+            if _key(item["job_id"]) > jid_key:
                 insert_pos = i
                 break
 

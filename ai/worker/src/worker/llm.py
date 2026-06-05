@@ -13,12 +13,15 @@ import json
 import re
 from typing import Any, Callable
 
-from worker.config import LLM_SEED, OPENAI_API_KEY, OPENAI_MODEL_ID
+from worker.config import LLM_SEED, OPENAI_API_KEY, OPENAI_MODEL
 
-# JSON_SYSTEM 시스템 프롬프트 (SPEC §8-1)
+# JSON_SYSTEM 시스템 프롬프트 (SPEC §8-1).
+# 프로토타입 검증 문구 — 추출형·사실성 보장 지시("never invent facts / follow
+# instructions exactly")가 7개 LLM 단계 전부를 감싼다. 임의 약화 금지.
 JSON_SYSTEM = (
-    "You are a precise assistant. "
-    "Respond with valid JSON only. No markdown fences, no commentary."
+    "You are a careful, literal information-extraction and evaluation engine. "
+    "You follow instructions exactly, never invent facts, and output ONLY valid JSON "
+    "with no extra text, no markdown, and no code fences."
 )
 
 
@@ -43,9 +46,14 @@ def _extract_json(text: str) -> Any:
 
 
 def _openai_call(system: str, user: str, max_tokens: int, temperature: float) -> str:
-    """실제 OpenAI API 호출 — 파라미터 자동 적응 포함.
+    """실제 OpenAI API 호출 — 모델 파라미터 자동 적응 포함.
 
     시스템 경계: 외부 API 호출 — 여기서만 OpenAI SDK를 사용한다.
+
+    신형 모델(o-series / gpt-5 계열, 예: gpt-5.4-mini)은 max_tokens 대신
+    max_completion_tokens를 요구하고 기본 temperature(=1)만 허용한다. 공통 형태를
+    먼저 시도하고 API 에러 메시지에 따라 token 파라미터·seed·temperature를 순차
+    fallback한다 — 모델명 하드코딩 없음 (SPEC §8-1).
     """
     import openai
 
@@ -54,26 +62,41 @@ def _openai_call(system: str, user: str, max_tokens: int, temperature: float) ->
         {"role": "system", "content": system},
         {"role": "user", "content": user},
     ]
-    kwargs: dict[str, Any] = {
-        "model": OPENAI_MODEL_ID,
-        "messages": messages,
-        "temperature": temperature,
-        "max_tokens": max_tokens,
-    }
-    # 파라미터 자동 적응 (SPEC §8-1): seed → max_completion_tokens 순차 fallback.
-    # (동일 try에 except 2개는 두 번째가 unreachable → 중첩으로 변경.)
-    try:
-        response = client.chat.completions.create(**kwargs, seed=LLM_SEED)
-    except openai.BadRequestError:
+    token_param = "max_tokens"
+    send_temperature = temperature != 1.0
+    send_seed = True
+    last_err: Exception | None = None
+    for _ in range(5):
+        kwargs: dict[str, Any] = {
+            "model": OPENAI_MODEL,
+            "messages": messages,
+            token_param: max_tokens,
+        }
+        if send_temperature:
+            kwargs["temperature"] = temperature
+        if send_seed:
+            kwargs["seed"] = LLM_SEED
         try:
             response = client.chat.completions.create(**kwargs)
-        except openai.BadRequestError:
-            kwargs.pop("max_tokens", None)
-            kwargs["max_completion_tokens"] = max_tokens
-            response = client.chat.completions.create(**kwargs)
-
-    content = response.choices[0].message.content or ""
-    return content
+            return (response.choices[0].message.content or "").strip()
+        except Exception as exc:  # noqa: BLE001 — 시스템 경계: API 에러로 파라미터 적응
+            msg = str(exc).lower()
+            if token_param == "max_tokens" and "max_completion_tokens" in msg:
+                token_param = "max_completion_tokens"
+                last_err = exc
+                continue
+            if send_seed and "seed" in msg:
+                send_seed = False
+                last_err = exc
+                continue
+            if send_temperature and "temperature" in msg:
+                send_temperature = False  # 모델 기본 temperature로 fallback
+                last_err = exc
+                continue
+            raise
+    if last_err:
+        raise last_err
+    raise LLMError("지원되는 파라미터로 OpenAI 호출을 만들 수 없습니다")
 
 
 def call_text(

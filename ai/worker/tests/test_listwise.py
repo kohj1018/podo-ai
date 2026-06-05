@@ -164,7 +164,7 @@ def test_AC_3_compress_no_raw_text():
     assert "preferred_technical_gaps" in result
     assert "behavioral_gaps" in result
     assert "product_duty_gaps_not_blocking" in result
-    assert "invalid" in result
+    assert "invalid_matches" in result
     assert "risks" in result
 
 

@@ -33,7 +33,7 @@ from core.models import (
     Resume,
     clamp,
 )
-from worker.llm import call_structured
+from worker.llm import JSON_SYSTEM, call_structured
 
 MAX_RESUME_CHARS = 9000
 
@@ -291,10 +291,10 @@ def _llm_verify(
     call_fn = _call_fn or call_structured
     try:
         result = call_fn(
-            system="You are a precise assistant. Respond with valid JSON only.",
+            system=JSON_SYSTEM,
             user=user,
             validate=_validate_verifier_response,
-            max_tokens=4096,
+            max_tokens=10000,
         )
     except Exception:  # noqa: BLE001 — LLM 외부 경계 실패 → 원 rows 보존
         return rows
