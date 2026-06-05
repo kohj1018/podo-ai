@@ -1,7 +1,7 @@
 # T-016-golden-pairs
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 feature
@@ -48,6 +48,12 @@ feature
 
 ## 8. 메모
 `rescore_persona`는 실제 aggregate() 재사용 — 랭킹 로직 100% 동일, fit만 변경(ablation 충실성). dedup 승격 4조건 미충족 시 실험 유지(SPEC §10-4).
+
+- repair-workitem 2026-06-05 P0 gs2-grounding: Adopt-modified — gates.py `_is_grounded` ≤20자 exact-substring 분기 제거 → 토큰 과반 매칭 일관 적용(GS-2 통과 가능화, 4 케이스 정상)
+- repair-workitem 2026-06-05 P0 integration-fail: Adopt — GS-2+lint 수정 후 verify.mjs exit 0 (95 passed/1 skipped)
+- repair-workitem 2026-06-05 P1 ruff-errors: Adopt — F401×8/I001×2/F841(dead hardness_label) 정리
+- repair-workitem 2026-06-05 P1 untested-deliverables: Adopt — propose_pairs/load_pairs/evaluate_pairs/rescore_persona 테스트 추가(import 소비, FAC-4 rescore 커버)
+- 설계 결정: GS-2 grounding = 내용 토큰(3자+) 과반이 JD 원문에 substring 실재 시 grounded(길이 무관). salient 토큰 누락 시에만 hallucinated.
 
 ## 9. 의존성
 - depends_on: [T-011]
