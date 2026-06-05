@@ -21,3 +21,11 @@ docs/40-validation/discovery-reviews/*.md
 # design exploration/preview (ephemeral, never committed — ADR-049#d31 / ADR-027#d22): concept 시안 + DESIGN.md 파생 preview
 docs/20-system/design-concepts/
 docs/20-system/design-preview.html
+# Python uv workspace 산출물 (T-001 — .venv·캐시는 커밋 X, uv.lock은 커밋 O)
+.venv/
+__pycache__/
+*.py[cod]
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+*.egg-info/

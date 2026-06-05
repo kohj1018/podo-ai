@@ -1,0 +1,1 @@
+"""eval — 평가·메트릭 실행 단위 placeholder (T-001 scaffold)."""

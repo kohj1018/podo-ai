@@ -6,10 +6,10 @@
 
 ## 0. 폴더 구조 (확정 — ADR-101 D-MONO)
 ```
-podo-ai/                # git repo 1개
+podo-ai/                # git repo 1개 · Python uv workspace 루트(pyproject.toml + uv.lock) — ADR-101#amend-1
   podo/                 # Turborepo(pnpm): apps/web(Next→Vercel) + apps/api(NestJS+Prisma=스키마 SSOT)
-  ai/                   # Python(uv workspace): core(공유 모델·DB) + worker + eval
-  crawler/              # Python: ai/core에 의존(uv workspace 멤버)
+  ai/                   # uv workspace 멤버: core(공유 모델·DB) + worker + eval (루트 아님 — 멤버만)
+  crawler/              # uv workspace 멤버: ai/core에 의존 (자체 도구 설정 없음 — 루트 공유)
   infra/                # docker-compose(Postgres+pgvector, LocalStack), aws/
   .github/workflows/    # deploy-api, deploy-worker, crawl-jobs, schema-contract
   docs/

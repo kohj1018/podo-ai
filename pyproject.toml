@@ -1,0 +1,49 @@
+[project]
+name = "podo-ai-workspace"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "core",
+    "worker",
+    "eval",
+    "crawler",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["ai/core", "ai/worker", "ai/eval", "crawler"]
+
+[tool.uv.sources]
+core = { workspace = true }
+worker = { workspace = true }
+eval = { workspace = true }
+crawler = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "ruff>=0.6",
+    "mypy>=1.11",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["ai/tests"]
+python_files = ["test_*.py"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+
+# crawler가 ai/ 트리 밖이라 ruff가 third-party로 오분류할 수 있어 네 워크스페이스
+# 패키지를 first-party로 명시해 import 정렬 섹션을 하나로 묶는다 (I001 회피).
+[tool.ruff.lint.isort]
+known-first-party = ["core", "worker", "eval", "crawler"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
