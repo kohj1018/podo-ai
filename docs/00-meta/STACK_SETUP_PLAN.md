@@ -92,7 +92,9 @@ pnpm validate:e2e
 | unit test | Vitest | pytest (schema-contract 포함) |
 | e2e | Playwright (`validate:e2e`) | — |
 
-> `podo/`·`ai/`·`crawler/`가 아직 미생성 상태에서는 해당 단계를 skip하고 "missing" 경고를 출력한다 — scaffold 후 자동 활성화됨.
+> **Python 테스트 레이아웃 (ADR-102):** `ai/tests/`=워크스페이스/foundational(smoke·schema-contract·core 데이터 계약), `ai/<pkg>/tests/`·`crawler/tests/`=패키지별 behavior. test 디렉터리엔 `__init__.py` 두지 않고 pytest `--import-mode=importlib`(동일명 `tests` 충돌 회피, `testpaths=["ai","crawler"]` 재귀 수집). `mypy --strict`·ruff `E501`은 test 제외(구현 코드는 유지). 구현 모듈은 src-layout `ai/<pkg>/src/<pkg>/`.
+
+> `podo/`(미생성) TS 단계는 skip하고 "missing" 경고 출력 — scaffold 후 자동 활성화(`ai/`·`crawler/`는 T-001~ 생성됨).
 
 > 폴리글랏이라 verify 스크립트는 Node.js(cross-platform) 로 구현. `verify.sh`(Unix hook용)·`verify.ps1`(Windows hook용)은 `verify.mjs`에 위임하는 thin wrapper.
 

@@ -29,8 +29,12 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["ai/tests"]
+# 테스트 레이아웃 (ADR-102): 패키지별 co-located `ai/<pkg>/tests/`·`crawler/tests/`
+# + 워크스페이스 `ai/tests/`. test 디렉터리엔 __init__.py 없음 + importlib 모드
+# → 같은 이름(tests) 패키지 충돌 회피, 재귀 수집.
+testpaths = ["ai", "crawler"]
 python_files = ["test_*.py"]
+addopts = "--import-mode=importlib"
 
 [tool.ruff]
 line-length = 88
@@ -44,6 +48,15 @@ select = ["E", "F", "I"]
 [tool.ruff.lint.isort]
 known-first-party = ["core", "worker", "eval", "crawler"]
 
+# 테스트는 E501(줄 길이) 제외 (ADR-102): 한국어 서술 docstring이 길어지는 경우가 많고
+# 테스트 가독성 > 줄 길이. format·F(unused)·I(import 정렬)는 그대로 적용. 구현 파일은 E501 유지.
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["E501"]
+
 [tool.mypy]
 python_version = "3.11"
 strict = true
+# 테스트는 strict 타입체크 제외 (ADR-102): 픽스처가 의도적으로 느슨한 입력을 넣어
+# coercion/validation을 검증하므로 strict는 마찰만 키운다(테스트 정합성은 pytest 실행으로 보증).
+# 또한 다수 `tests/` 디렉터리의 동일 모듈명 중복(duplicate module)도 회피.
+exclude = ['(^|/)tests/']
