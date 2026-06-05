@@ -1,7 +1,7 @@
 # T-013-domain-aware-selection
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 feature
@@ -48,6 +48,8 @@ feature
 
 ## 8. 메모
 제목 휴리스틱 role_family는 *선택용 임시값* — LLM jd_extract가 최종 권위(SPEC §9-3).
+- repair-workitem 2026-06-05 P0 mypy-typearg: Adopt-modified — bare dict 10곳→Job=dict[str,Any] 별칭 매개변수화(strict 충족)
+- repair-workitem 2026-06-05 P0 ruff-E501/F401/I001: Adopt — docstring 2줄 단축 + pytest 미사용 제거 + import 정렬
 
 ## 9. 의존성
 - depends_on: [T-002, T-012]  # domain_alignment은 ai/core(T-002); compute_fit(T-003) 불필요
