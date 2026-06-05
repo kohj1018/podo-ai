@@ -1,7 +1,7 @@
 # T-007-verify-matches
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 feature
@@ -46,6 +46,9 @@ feature
 
 ## 8. 메모
 `_is_extractive`/`_build_haystack`는 불변식 회귀(T-014)가 import해 재검 — 공개 심볼로 둔다.
+
+### repair 결정 이력 (ADR-047 D7)
+- repair-workitem 2026-06-05 P0 ruff format: Adopt — `ruff format` 2파일(verify_matches.py·test_verify.py). 통합 `pnpm validate` exit 0(38 passed·1 skip). 로직·타입·테스트 무변경(ruff check·mypy·13 테스트는 이미 green이었음).
 
 ## 9. 의존성
 - depends_on: [T-006]
