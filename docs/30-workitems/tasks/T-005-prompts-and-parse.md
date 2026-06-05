@@ -1,7 +1,7 @@
 # T-005-prompts-and-parse
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 feature
@@ -48,6 +48,11 @@ feature
 
 ## 8. 메모
 프롬프트는 검증된 IP — AC-2가 SPEC 부록 A와 **verbatim 동일성을 강제**(스냅샷 테스트). SPEC 부록 A가 단일 출처이므로, 프롬프트를 바꾸려면 부록 A를 먼저 고친다.
+
+### repair 결정 이력 (ADR-047 D7)
+- repair-workitem 2026-06-05 P0 parse_job.py 누락: Adopt — `ai/worker/src/worker/parse_job.py` 구현(`_apply_prerequisite_defaults`[AC-3 계약]·`structure_job`[jd_extract, SPEC §7-2]·`_ensure_unique_ids`). AC-3 green. (implement가 프롬프트 7+parse_resume만 만들고 parse_job 누락 — 큰 task의 turn budget 추정. §4-1엔 parse_job 적혀 있었으나 파일 미생성.)
+- repair-workitem 2026-06-05 P0 ruff format/check: Adopt — `ruff format` 3파일 + `ruff check --fix`(I001) + parse_job E501 3건 단축. 통합 `pnpm validate` exit 0(19 passed·1 skip).
+- repair-workitem 2026-06-05 P1 structure_job 미테스트: Adopt-modified(주의) — `structure_job`는 AC 밖(fake 주입 전제). 실 jd_extract LLM 경로는 미검증 — T-004 `_openai_call`과 동일 oracle gap, researcher follow-up.
 
 ## 9. 의존성
 - depends_on: [T-002, T-004]
