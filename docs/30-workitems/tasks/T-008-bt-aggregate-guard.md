@@ -1,7 +1,7 @@
 # T-008-bt-aggregate-guard
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 feature
@@ -48,6 +48,10 @@ BT가 동일 입력에 수렴하고, 3 모드 정렬 키가 명세대로이며, 
 
 ## 8. 메모
 정렬 키는 검증된 캘리브레이션 — 임의 변경 금지(SPEC §5-2). 기본 모드 domain_fit_bt.
+
+### repair 결정 이력 (ADR-047 D7)
+- repair-workitem 2026-06-05 P0 mypy no-any-return: Adopt — `_fit` 반환을 `int(...)`로 캐스트(rank_aggregate.py:499, fit_data 값이 Any).
+- repair-workitem 2026-06-05 P0 mypy str→Literal: Adopt — `FitResult(...)` → `FitResult.model_validate({...})`(role_family/domain_alignment clamp 유지, T-006 idiom). 통합 `pnpm validate` exit 0(43 passed·1 skip). compute_fit(T-003) 회귀 없음(test_compute_fit 4 통과 — 같은 파일 수정이나 추가-only).
 
 ## 9. 의존성
 - depends_on: [T-003]

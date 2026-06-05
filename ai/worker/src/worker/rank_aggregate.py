@@ -1,15 +1,26 @@
-"""T-003: compute_fit + cap 사다리 + dedup 실험 플래그 (SPEC §4).
+"""T-003/T-008: compute_fit + BT + aggregate (SPEC §4·§5).
 
-상수·알고리즘은 SCORING_PIPELINE_SPEC.md §4 그대로 이식.
+상수·알고리즘은 SCORING_PIPELINE_SPEC.md §4·§5 그대로 이식.
 검증된 캘리브레이션이므로 임의 변경 금지.
 
 - compute_fit: MatchingTable + alignment → fit level 1~5 + coverage dict
 - detect_required_preferred_dups: 실험 dedup (기본 OFF, SPEC §10-4 승격 4조건 미충족)
+- bradley_terry: 순수 파이썬 MM 반복 (SPEC §5-1)
+- elo: fallback (디버그용)
+- aggregate: 3 랭킹 모드 + 도메인 우선순위 가드 (SPEC §5-2·§5-3)
 """
 
 import re
+from typing import Any
 
-from core.models import CORE_NATURES, FIT_LABELS, MatchingTable, MatchRow
+from core.models import (
+    CORE_NATURES,
+    FIT_LABELS,
+    FitResult,
+    MatchingTable,
+    MatchRow,
+    PairwiseResult,
+)
 
 # §4-1: 상호 교체 가능 툴링 카테고리 — 갭이 role-defining 아님 (SPEC §4-1)
 # core.models에는 없으므로 worker 로컬 상수로 둔다 (compute_fit 전용)
@@ -340,3 +351,236 @@ def compute_fit(
         "risks": risks[:8],
         "dedup_audit": list(dedup_info.values()),
     }
+
+
+# ---------------------------------------------------------------------------
+# §5-1. Bradley-Terry (순수 파이썬 MM 반복, SPEC §5-1 그대로 이식)
+# ---------------------------------------------------------------------------
+
+# §5-2: 정렬 모드 상수
+RANKING_MODES: tuple[str, ...] = ("bt_primary", "fit_primary", "domain_fit_bt")
+
+# §5-2: 도메인 tier → 정렬 키 숫자
+DOM_RANK: dict[str, int] = {"strong": 3, "adjacent": 2, "weak": 1, "mismatch": 0}
+
+
+def bradley_terry(
+    ids: list[str],
+    results: list[PairwiseResult],
+    iters: int = 300,
+    prior: float = 0.5,
+) -> dict[str, float]:
+    """pairwise 결과로 상대 적합도 강도(BT 점수)를 추정한다.
+
+    평균 강도를 1로 정규화. n==0→{}, n==1→{id:1.0}.
+    prior(0.5)로 비교 그래프를 연결 유지해 수렴 보장 (SPEC §5-1).
+    """
+    n = len(ids)
+    if n == 0:
+        return {}
+    if n == 1:
+        return {ids[0]: 1.0}
+
+    idx = {jid: i for i, jid in enumerate(ids)}
+    wins = [[0.0] * n for _ in range(n)]
+
+    for r in results:
+        if r.job_a not in idx or r.job_b not in idx:
+            continue
+        i, j = idx[r.job_a], idx[r.job_b]
+        if r.outcome == r.job_a:
+            wins[i][j] += 1.0
+        elif r.outcome == r.job_b:
+            wins[j][i] += 1.0
+        else:
+            wins[i][j] += 0.5
+            wins[j][i] += 0.5
+
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                wins[i][j] += prior
+
+    total_wins = [sum(wins[i]) for i in range(n)]
+    p = [1.0] * n
+
+    for _ in range(iters):
+        new_p = [0.0] * n
+        for i in range(n):
+            denom = sum(
+                (wins[i][j] + wins[j][i]) / (p[i] + p[j]) for j in range(n) if i != j
+            )
+            new_p[i] = (total_wins[i] / denom) if denom > 0 else p[i]
+        s = sum(new_p)
+        if s > 0:
+            new_p = [x * n / s for x in new_p]
+        if max(abs(new_p[i] - p[i]) for i in range(n)) < 1e-9:
+            p = new_p
+            break
+        p = new_p
+
+    return {ids[i]: p[i] for i in range(n)}
+
+
+def elo(
+    ids: list[str],
+    results: list[PairwiseResult],
+    k: float = 32.0,
+) -> dict[str, float]:
+    """BT fallback — Elo 방식 강도 추정 (디버그용). SPEC §5-1."""
+    ratings = {jid: 1500.0 for jid in ids}
+    for r in results:
+        if r.job_a not in ratings or r.job_b not in ratings:
+            continue
+        ra, rb = ratings[r.job_a], ratings[r.job_b]
+        ea = 1.0 / (1.0 + 10 ** ((rb - ra) / 400.0))
+        eb = 1.0 - ea
+        if r.outcome == r.job_a:
+            sa, sb = 1.0, 0.0
+        elif r.outcome == r.job_b:
+            sa, sb = 0.0, 1.0
+        else:
+            sa = sb = 0.5
+        ratings[r.job_a] = ra + k * (sa - ea)
+        ratings[r.job_b] = rb + k * (sb - eb)
+    return ratings
+
+
+# ---------------------------------------------------------------------------
+# §5-2·§5-3. aggregate (3 랭킹 모드 + 도메인 우선순위 가드)
+# ---------------------------------------------------------------------------
+
+
+def aggregate(
+    jobs_by_id: dict[str, MatchingTable],
+    tables_by_id: dict[str, MatchingTable],
+    listwise: list[str],
+    pairwise: list[PairwiseResult],
+    candidate_ids: set[str],
+    fits: dict[str, dict[str, Any]],
+    domain_ctx: dict[str, dict[str, str]],
+    ranking_mode: str = "domain_fit_bt",
+) -> tuple[list[FitResult], dict[str, float], list[dict[str, Any]]]:
+    """3 랭킹 모드 정렬 + 도메인 우선순위 가드 적용.
+
+    Args:
+        jobs_by_id: job_id → MatchingTable (메타 소스)
+        tables_by_id: job_id → MatchingTable (현재 jobs_by_id와 동일 계약)
+        listwise: listwise 순위 정렬된 job_id 목록
+        pairwise: pairwise 비교 결과 목록
+        candidate_ids: BT 계산 대상 job_id 집합
+        fits: job_id → compute_fit 결과 dict (단계 6 사전 계산)
+        domain_ctx: job_id → {domain_alignment, role_family}
+        ranking_mode: "domain_fit_bt" | "fit_primary" | "bt_primary"
+
+    Returns:
+        (List[FitResult], bt_scores dict, guard_moves list)
+    """
+    all_ids = list(listwise)
+    # listwise에 없는 job_id 보완 (fits에 있는 것 기준)
+    for jid in fits:
+        if jid not in all_ids:
+            all_ids.append(jid)
+
+    # §5-1: BT 계산 — candidate_ids ≥ 2 + pairwise 있을 때만
+    top_ids = [jid for jid in all_ids if jid in candidate_ids]
+    bt_scores: dict[str, float]
+    if len(top_ids) >= 2 and pairwise:
+        bt_scores = bradley_terry(top_ids, pairwise)
+    else:
+        bt_scores = {}
+
+    lw_index = {jid: i for i, jid in enumerate(all_ids)}
+
+    def _dom(jid: str) -> str:
+        return domain_ctx.get(jid, {}).get("domain_alignment", "weak")
+
+    def _fit(jid: str) -> int:
+        return int(fits.get(jid, {}).get("level", 1))
+
+    def _bt(jid: str) -> float:
+        return round(bt_scores.get(jid, 0.0), 6)
+
+    def _lw(jid: str) -> int:
+        return lw_index.get(jid, len(all_ids))
+
+    # §5-2: 정렬 키별 순서 산출
+    if ranking_mode == "domain_fit_bt":
+        sorted_ids = sorted(
+            all_ids,
+            key=lambda j: (-DOM_RANK.get(_dom(j), 1), -_fit(j), -_bt(j), _lw(j), j),
+        )
+    elif ranking_mode == "fit_primary":
+        sorted_ids = sorted(
+            all_ids,
+            key=lambda j: (-_fit(j), -DOM_RANK.get(_dom(j), 1), -_bt(j), _lw(j), j),
+        )
+    else:
+        # bt_primary: BT 비교 집합은 BT 키, 나머지는 fit/dom/lw 키
+        in_bt = set(top_ids)
+        sorted_ids = sorted(
+            all_ids,
+            key=lambda j: (
+                0 if j in in_bt else 1,
+                -_bt(j) if j in in_bt else -_fit(j),
+                -_fit(j) if j in in_bt else -DOM_RANK.get(_dom(j), 1),
+                -DOM_RANK.get(_dom(j), 1) if j in in_bt else _lw(j),
+                _lw(j),
+                j,
+            ),
+        )
+
+    # §5-3: 도메인 우선순위 가드 — 안정 분할
+    non_mismatch = [j for j in sorted_ids if _dom(j) != "mismatch"]
+    mismatch_list = [j for j in sorted_ids if _dom(j) == "mismatch"]
+    final_ids = non_mismatch + mismatch_list
+
+    # guard_moves 기록
+    guard_moves: list[dict[str, Any]] = []
+    old_rank = {jid: i for i, jid in enumerate(sorted_ids)}
+    new_rank = {jid: i for i, jid in enumerate(final_ids)}
+    for jid in mismatch_list:
+        old_r = old_rank[jid]
+        new_r = new_rank[jid]
+        if new_r != old_r:
+            guard_moves.append(
+                {
+                    "job_id": jid,
+                    "old_rank": old_r + 1,
+                    "new_rank": new_r + 1,
+                    "reason": "domain_priority_guard",
+                }
+            )
+
+    # FitResult 조립
+    fit_results: list[FitResult] = []
+    for rank_idx, jid in enumerate(final_ids):
+        table = tables_by_id.get(jid) or jobs_by_id.get(jid)
+        fit_data = fits.get(jid, {})
+        ctx = domain_ctx.get(jid, {})
+        # model_validate(dict): role_family/domain_alignment 등 str→Literal을 clamp가
+        # coerce (strict 정합 — ADR-102 D3, T-006 MatchRow와 동일 idiom).
+        fit_results.append(
+            FitResult.model_validate(
+                {
+                    "job_id": jid,
+                    "company": table.company if table else "",
+                    "title": table.title if table else "",
+                    "role_family": ctx.get("role_family", "other"),
+                    "domain_alignment": ctx.get("domain_alignment", "weak"),
+                    "rank": rank_idx + 1,
+                    "fit_level": fit_data.get("level", 1),
+                    "fit_label": fit_data.get("label", FIT_LABELS[1]),
+                    "bt_score": bt_scores.get(jid, 0.0),
+                    "coverage": fit_data.get("coverage", {}),
+                    "strong_matches": fit_data.get("strong", []),
+                    "weak_or_missing": fit_data.get("weak", []),
+                    "preferred_gaps": fit_data.get("preferred_gaps", []),
+                    "product_duties": fit_data.get("product_duties", []),
+                    "invalid_matches": fit_data.get("invalid", []),
+                    "risk_notes": fit_data.get("risks", []),
+                }
+            )
+        )
+
+    return fit_results, bt_scores, guard_moves
