@@ -1,7 +1,7 @@
 # T-010-pairwise
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 feature
@@ -43,6 +43,8 @@ pairwise 비교(단계 9)를 `ai/worker`에 이식한다: 후보 쌍을 A/B·B/A
 - Algorithm SSOT: [SCORING_PIPELINE_SPEC §7-4](../../20-system/SCORING_PIPELINE_SPEC.md)
 
 ## 8. 메모
+- repair-workitem 2026-06-05 P0 mypy-literal: Adopt — _compare_once→tuple[str,str], PairwiseResult.model_validate가 confidence str→Literal 흡수
+- repair-workitem 2026-06-05 P0 contract: Adopt — run_pairwise→list[PairwiseResult], outcome=승자 job_id로 BT 소비자(bradley_terry) 호환
 
 ## 9. 의존성
 - depends_on: [T-005, T-009]
