@@ -1,7 +1,7 @@
 # T-006-matching
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 feature
@@ -47,6 +47,9 @@ feature
 
 ## 8. 메모
 FAC-3(GS-2)·FAC-4(F7 매핑)의 핵심 — 인용 추출형 구성이 hallucination 차단 1차 레이어.
+
+### repair 결정 이력 (ADR-047 D7)
+- repair-workitem 2026-06-05 P0 mypy str→Literal: Adopt — `matching.py`의 `MatchRow(**req.model_dump(), match_level=<str>, ...)`를 `MatchRow.model_validate({...})`로 변경(LLM 파생 str을 Literal 필드에 — clamp validator가 coerce, strict 정합). 통합 `pnpm validate` exit 0(25 passed·1 skip). 로직·테스트 무변경.
 
 ## 9. 의존성
 - depends_on: [T-005]
