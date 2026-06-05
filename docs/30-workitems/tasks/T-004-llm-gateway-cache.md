@@ -1,7 +1,7 @@
 # T-004-llm-gateway-cache
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 technical-enabler
@@ -15,15 +15,15 @@ technical-enabler
 - 캐시 키 `sha256(model + rendered_prompt + SCHEMA_VERSION)` + 네임스페이스 격리 + REFRESH 경로 — SPEC §8-2. 저장은 **Postgres worker 소유 테이블/JSONB**(파일 캐시 대체).
 
 ## 3. 구현 항목
-- `ai/worker/llm.py` — 게이트웨이(`call_text`/`call_structured`/`_extract_json`/재시도).
-- `ai/worker/cache.py` — `make_key`/get/put/네임스페이스/REFRESH + 저장 어댑터(Postgres JSONB; MVP는 worker 소유 테이블, ARCH §7-3). 캐시 키에 시간·랜덤·환경 값 혼입 금지(§3-1, /validate 1순위 점검).
-- `ai/worker/config.py` — `SCHEMA_VERSION`·`OPENAI_MODEL_ID`·`PROMPT_VERSION`·`LLM_SEED`·도메인 토큰 env 로딩(STACK_SETUP_PLAN §4 env명).
+- `ai/worker/src/worker/llm.py` — 게이트웨이(`call_text`/`call_structured`/`_extract_json`/재시도).
+- `ai/worker/src/worker/cache.py` — `make_key`/get/put/네임스페이스/REFRESH + 저장 어댑터(Postgres JSONB; MVP는 worker 소유 테이블, ARCH §7-3). 캐시 키에 시간·랜덤·환경 값 혼입 금지(§3-1, /validate 1순위 점검).
+- `ai/worker/src/worker/config.py` — `SCHEMA_VERSION`·`OPENAI_MODEL_ID`·`PROMPT_VERSION`·`LLM_SEED`·도메인 토큰 env 로딩(STACK_SETUP_PLAN §4 env명). (경로: src-layout — ADR-102 D5)
 
 ## 4. 제외 항목
 - 프롬프트 내용(T-005) · 캐시 무효화/마이그레이션 정책(F-001 §12 열린 질문, 후속) · Redis(YAGNI, ADR-101 D-DB).
 
 ## 4-1. 변경 예정 파일/경로
-- `ai/worker/llm.py`, `ai/worker/cache.py`, `ai/worker/config.py`, `ai/worker/tests/test_llm_cache.py`
+- `ai/worker/src/worker/llm.py`, `ai/worker/src/worker/cache.py`, `ai/worker/src/worker/config.py`, `ai/worker/tests/test_llm_cache.py` (impl: src-layout — ADR-102 D5; test: co-located — D1)
 
 ## 5. 완료 조건
 구조화 호출이 JSON을 검증·재시도하고, 동일 입력에 동일 캐시 키가 나오며 hit이 재현되고, 실패 시 명확히 에러를 surface한다.
@@ -53,8 +53,12 @@ technical-enabler
 - 외부 SDK(OpenAI) 연동 — 구현 전 최신 공식문서 확인(researcher 위임 또는 /research-pack, ADR-040). 모델 지식 컷오프 보완.
 - 캐시 저장소는 Postgres(ARCH §7-3). DB 미확정 단계면 인메모리/파일 어댑터로 시작하고 인터페이스만 고정.
 
+### repair 결정 이력 (ADR-047 D7)
+- repair-workitem 2026-06-05 P0 ruff-format/check/mypy: Adopt — `ruff format` 2파일 + `ruff check --fix`(I001) + impl E501 단축 + mypy bare `dict` 2건(`llm.py:94,100` → `dict[str, Any]`). 통합 `pnpm validate` green. 로직·테스트·레이아웃(co-located, ADR-102)은 무변경.
+- repair-workitem 2026-06-05 P1 _openai_call unreachable except (발견): Adopt-modified — 동일 try의 2번째 `except BadRequestError`가 unreachable → `max_tokens→max_completion_tokens` 적응(§3 scope)이 사문화돼 있었음. 중첩 try로 정정해 두 적응 모두 도달. **단 `_openai_call`은 미테스트(AC는 fake LLM 주입) + 실 OpenAI SDK 동작·적응 순서 검증은 researcher follow-up(§8 메모 — 공식문서 확인, ADR-040). oracle gap 잔존.**
+
 ## 9. 의존성
 - depends_on: [T-001]
 - read_set: ["docs/20-system/SCORING_PIPELINE_SPEC.md", "docs/00-meta/STACK_SETUP_PLAN.md"]
-- write_set: ["ai/worker/llm.py", "ai/worker/cache.py", "ai/worker/config.py", "ai/worker/tests/test_llm_cache.py"]
+- write_set: ["ai/worker/src/worker/llm.py", "ai/worker/src/worker/cache.py", "ai/worker/src/worker/config.py", "ai/worker/tests/test_llm_cache.py"]
 - verifier: "uv run pytest ai/worker/tests/test_llm_cache.py"
