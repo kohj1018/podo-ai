@@ -1,0 +1,137 @@
+{
+  "_synthetic": true,
+  "_note": "합성 페르소나 픽스처 — 실제 이력서/공고가 아님 (T-015, SPEC §10-2). 방향성 불변식 검사용.",
+  "persona_id": "junior_frontend",
+  "primary_domains": ["frontend", "web"],
+  "secondary_domains": ["fullstack"],
+  "expected_behavior": {
+    "domain_alignment": "strong",
+    "description": "frontend/web 주력 페르소나 — frontend 역할에 strong, fullstack에 adjacent"
+  },
+  "resume": {
+    "raw_text": "주니어 프론트엔드 개발자. React + TypeScript로 1년간 웹 서비스 개발. Next.js 블로그 프로젝트. HTML/CSS 능숙.",
+    "primary_domains": ["frontend", "web"],
+    "secondary_domains": ["fullstack"],
+    "evidence": [
+      {
+        "evidence_id": "E1",
+        "title": "웹 서비스 개발",
+        "source_section": "Experience",
+        "exact_quote": "React + TypeScript로 1년간 웹 서비스 개발",
+        "normalized_summary": "React/TypeScript 웹 서비스 1년",
+        "evidence_type": "work_experience",
+        "strength": "medium"
+      },
+      {
+        "evidence_id": "E2",
+        "title": "Next.js 프로젝트",
+        "source_section": "Projects",
+        "exact_quote": "Next.js 블로그 프로젝트",
+        "normalized_summary": "Next.js 개인 블로그 프로젝트",
+        "evidence_type": "project",
+        "strength": "weak"
+      }
+    ]
+  },
+  "ranking": [
+    {
+      "job_id": "fe-jd",
+      "company": "Kakao",
+      "title": "Frontend Developer",
+      "role_family": "frontend",
+      "domain_alignment": "strong",
+      "rank": 1,
+      "fit_level": 3
+    },
+    {
+      "job_id": "fs-jd",
+      "company": "Line",
+      "title": "Fullstack Developer",
+      "role_family": "fullstack",
+      "domain_alignment": "adjacent",
+      "rank": 2,
+      "fit_level": 2
+    },
+    {
+      "job_id": "mkt-jd",
+      "company": "Naver",
+      "title": "Content Marketer",
+      "role_family": "marketing",
+      "domain_alignment": "mismatch",
+      "rank": 3,
+      "fit_level": 1
+    }
+  ],
+  "tables": {
+    "fe-jd": {
+      "job_id": "fe-jd",
+      "company": "Kakao",
+      "title": "Frontend Developer",
+      "rows": [
+        {
+          "requirement_id": "fe-r1",
+          "requirement_text": "React 경험",
+          "requirement_type": "required",
+          "requirement_nature": "technical",
+          "prerequisite_status": "prerequisite",
+          "match_level": "direct",
+          "confidence": "high",
+          "evidence_quotes": ["React + TypeScript로 1년간 웹 서비스 개발"],
+          "evidence_source_sections": ["Experience"]
+        }
+      ]
+    },
+    "fs-jd": {
+      "job_id": "fs-jd",
+      "company": "Line",
+      "title": "Fullstack Developer",
+      "rows": [
+        {
+          "requirement_id": "fs-r1",
+          "requirement_text": "프론트엔드 + 백엔드 동시 경험",
+          "requirement_type": "critical",
+          "requirement_nature": "experience_level",
+          "prerequisite_status": "prerequisite",
+          "match_level": "weak",
+          "confidence": "low",
+          "evidence_quotes": ["React + TypeScript로 1년간 웹 서비스 개발"],
+          "evidence_source_sections": ["Experience"]
+        }
+      ]
+    },
+    "mkt-jd": {
+      "job_id": "mkt-jd",
+      "company": "Naver",
+      "title": "Content Marketer",
+      "rows": [
+        {
+          "requirement_id": "mkt-r1",
+          "requirement_text": "콘텐츠 마케팅 기획 경험",
+          "requirement_type": "critical",
+          "requirement_nature": "domain",
+          "prerequisite_status": "prerequisite",
+          "match_level": "missing",
+          "confidence": "low",
+          "evidence_quotes": [],
+          "evidence_source_sections": []
+        }
+      ]
+    }
+  },
+  "pairwise": [
+    {
+      "job_a": "fe-jd",
+      "job_b": "fs-jd",
+      "agreed": true,
+      "outcome": "fe-jd",
+      "confidence": "high"
+    },
+    {
+      "job_a": "fe-jd",
+      "job_b": "mkt-jd",
+      "agreed": true,
+      "outcome": "fe-jd",
+      "confidence": "high"
+    }
+  ]
+}

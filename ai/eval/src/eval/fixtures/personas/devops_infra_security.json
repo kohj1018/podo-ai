@@ -1,0 +1,157 @@
+{
+  "_synthetic": true,
+  "_note": "합성 페르소나 픽스처 — 실제 이력서/공고가 아님 (T-015, SPEC §10-2). 방향성 불변식 검사용.",
+  "persona_id": "devops_infra_security",
+  "primary_domains": ["devops", "cloud", "infra"],
+  "secondary_domains": ["security", "backend"],
+  "expected_behavior": {
+    "domain_alignment": "strong",
+    "description": "devops/cloud/infra 주력 페르소나 — devops_infra 역할에 strong, security에 adjacent"
+  },
+  "resume": {
+    "raw_text": "DevOps/인프라 엔지니어. Terraform + Ansible로 클라우드 인프라 자동화 3년. AWS EKS 클러스터 운영. 보안 취약점 스캐닝 경험.",
+    "primary_domains": ["devops", "cloud", "infra"],
+    "secondary_domains": ["security", "backend"],
+    "evidence": [
+      {
+        "evidence_id": "E1",
+        "title": "클라우드 인프라 자동화",
+        "source_section": "Experience",
+        "exact_quote": "Terraform + Ansible로 클라우드 인프라 자동화 3년",
+        "normalized_summary": "Terraform/Ansible 클라우드 인프라 3년",
+        "evidence_type": "work_experience",
+        "strength": "strong"
+      },
+      {
+        "evidence_id": "E2",
+        "title": "EKS 운영",
+        "source_section": "Experience",
+        "exact_quote": "AWS EKS 클러스터 운영",
+        "normalized_summary": "AWS EKS 클러스터 운영 경험",
+        "evidence_type": "work_experience",
+        "strength": "strong"
+      },
+      {
+        "evidence_id": "E3",
+        "title": "보안 스캐닝",
+        "source_section": "Experience",
+        "exact_quote": "보안 취약점 스캐닝 경험",
+        "normalized_summary": "보안 취약점 스캐닝",
+        "evidence_type": "work_experience",
+        "strength": "medium"
+      }
+    ]
+  },
+  "ranking": [
+    {
+      "job_id": "devops-jd",
+      "company": "Kakao",
+      "title": "DevOps Engineer",
+      "role_family": "devops_infra",
+      "domain_alignment": "strong",
+      "rank": 1,
+      "fit_level": 4
+    },
+    {
+      "job_id": "sec-jd",
+      "company": "Samsung",
+      "title": "Security Engineer",
+      "role_family": "security",
+      "domain_alignment": "adjacent",
+      "rank": 2,
+      "fit_level": 3
+    },
+    {
+      "job_id": "product-jd",
+      "company": "Naver",
+      "title": "Product Manager",
+      "role_family": "product",
+      "domain_alignment": "mismatch",
+      "rank": 3,
+      "fit_level": 1
+    }
+  ],
+  "tables": {
+    "devops-jd": {
+      "job_id": "devops-jd",
+      "company": "Kakao",
+      "title": "DevOps Engineer",
+      "rows": [
+        {
+          "requirement_id": "devops-r1",
+          "requirement_text": "Terraform/Ansible 인프라 자동화 경험",
+          "requirement_type": "critical",
+          "requirement_nature": "technical",
+          "prerequisite_status": "prerequisite",
+          "match_level": "direct",
+          "confidence": "high",
+          "evidence_quotes": ["Terraform + Ansible로 클라우드 인프라 자동화 3년"],
+          "evidence_source_sections": ["Experience"]
+        },
+        {
+          "requirement_id": "devops-r2",
+          "requirement_text": "Kubernetes/EKS 운영 경험",
+          "requirement_type": "required",
+          "requirement_nature": "technical",
+          "prerequisite_status": "prerequisite",
+          "match_level": "direct",
+          "confidence": "high",
+          "evidence_quotes": ["AWS EKS 클러스터 운영"],
+          "evidence_source_sections": ["Experience"]
+        }
+      ]
+    },
+    "sec-jd": {
+      "job_id": "sec-jd",
+      "company": "Samsung",
+      "title": "Security Engineer",
+      "rows": [
+        {
+          "requirement_id": "sec-r1",
+          "requirement_text": "보안 취약점 분석 및 대응 경험",
+          "requirement_type": "critical",
+          "requirement_nature": "technical",
+          "prerequisite_status": "prerequisite",
+          "match_level": "adjacent",
+          "confidence": "medium",
+          "evidence_quotes": ["보안 취약점 스캐닝 경험"],
+          "evidence_source_sections": ["Experience"]
+        }
+      ]
+    },
+    "product-jd": {
+      "job_id": "product-jd",
+      "company": "Naver",
+      "title": "Product Manager",
+      "rows": [
+        {
+          "requirement_id": "product-r1",
+          "requirement_text": "제품 기획 및 로드맵 수립 경험",
+          "requirement_type": "critical",
+          "requirement_nature": "domain",
+          "prerequisite_status": "prerequisite",
+          "match_level": "missing",
+          "confidence": "low",
+          "evidence_quotes": [],
+          "evidence_source_sections": []
+        }
+      ]
+    }
+  },
+  "pairwise": [
+    {
+      "job_a": "devops-jd",
+      "job_b": "sec-jd",
+      "agreed": true,
+      "outcome": "devops-jd",
+      "confidence": "high"
+    },
+    {
+      "job_a": "devops-jd",
+      "job_b": "product-jd",
+      "agreed": true,
+      "outcome": "devops-jd",
+      "confidence": "high"
+    }
+  ]
+}

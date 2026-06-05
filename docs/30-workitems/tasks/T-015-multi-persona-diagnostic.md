@@ -1,7 +1,7 @@
 # T-015-multi-persona-diagnostic
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 feature
@@ -47,6 +47,13 @@ feature
 
 ## 8. 메모
 방향성(일관성) 검사 — *정확도*는 골든 페어(T-016)가 본다.
+
+- repair-workitem 2026-06-05 P0 missing-module: Adopt — eval_resumes.py 신규 작성(PERSONAS/diagnose 6불변식/compare_ranking_modes), aggregate 3모드 재사용
+- repair-workitem 2026-06-05 P0 integration-fail: Adopt — 모듈+lint 수정 후 verify.mjs exit 0 (83 passed/1 skipped)
+- repair-workitem 2026-06-05 P0 ac-untested: Adopt — AC-1/2/3 verifier 3/3 PASS
+- repair-workitem 2026-06-05 P1 test-lint: Adopt — 미사용 import(DiagnosticResult/InvariantEntry) 제거 + I001 정렬(ruff)
+- repair-workitem 2026-06-05 P1 builder-partial-noop: Adopt-modified — 메인 세션 직접 구현으로 해소(read_set 미축소, 메인 세션은 대형 읽기에 안 죽음)
+- 설계 결정: domain_alignment=rank1 역할의 alignment / 도메인 주입=persona 프로파일이 진단 파라미터(전역 config USER_DOMAINS 부재 — worker 미보유). 모드 비교는 fixture로 aggregate 입력 재구성 후 3모드 실행(LLM 미호출).
 
 ## 9. 의존성
 - depends_on: [T-011]

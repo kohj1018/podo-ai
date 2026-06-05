@@ -1,0 +1,157 @@
+{
+  "_synthetic": true,
+  "_note": "합성 페르소나 픽스처 — 실제 이력서/공고가 아님 (T-015, SPEC §10-2). 방향성 불변식 검사용.",
+  "persona_id": "ai_ml_application",
+  "primary_domains": ["ml_ai", "ai"],
+  "secondary_domains": ["data", "backend"],
+  "expected_behavior": {
+    "domain_alignment": "strong",
+    "description": "ml_ai/ai 주력 페르소나 — ml_ai 역할에 strong, data에 adjacent"
+  },
+  "resume": {
+    "raw_text": "AI/ML 애플리케이션 엔지니어. PyTorch로 LLM 파인튜닝 2년. FastAPI 기반 추론 서버 구축. Python 데이터 파이프라인 경험.",
+    "primary_domains": ["ml_ai", "ai"],
+    "secondary_domains": ["data", "backend"],
+    "evidence": [
+      {
+        "evidence_id": "E1",
+        "title": "LLM 파인튜닝",
+        "source_section": "Experience",
+        "exact_quote": "PyTorch로 LLM 파인튜닝 2년",
+        "normalized_summary": "PyTorch LLM 파인튜닝 2년",
+        "evidence_type": "work_experience",
+        "strength": "strong"
+      },
+      {
+        "evidence_id": "E2",
+        "title": "추론 서버 구축",
+        "source_section": "Experience",
+        "exact_quote": "FastAPI 기반 추론 서버 구축",
+        "normalized_summary": "FastAPI 추론 서버 구축",
+        "evidence_type": "work_experience",
+        "strength": "medium"
+      },
+      {
+        "evidence_id": "E3",
+        "title": "데이터 파이프라인",
+        "source_section": "Experience",
+        "exact_quote": "Python 데이터 파이프라인 경험",
+        "normalized_summary": "Python 데이터 파이프라인",
+        "evidence_type": "work_experience",
+        "strength": "medium"
+      }
+    ]
+  },
+  "ranking": [
+    {
+      "job_id": "ml-jd",
+      "company": "Kakao",
+      "title": "ML Engineer",
+      "role_family": "ml_ai",
+      "domain_alignment": "strong",
+      "rank": 1,
+      "fit_level": 4
+    },
+    {
+      "job_id": "data-jd",
+      "company": "Naver",
+      "title": "Data Engineer",
+      "role_family": "data",
+      "domain_alignment": "adjacent",
+      "rank": 2,
+      "fit_level": 3
+    },
+    {
+      "job_id": "design-jd",
+      "company": "Line",
+      "title": "UX Designer",
+      "role_family": "design",
+      "domain_alignment": "mismatch",
+      "rank": 3,
+      "fit_level": 1
+    }
+  ],
+  "tables": {
+    "ml-jd": {
+      "job_id": "ml-jd",
+      "company": "Kakao",
+      "title": "ML Engineer",
+      "rows": [
+        {
+          "requirement_id": "ml-r1",
+          "requirement_text": "PyTorch/TensorFlow 모델 학습 경험",
+          "requirement_type": "critical",
+          "requirement_nature": "technical",
+          "prerequisite_status": "prerequisite",
+          "match_level": "direct",
+          "confidence": "high",
+          "evidence_quotes": ["PyTorch로 LLM 파인튜닝 2년"],
+          "evidence_source_sections": ["Experience"]
+        },
+        {
+          "requirement_id": "ml-r2",
+          "requirement_text": "추론 서버 배포 경험",
+          "requirement_type": "required",
+          "requirement_nature": "technical",
+          "prerequisite_status": "prerequisite",
+          "match_level": "direct",
+          "confidence": "high",
+          "evidence_quotes": ["FastAPI 기반 추론 서버 구축"],
+          "evidence_source_sections": ["Experience"]
+        }
+      ]
+    },
+    "data-jd": {
+      "job_id": "data-jd",
+      "company": "Naver",
+      "title": "Data Engineer",
+      "rows": [
+        {
+          "requirement_id": "data-r1",
+          "requirement_text": "대규모 데이터 파이프라인 설계 경험",
+          "requirement_type": "critical",
+          "requirement_nature": "experience_level",
+          "prerequisite_status": "prerequisite",
+          "match_level": "adjacent",
+          "confidence": "medium",
+          "evidence_quotes": ["Python 데이터 파이프라인 경험"],
+          "evidence_source_sections": ["Experience"]
+        }
+      ]
+    },
+    "design-jd": {
+      "job_id": "design-jd",
+      "company": "Line",
+      "title": "UX Designer",
+      "rows": [
+        {
+          "requirement_id": "design-r1",
+          "requirement_text": "UX 리서치 및 프로토타이핑 경험",
+          "requirement_type": "critical",
+          "requirement_nature": "domain",
+          "prerequisite_status": "prerequisite",
+          "match_level": "missing",
+          "confidence": "low",
+          "evidence_quotes": [],
+          "evidence_source_sections": []
+        }
+      ]
+    }
+  },
+  "pairwise": [
+    {
+      "job_a": "ml-jd",
+      "job_b": "data-jd",
+      "agreed": true,
+      "outcome": "ml-jd",
+      "confidence": "high"
+    },
+    {
+      "job_a": "ml-jd",
+      "job_b": "design-jd",
+      "agreed": true,
+      "outcome": "ml-jd",
+      "confidence": "high"
+    }
+  ]
+}

@@ -1,0 +1,168 @@
+{
+  "_synthetic": true,
+  "_note": "합성 페르소나 픽스처 — 실제 이력서/공고가 아님 (T-015, SPEC §10-2). 방향성 불변식 검사용.",
+  "persona_id": "backend_platform",
+  "primary_domains": ["backend"],
+  "secondary_domains": ["fullstack", "devops", "cloud", "infra"],
+  "expected_behavior": {
+    "domain_alignment": "strong",
+    "description": "backend 주력 페르소나 — backend 역할에 strong, devops/cloud에 adjacent"
+  },
+  "resume": {
+    "raw_text": "백엔드 플랫폼 엔지니어. Go + gRPC 서버를 3년간 설계·운영. Kubernetes 클러스터 관리. PostgreSQL 성능 튜닝 경험. AWS EC2/RDS 운영.",
+    "primary_domains": ["backend"],
+    "secondary_domains": ["fullstack", "devops", "cloud", "infra"],
+    "evidence": [
+      {
+        "evidence_id": "E1",
+        "title": "백엔드 서버 설계",
+        "source_section": "Experience",
+        "exact_quote": "Go + gRPC 서버를 3년간 설계·운영",
+        "normalized_summary": "Go/gRPC 백엔드 서버 3년",
+        "evidence_type": "work_experience",
+        "strength": "strong"
+      },
+      {
+        "evidence_id": "E2",
+        "title": "Kubernetes 운영",
+        "source_section": "Experience",
+        "exact_quote": "Kubernetes 클러스터 관리",
+        "normalized_summary": "Kubernetes 클러스터 관리 경험",
+        "evidence_type": "work_experience",
+        "strength": "medium"
+      },
+      {
+        "evidence_id": "E3",
+        "title": "DB 튜닝",
+        "source_section": "Experience",
+        "exact_quote": "PostgreSQL 성능 튜닝 경험",
+        "normalized_summary": "PostgreSQL 성능 튜닝",
+        "evidence_type": "work_experience",
+        "strength": "medium"
+      }
+    ]
+  },
+  "ranking": [
+    {
+      "job_id": "be-jd",
+      "company": "Toss",
+      "title": "Backend Platform Engineer",
+      "role_family": "backend",
+      "domain_alignment": "strong",
+      "rank": 1,
+      "fit_level": 4
+    },
+    {
+      "job_id": "devops-jd",
+      "company": "Kakao",
+      "title": "DevOps Engineer",
+      "role_family": "devops_infra",
+      "domain_alignment": "adjacent",
+      "rank": 2,
+      "fit_level": 3
+    },
+    {
+      "job_id": "mkt-jd",
+      "company": "Naver",
+      "title": "Marketing Manager",
+      "role_family": "marketing",
+      "domain_alignment": "mismatch",
+      "rank": 3,
+      "fit_level": 1
+    }
+  ],
+  "tables": {
+    "be-jd": {
+      "job_id": "be-jd",
+      "company": "Toss",
+      "title": "Backend Platform Engineer",
+      "rows": [
+        {
+          "requirement_id": "be-r1",
+          "requirement_text": "Go 또는 Java 백엔드 경력 3년 이상",
+          "requirement_type": "critical",
+          "requirement_nature": "technical",
+          "prerequisite_status": "prerequisite",
+          "match_level": "direct",
+          "confidence": "high",
+          "evidence_quotes": ["Go + gRPC 서버를 3년간 설계·운영"],
+          "evidence_source_sections": ["Experience"]
+        },
+        {
+          "requirement_id": "be-r2",
+          "requirement_text": "PostgreSQL 운영 경험",
+          "requirement_type": "required",
+          "requirement_nature": "technical",
+          "prerequisite_status": "prerequisite",
+          "match_level": "direct",
+          "confidence": "high",
+          "evidence_quotes": ["PostgreSQL 성능 튜닝 경험"],
+          "evidence_source_sections": ["Experience"]
+        }
+      ]
+    },
+    "devops-jd": {
+      "job_id": "devops-jd",
+      "company": "Kakao",
+      "title": "DevOps Engineer",
+      "rows": [
+        {
+          "requirement_id": "devops-r1",
+          "requirement_text": "Kubernetes 운영 경험",
+          "requirement_type": "required",
+          "requirement_nature": "technical",
+          "prerequisite_status": "prerequisite",
+          "match_level": "direct",
+          "confidence": "high",
+          "evidence_quotes": ["Kubernetes 클러스터 관리"],
+          "evidence_source_sections": ["Experience"]
+        },
+        {
+          "requirement_id": "devops-r2",
+          "requirement_text": "전문 DevOps 자동화 경험 2년 이상",
+          "requirement_type": "critical",
+          "requirement_nature": "experience_level",
+          "prerequisite_status": "prerequisite",
+          "match_level": "missing",
+          "confidence": "low",
+          "evidence_quotes": [],
+          "evidence_source_sections": []
+        }
+      ]
+    },
+    "mkt-jd": {
+      "job_id": "mkt-jd",
+      "company": "Naver",
+      "title": "Marketing Manager",
+      "rows": [
+        {
+          "requirement_id": "mkt-r1",
+          "requirement_text": "마케팅 캠페인 기획 경험",
+          "requirement_type": "critical",
+          "requirement_nature": "domain",
+          "prerequisite_status": "prerequisite",
+          "match_level": "missing",
+          "confidence": "low",
+          "evidence_quotes": [],
+          "evidence_source_sections": []
+        }
+      ]
+    }
+  },
+  "pairwise": [
+    {
+      "job_a": "be-jd",
+      "job_b": "devops-jd",
+      "agreed": true,
+      "outcome": "be-jd",
+      "confidence": "high"
+    },
+    {
+      "job_a": "be-jd",
+      "job_b": "mkt-jd",
+      "agreed": true,
+      "outcome": "be-jd",
+      "confidence": "high"
+    }
+  ]
+}
