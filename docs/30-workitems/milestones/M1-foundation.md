@@ -59,7 +59,11 @@ draft
 - 5단계 밴드 cut-off 미정(Charter §10) — 최소 피드의 밴드 표시 폭에 영향.
 
 ## 8. 회고 (stabilize 자동 채움)
-- 목표 달성도: <정량/정성 1줄>
-- scope creep 사례: <있으면 1줄, 없으면 "없음">
-- 비목표(charter ## 5) 위반 사례: <있으면 1줄>
-- 핵심 학습 3개 이내
+> /stabilize-milestone M1 (2026-06-05). 졸업 가능 = YES. 본 단락은 회고 본문만 — status(## 0)는 변경 안 함(ADR-014: status 전이는 본 skill 책임 아님).
+- 목표 달성도: **달성(졸업 가능 YES)**. T-001~T-017 done(17/17), 통합 validate exit 0(ruff·mypy strict·pytest 103 pass/1 skip), AC 매핑 52/52(100%), Evidence Bundle 신뢰도 High 17/17, P0 0. "수집→결정론 스코어링→근거" 코어 + 게이트 *측정 경로*(GS-1/GS-2/GS-3, T-014/016/017)가 캘리브레이션 보존 채로 이식·검증됨. 미완: *실데이터 게이트 수치*(실 LLM·창업자 라벨·100회 반복)와 서비스 와이어링(DB 영속·워커 엔트리·cron·API·Feed UI) — §3 분해 경계대로 후속 분해 대상.
+- scope creep 사례: **없음.** T-001~T-017이 "알고리즘 + 오프라인 평가"(함수/JSONB 계약 + pytest) 경계를 벗어나지 않음. 서비스 와이어링·Feed UI는 §3에 비범위로 선고지된 대로 미착수.
+- 비목표(charter §5) 위반 사례: **없음.** 다채널 풀커버리지(2곳 유지)·자소서 자동작성·절대 합격확률 %·직군 분기 모델·일정/자동지원 모두 미구현(밴드·상대 강도로 대체, 단일 모델 시작).
+- 핵심 학습 (≤3):
+  1. **게이트는 "측정 경로"와 "측정 수치"가 분리된다.** 경로는 LLM 없이 결정적으로 박을 수 있으나(GS-1/GS-2/GS-3 하니스), GS-2 `_is_grounded` 토큰 휴리스틱·GS2_MIN_SAMPLE 비강제·τ-a vs τ-b 같은 *oracle gap*은 실데이터 + 강제 로직으로만 닫힌다 — M2 최고 레버리지 후속(QA-M1-001/002/003, T-016/T-017).
+  2. **검증된-포트의 1순위 silent-regression 위험은 흩어진 캘리브레이션 상수/함수다.** DOM_RANK·레벨 경계·BT prior·_extract_json·_load_prompt가 중복·무주석 상태 — GS-1 게이트가 못 잡는 무음 drift 표면. 상수/util SSOT 단일화 + WHY 주석이 가장 값싼 보강(REV-M1-001~007).
+  3. **read-only 측정 레이어(eval)가 worker private 심볼에 고정 의존**하면 경계가 주석으로만 강제된다 — 공개 alias + 경계 ADR 필요(REV-M1-003). 더불어 위임 운영상: 광범위 qa 위임은 output-first 예산 제약이 없으면 finding 미출력으로 실패(본 라운드 instruction 개선 후보).
