@@ -72,13 +72,18 @@ def _resolve_evidence(
 
 
 def _needs_rematch(row: MatchRow) -> bool:
-    """SPEC §6-1: over-claim 또는 missing/weak same-category 그룹 재시도 조건.
+    """SPEC §6-1: missing/weak same-category 그룹 false-negative 재시도 조건.
 
-    (a) 매칭을 주장했으나 유효 근거가 0인 행 (over-claim) — resolve 단계에서 처리됨.
-        여기서는 (b) same-category 그룹 false-negative를 판정한다.
-    (b) critical/required인데 same-category 그룹(category in GROUP_CATEGORIES)이
-        missing 또는 weak으로 온 경우.
+    유효 근거가 이미 있는 행은 재시도하지 않는다 (프로토타입 _needs_rematch(has_valid)
+    동작 복원). 증거 있는 weak 행까지 재매칭하면 LLM 호출 분산이 커지고, rematch가
+    weak→direct로 올려 fit이 baseline 대비 흔들릴 수 있다 (REV: 검증 동작 보존).
+
+    (b) critical/required인데 same-category 그룹(category in GROUP_CATEGORIES 또는
+        alternatives 보유)이 missing/weak으로 왔고, 유효 근거가 0인 경우만 재시도.
+    (over-claim = 매칭 주장했으나 유효 근거 0인 행은 호출부 was_overclaim이 별도 처리.)
     """
+    if row.matched_evidence_ids:
+        return False  # 이미 유효 근거 있음 → 재시도 불필요 (has_valid 가드)
     if row.requirement_type not in ("critical", "required"):
         return False
     if row.match_level not in ("missing", "weak"):
