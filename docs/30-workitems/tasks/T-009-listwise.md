@@ -48,6 +48,8 @@ listwise가 모든 job_id를 정확히 한 번씩 포함하도록 보정하고, 
 - repair-workitem 2026-06-05 P0 E501x4: Adopt — impl 79/85/159/250 ruff format 자동 줄바꿈으로 해소
 - repair-workitem 2026-06-05 P0 F401: Adopt — test_listwise.py `import pytest` 미사용 제거
 - repair-workitem 2026-06-05 P0 F841: Adopt — test `warnings_str` dead 변수 제거(assert는 warnings 직접 사용)
+- repair-workitem 2026-06-05 P1 dom-rank-dup: Adopt — _DOM_RANK 중복 상수 제거, rank_aggregate.DOM_RANK를 SSOT로 import(무음 drift→GS-1 회귀 차단) (REV-M1-002, /stabilize-milestone)
+- repair-workitem 2026-06-05 P1 extract-json-dup: Reject-context(defer) — _extract_json 3중복 추출은 worker shared-util 경계 ADR 후보→architect 결정(IMPROVEMENT_GUIDE §4) (REV-M1-001)
 
 ## 9. 의존성
 - depends_on: [T-005]

@@ -92,7 +92,17 @@ class GS2Gate:
 
         hallucinated_count = len(hallucinated)
         ratio = hallucinated_count / total if total > 0 else 0.0
-        gate_pass = ratio <= self.threshold
+        details = hallucinated[:10]  # 최대 10개만 기록
+
+        # WHY: GS-2 게이트는 SPEC §10-3상 "표본 ≥30"에서만 유효하다. 표본이
+        # 부족하면 ratio가 0%여도(빈 표본 total=0 포함) PASS로 오판할 수 있고,
+        # 이는 "근거 없는 점수"를 거짓 통과시키는 것이라 제품 thesis에 정면 위배.
+        # 따라서 표본 부족은 ratio와 무관하게 게이트 실패로 처리한다.
+        if total < GS2_MIN_SAMPLE:
+            gate_pass = False
+            details = [f"insufficient_sample: {total} < {GS2_MIN_SAMPLE}", *details]
+        else:
+            gate_pass = ratio <= self.threshold
 
         return GS2Result(
             total_count=total,
@@ -100,7 +110,7 @@ class GS2Gate:
             hallucinated_ratio=ratio,
             gate_pass=gate_pass,
             threshold=self.threshold,
-            details=hallucinated[:10],  # 최대 10개만 기록
+            details=details,
         )
 
 

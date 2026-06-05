@@ -18,8 +18,9 @@ from typing import Any, Callable
 
 from core.models import MatchingTable
 
-# §5-2·§7-3: 도메인 tier → 정렬 키 숫자 (SPEC §5-2 DOM_RANK와 동일 값)
-_DOM_RANK: dict[str, int] = {"strong": 3, "adjacent": 2, "weak": 1, "mismatch": 0}
+# DOM_RANK: rank_aggregate를 SSOT로 import — 캘리브레이션 상수를 복제하면 무음
+# drift로 listwise 삽입 순서 ↔ BT 정렬 키가 어긋나 GS-1 회귀가 생긴다 (REV-M1-002).
+from worker.rank_aggregate import DOM_RANK
 
 # listwise_rerank 프롬프트 (T-005에서 verbatim 이식됨)
 _PROMPT_PATH = Path(__file__).parent / "prompts" / "listwise_rerank.md"
@@ -289,7 +290,7 @@ def _safe_insert_missing(
     def _key(jid: str) -> tuple[int, int]:
         fit_level = int(fits.get(jid, {}).get("level", 1))
         dom = domain_ctx.get(jid, {}).get("domain_alignment", "weak")
-        dom_rank = _DOM_RANK.get(dom, 0)
+        dom_rank = DOM_RANK.get(dom, 0)
         return (-fit_level, -dom_rank)
 
     # fit이 높은 것부터 처리해야 삽입 위치가 안정적으로 결정된다

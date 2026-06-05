@@ -246,6 +246,30 @@ def test_AC_2_gs2_passes_threshold() -> None:
     )
 
 
+def test_AC_2_gs2_insufficient_sample_fails() -> None:
+    """AC-2 (QA-M1-001 회귀 가드): 표본 < GS2_MIN_SAMPLE이면 hallucination 0%여도 gate_pass=False.
+
+    빈/소표본 PASS는 '근거 없는 점수'를 거짓 통과시키는 것이라 제품 thesis 위배
+    (SPEC §10-3: GS-2는 표본 ≥30에서만 유효).
+    """
+    from eval.gates import GS2_MIN_SAMPLE
+
+    jd_raw_text = "React TypeScript 경험 필수."
+    # 전부 grounded(ratio=0%)이지만 표본 부족 → 게이트 실패여야 한다.
+    small = [f"React 경험_{i}" for i in range(GS2_MIN_SAMPLE - 1)]
+
+    gate = GS2Gate()
+    result = gate.measure(small, jd_raw_text)
+    assert result.total_count == GS2_MIN_SAMPLE - 1
+    assert result.hallucinated_ratio == 0.0
+    assert result.gate_pass is False
+    assert any("insufficient_sample" in d for d in result.details)
+
+    # 빈 표본도 통과 금지 (total=0 → ratio 0.0 이던 거짓 통과 차단).
+    empty = gate.measure([], jd_raw_text)
+    assert empty.gate_pass is False
+
+
 # ---------------------------------------------------------------------------
 # AC-3: GS-1 결정성 게이트
 # ---------------------------------------------------------------------------

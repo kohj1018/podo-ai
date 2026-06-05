@@ -54,6 +54,8 @@ feature
 - repair-workitem 2026-06-05 P1 ruff-errors: Adopt — F401×8/I001×2/F841(dead hardness_label) 정리
 - repair-workitem 2026-06-05 P1 untested-deliverables: Adopt — propose_pairs/load_pairs/evaluate_pairs/rescore_persona 테스트 추가(import 소비, FAC-4 rescore 커버)
 - 설계 결정: GS-2 grounding = 내용 토큰(3자+) 과반이 JD 원문에 substring 실재 시 grounded(길이 무관). salient 토큰 누락 시에만 hallucinated.
+- repair-workitem 2026-06-05 P1 gs2-min-sample: Adopt — GS2Gate.measure가 표본<30(빈 표본 total=0 포함)이면 ratio 무관 gate_pass=False + 회귀테스트 추가 (QA-M1-001, /stabilize-milestone)
+- repair-workitem 2026-06-05 P1 gs2-grounding-heuristic: Reject-context — 토큰-과반 false-negative는 LLM-free 결정적 프록시(F-004 §6) 내재 한계, 기존 WHY 주석에 명시 (QA-M1-002)
 
 ## 9. 의존성
 - depends_on: [T-011]
