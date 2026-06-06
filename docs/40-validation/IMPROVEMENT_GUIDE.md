@@ -222,3 +222,11 @@ Telemetry — M2
 - **M2-repair-6** | P0 | [관측됨] | linked: F-007,F-010,T-020,T-022,T-023,T-026,T-029 | status: applied | decision: Adopt-modified
   - 발견 (cross-LLM review default, round 2): 보류(held) 공고가 end-to-end 미커버 — `run_scoring`은 held를 `pending_job_ids`에 두고 `final_ranking.ranking`에서 제외(pipeline.py:379/report.py:52)하는데, T-022는 `ranking`에서만 projection 생성 + T-020은 `fit_level Int`(non-null) → held 행 미생성/가짜 fit_level 강제 → F-010 "가짜 점수 대신 보류" AC 붕괴.
   - 결정: Adopt-modified — `recommendations.fit_level` **nullable** + held projection을 `pending_job_ids`에서 생성(fit_level=NULL·status='held'·scored 뒤 rank_position). T-020(nullable+`(run_id,rank_position)` index)·T-022(held 도출)·T-026(feed 포함·current run)·T-029(보류 렌더)·F-006/F-007 반영.
+
+### M3
+
+> `/repair-plan M3` (2026-06-07) — cross-LLM `/validate-plan`(reviewer-tag: default, M3 milestone + F-012~F-015 + tasks T-032~T-039) 회수. P0 1(feature scope, 아래) + P1 7(task scope → 각 task `## 8`) + P2 1(T-036 doc-link, cap 보호로 §5 미영속·T-036에 직접 적용). 사이징 split로 **T-040(PII Safety Pass)·T-041(upload states)** 신설 — 의존성 변경(wave 재산출 필요).
+
+- **M3-repair-1** | P0 | [관측됨] | linked: F-015,T-034,T-038 | status: applied | decision: Adopt
+  - 발견 (cross-LLM review default): F-015:FAC-1 preview/evidence 요약 렌더에 필요한 데이터를 backend AC가 생산 안 함 — T-034 응답(`{resume_id,masked,placeholders}`)·F-013 NFR(content 미포함)이 T-038의 masked_preview/evidence 가정과 어긋남(builder가 mock/UI만 green 낼 위험).
+  - 결정: Adopt — T-034 응답·AC-1에 `masked_preview`(마스킹본) + 결정적 `evidence_summary`(스킬·경력 수, `extract_skills_evidence` 비-LLM 부분 TS 이식) 추가. T-038 §8 인터페이스 갭 경고 해소(확정 계약 소비).
