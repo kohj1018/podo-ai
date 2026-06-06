@@ -1,7 +1,7 @@
 # T-034-resume-upload-endpoint
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 feature
@@ -34,7 +34,16 @@ NestJS `POST /api/v1/resumes`를 신설해 단일 사용자가 이력서(`.txt`/
 - 실제 PII 마스킹 regex 구현(T-036 — 본 task는 port + 이메일 stub만). · `parse_resume` 스코어링 연결(T-037). · 업로드 UI(T-038). · PDF/docx 텍스트 추출(M4). · 인증·멀티유저. · 단일 활성 이력서 교체 정책 구체화(아래 §12 열린 질문).
 
 ## 4-1. 변경 예정 파일/경로
-<!-- 구현 시점에 채운다. -->
+- `podo/apps/api/src/resumes/resume-masker.port.ts` (신규) — ResumeMasker port + RegexResumeMaskerStub(이메일만, T-036 교체 대상)
+- `podo/apps/api/src/resumes/dto/create-resume.dto.ts` (신규) — paste 바디 DTO(plain — class-validator 미설치, manual validation)
+- `podo/apps/api/src/resumes/evidence-summary.ts` (신규) — parse_resume 비-LLM 헤딩 파싱 경량 이식(skills/experiences 카운트)
+- `podo/apps/api/src/resumes/resumes.service.ts` (신규) — 마스킹→마스킹본 영속(RESUME_EMPTY 검증, raw 미로깅)
+- `podo/apps/api/src/resumes/resumes.controller.ts` (신규) — POST /api/v1/resumes(multipart+paste), 포맷/크기 도메인 envelope
+- `podo/apps/api/src/resumes/resumes.module.ts` (신규) — 모듈 배선 + masker provider
+- `podo/apps/api/src/app.module.ts` — ResumesModule 등록
+- `podo/apps/api/src/main.ts` — AllExceptionsFilter 전역 등록(envelope 보장)
+- `podo/apps/api/src/common/error.filter.ts` — 예외 response의 도메인 code 우선 사용
+- `podo/apps/api/test/resumes.spec.ts` (신규) — AC-1(DB)·AC-2(415)·AC-3(413)
 
 ## 5. 완료 조건
 `POST /api/v1/resumes`가 `.txt`/`.md`/paste를 받아 마스킹본을 `resumes`에 저장하고 201 + `{ data: { resume_id, masked } }`를 반환하며, 금지 포맷·초과 크기·빈 입력을 envelope 에러로 거절한다.
@@ -64,6 +73,7 @@ NestJS `POST /api/v1/resumes`를 신설해 단일 사용자가 이력서(`.txt`/
 - 응답 바디에 `masked_preview`(마스킹본 텍스트)·`evidence_summary` 포함(F-015 preview 계약 — repair-plan P0). raw 원문은 절대 미포함(F-013 §8 NFR 정합 — masked_preview는 이미 마스킹된 본문).
 - repair-plan 2026-06-07 [default] P1 Plan-ambiguity: Adopt — error.filter.ts를 write_set+step8에 추가(도메인 code 우선), AC-1 no-raw를 port 경유로 축소(전체 6표면 검증=T-040).
 - repair-plan 2026-06-07 [default] P1 Plan-sizing: Reject-conflict — 첫 엔드포인트 scaffolding(global pipe/filter 1회 설정 co-locate 자연), AC=3 ≤한계(SKILL scaffolding 예외).
+- 구현 이탈(2026-06-07): (1) `@nestjs/platform-express`는 이미 dependencies에 존재(step1 no-op, lockfile 변경 없음). (2) `class-validator`/`class-transformer` 미설치 + 네트워크 차단으로 설치 불가 → step3 DTO 데코레이터·step8 ValidationPipe 대신 **manual validation**(plain DTO + 컨트롤러 수동 포맷/크기 체크 + 서비스 RESUME_EMPTY). AC-1/2/3 관측 동작 동일(201/413/415 envelope), YAGNI·ADR-006 시스템 경계 검증 원칙 부합. (3) evidence 카운트는 `evidence-summary.ts` 헬퍼로 분리(서비스 인라인 대신 — 동일 로직, 테스트 용이).
 
 ## 9. 의존성
 - depends_on: [T-035]   # resumes masked/source/upload_format 컬럼 선행
