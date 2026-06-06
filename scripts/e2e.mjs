@@ -78,20 +78,34 @@ function run(cmd, { env = {}, cwd = ROOT, allowFail = false } = {}) {
 }
 
 let apiChild = null
+let exiting = false
 
-function fail(msg) {
-  console.error(`\n[e2e] ✗ ${msg}`)
-  cleanup()
-  process.exit(1)
-}
-
-function cleanup() {
-  if (apiChild && !apiChild.killed) {
+// 자식(api) 종료. Windows에서 apiChild.kill()은 libuv child 핸들 close 경로를 타며
+// process.exit과 겹치면 UV_HANDLE_CLOSING assertion으로 abort(비0 종료)하므로, win32는
+// taskkill로 *외부* 종료해 그 경로를 우회한다. posix는 표준 kill.
+function killApi() {
+  if (!apiChild || apiChild.killed) return
+  if (process.platform === 'win32') {
+    spawnSync('taskkill', ['/pid', String(apiChild.pid), '/t', '/f'], { stdio: 'ignore' })
+  } else {
     apiChild.kill()
   }
+}
+
+// 종료 단일 경로 — 자식을 먼저 정리한 뒤 process.exit(중복 진입 차단).
+function finishAndExit(code) {
+  if (exiting) return
+  exiting = true
+  killApi()
   if (TEARDOWN && !SKIP_COMPOSE) {
     run(`docker compose ${COMPOSE.join(' ')} down`, { allowFail: true })
   }
+  process.exit(code)
+}
+
+function fail(msg) {
+  console.error(`\n[e2e] ✗ ${msg}`)
+  finishAndExit(1)
 }
 
 async function sleep(ms) {
@@ -186,8 +200,7 @@ async function main() {
   await assertFeedAndCoverage()
 
   log('✓ E2E 통과 — crawl(fixture) → score(웜캐시) → feed/coverage 재현 완료')
-  cleanup()
-  process.exit(0)
+  finishAndExit(0)
 }
 
 async function assertFeedAndCoverage() {
@@ -231,9 +244,6 @@ async function assertFeedAndCoverage() {
   log(`assert 통과 — scored ${scored.length} / held ${items.length - scored.length} / sources ${[...sources].join('+')}`)
 }
 
-process.on('SIGINT', () => {
-  cleanup()
-  process.exit(130)
-})
+process.on('SIGINT', () => finishAndExit(130))
 
 main().catch((err) => fail(String(err?.stack ?? err)))
