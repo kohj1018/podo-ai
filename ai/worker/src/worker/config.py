@@ -10,10 +10,13 @@ env 로딩은 레포 루트의 .env를 결정적으로 읽는다. bare load_dote
 (백엔드 시크릿을 프론트 번들에 노출하지 않기 위한 분리).
 """
 
+import json
 import os
 from pathlib import Path
 
 from dotenv import load_dotenv
+
+from core.models import Resume
 
 
 def _load_root_env() -> None:
@@ -44,3 +47,34 @@ LLM_SEED: int = int(os.environ.get("LLM_SEED", "7"))
 
 # OpenAI API key — 시스템 경계에서만 사용
 OPENAI_API_KEY: str = os.environ.get("OPENAI_API_KEY", "")
+
+
+# 합성 seed 이력서 (SPEC §9-4 — M2는 실 PII 비범위, config 주입 합성만).
+# raw_text 안의 문장이 evidence 추출형 검증의 haystack이 된다.
+_DEFAULT_SEED_TEXT = (
+    "프론트엔드 개발자 이력서 (합성 seed — SPEC §9-4).\n"
+    "React 18 프로젝트에서 3년간 프론트엔드 개발을 수행했다.\n"
+    "TypeScript와 Next.js 기반 SPA 설계 및 상태관리 경험이 있다.\n"
+    "백엔드와 협업해 REST API를 연동한 경험이 다수 있다."
+)
+
+
+def load_seed_resume() -> Resume:
+    """합성 seed 이력서를 로드한다 (SPEC §9-4).
+
+    `SEED_RESUME_JSON`(파일 경로)이 있으면 그 JSON을, 없으면 기본 합성 이력서를 쓴다.
+    JSON 형식: {"raw_text": str, "primary_domains": [str], "secondary_domains": [str]}.
+    """
+    path = os.environ.get("SEED_RESUME_JSON")
+    if path:
+        data = json.loads(Path(path).read_text(encoding="utf-8"))
+        return Resume(
+            raw_text=data["raw_text"],
+            primary_domains=data["primary_domains"],
+            secondary_domains=data.get("secondary_domains", []),
+        )
+    return Resume(
+        raw_text=_DEFAULT_SEED_TEXT,
+        primary_domains=["frontend"],
+        secondary_domains=["backend"],
+    )

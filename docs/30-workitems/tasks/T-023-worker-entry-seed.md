@@ -1,7 +1,7 @@
 # T-023-worker-entry-seed
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 technical-enabler
@@ -48,6 +48,9 @@ technical-enabler
 ## 8. 메모
 - 해석 확정: seed 이력서 = 합성(config 주입, SPEC §9-4) — M2는 실 PII 비범위(M2 결정).
 - repair-plan 2026-06-06 [default] P0 Plan-FAC-coverage: Adopt — held 공고는 T-022가 pending_job_ids로 projection 행 생성(진입점 중단 X, AC-2 정합).
+- 구현 노트(2026-06-06): 메인 세션 수동(M2 task 포크 사망 패턴 확립 — T-018/019/021/022 모두 포크 불완전). entry는 `run(conn, *, call_fn...)`으로 분리(테스트는 fake 주입, main()은 실 LLM 기본).
+- seed bootstrap: `_ensure_seed_resume`가 resumes에 합성 seed를 멱등 insert(content 동일 시 재사용). resumes는 §3-2상 api 소유이나 M2엔 api 업로드 경로 부재 → 진입점이 seed 1회 주입(M2 seed 편의, F-007 'UI 업로드 비범위'와 구분). 후속 api seed 경로 생기면 이관.
+- 무키 경로(M2 §5): main() call_fn 기본 None → run_scoring 실 LLM. 무키 결정적 실행은 웜 캐시(.cache/llm)/fake 필요 — E2E 오케스트레이션 소관. 라이브 검증: DATABASE_URL 주입 시 3 테스트(seed/AC-1/AC-2) green.
 
 ## 9. 의존성
 - depends_on: [T-022]
