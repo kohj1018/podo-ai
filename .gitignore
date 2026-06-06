@@ -34,3 +34,5 @@ __pycache__/
 # TS 스택 (podo/) 캐시 산출물 (node_modules·.next·dist는 위에서 커버)
 *.tsbuildinfo
 .turbo/
+# 'coverage' ignore(테스트 커버리지 출력)가 feature 디렉터리명과 충돌 — 소스 재포함 (T-027)
+!podo/apps/api/src/coverage/
