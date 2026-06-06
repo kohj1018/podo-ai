@@ -1,7 +1,7 @@
 # T-025-crawler-cron
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 technical-enabler
@@ -49,6 +49,10 @@ technical-enabler
 - 해석 확정: crawl/score 분리 — `crawl-jobs`는 `OPENAI_API_KEY` 미주입(F-008 FAC-4). cron 시각 `0 22 * * *`(UTC=KST 07:00) 가정, 구현 시 확정.
 - secrets는 GH secrets(`.env` 커밋 금지, AGENTS.md).
 - repair-plan 2026-06-06 [default] P1 Plan-dep: Adopt — depends_on에 T-019 추가(crawl-jobs.yml skeleton→실동작 write 순서).
+- 구현 노트(2026-06-06): 메인 세션 수동(M2 포크 패턴). `crawl(conn, client, *, now)`(테스트 fake client) + `main()`(httpx.Client + datetime.now(UTC) 1회 주입). 채널 실패는 격리(채널별 record_crawl_run failed, 전체 중단 X).
+- crawl-jobs.yml: cron `0 22 * * *` 확정. DATABASE_URL은 secrets 주입(prod 영속 DB; 스키마 별도 마이그레이션 전제). OPENAI_API_KEY env 미주입(LLM 분리). PG service 미사용(prod DB 대상 — 로컬 E2E는 docker compose 오케스트레이션이 별도).
+- AC-2 검증: crawler 패키지 AST 스캔 openai import 0 + OPENAI_API_KEY 삭제 후 crawl() 완주. `actionlint` 미설치 → pyyaml 구조검증(cron/dispatch/python -m crawler/DATABASE_URL env/OPENAI_API_KEY env 미주입).
+- partial status: 채널 단위 success/failed만 — fetch 내부 단건 skip(T-024)은 'partial' 미표면화(fetch가 skip 카운트 미보고). 후속 skip-count 배관 시 분류 가능.
 
 ## 9. 의존성
 - depends_on: [T-019, T-024]   # T-019가 crawl-jobs.yml skeleton 생성 → 본 task가 실동작 수정(같은 파일 write 순서 — cross-LLM P1)

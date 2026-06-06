@@ -1,17 +1,25 @@
 name: crawl-jobs
 
-# 일일 수집 cron 골격 (ARCH §7-3 주기 수집 / F-008).
-# 실 수집 실행 로직(crawl LLM無 / score LLM有 분리)은 T-025 가 채운다.
+# 일일 수집 cron (ARCH §7-3 주기 수집 / F-008). crawl(LLM無)/score(LLM有) 분리 —
+# 본 워크플로는 OPENAI_API_KEY를 주입하지 않는다(수집 실패가 OpenAI 비용을 태우지 않게).
+# score 단계는 별도 워크플로/실행이 담당.
 
 on:
   workflow_dispatch:
   schedule:
-    # 매일 1회 (UTC 18:00 ≈ KST 03:00).
-    - cron: '0 18 * * *'
+    # 매일 1회 (UTC 22:00 ≈ KST 07:00).
+    - cron: '0 22 * * *'
 
 jobs:
   crawl-jobs:
     runs-on: ubuntu-latest
+    env:
+      # 영속 DB는 GH secrets로 주입(.env 커밋 금지). 스키마는 별도 마이그레이션으로 적용 전제.
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      # NOTE: OPENAI_API_KEY 의도적 미주입 — crawl은 LLM 불요(F-008 FAC-4).
     steps:
-      - name: Placeholder
-        run: echo "crawl-jobs skeleton — no-op (real crawl in T-025)"
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+      - name: Crawl jobs (no OPENAI_API_KEY — LLM 분리)
+        run: uv run python -m crawler
