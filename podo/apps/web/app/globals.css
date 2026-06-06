@@ -6,6 +6,11 @@
 :root {
   --ink: #2b2433;
   --paper: #fffbf6;
+  --surface: #ffffff;
+  /* grape (brand) — DESIGN §2-1 */
+  --grape-600: #8b3dd4;
+  --grape-700: #6f2bc0;
+  --grape-100: #f1e6fb;
   /* 적합도(합격가능성) 5-band FILL (meter/dot — 항상 텍스트 라벨 동반) — DESIGN §2-1 */
   --band-1-fill: #d6566a;
   --band-2-fill: #e0913f;

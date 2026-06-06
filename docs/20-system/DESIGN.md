@@ -237,6 +237,8 @@ border.width:   "1.5px"   # 친근한 soft-chunky border (hairline 아님)
 - **GreetingCard (podo 말풍선)** — podo(68px) + headline + count chip + 그라데이션 strip(fenced).
 - **CoveragePanel** — on/off 채널 chip + 마지막 수집 시각. 상시 노출.
 - **Toast** — "지원 기록됨" / "신규 도착" arrival 알림(최소).
+- **ResumeUpload** — 파일(.txt/.md drag·drop) + paste textarea + MaskingPreview + "분석 시작" Button.primary(§7-1 재사용, primitive 신설 X). 8-state: default·CTA disabled=preview 전(T-038); loading/error/empty(업로드 영역)·비허용 포맷 안내는 T-041(상태 매트릭스).
+- **MaskingPreview** — 마스킹본 텍스트 렌더 + `[MASKED_*]` 플레이스홀더 토큰색 강조(band-3, raw hex 금지) + "스킬 N개, 경력 M건" 요약. loading=skeleton(T-041).
 
 ### 7-3. Patterns
 - **Feed** — 탭 + 섹션(마감 임박 / 오늘의 추천) + 리스트 가상화(커서 페이지네이션, ARCH §7-1·§7-4).
