@@ -1,7 +1,7 @@
 # T-032-term-unify-insight-promote
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 technical-enabler
@@ -25,7 +25,10 @@ M1→M2 누적 문서 부채 중 (1) 용어 divergence "합격가능성 밴드" 
 - 제품 전략·기능 범위 재정의(F-012 §5). · 새 ADR 신설. · UI 컴포넌트/스코어링 코드 변경. · `band-*` 토큰명·"밴드(band)" 기술용어 치환(T-033 token sync는 별도). · ADR-100/README/IMPROVEMENT_GUIDE/discovery-reviews의 과거 표현(이력 보존 — 본 AC scope 밖).
 
 ## 4-1. 변경 예정 파일/경로
-<!-- 구현 시점에 채운다. -->
+- `docs/10-charter/DISCOVERY.md` — §15 Insight I-1 open→done, I-2/I-3 open→planned + linked feature(AC-2). (AC-1 bigram은 부재 — 변경 없음.)
+- `docs/10-charter/PROJECT_CHARTER.md` — §8 "합격가능성 밴드"→"적합도 5단계"(AC-1).
+- `docs/20-system/DESIGN.md` — 디자인 원칙 1·3 + §8 "합격가능성 밴드"→"적합도/적합도 5단계"(AC-1, band-* 토큰명 보존).
+- `docs/30-workitems/features/F-001-core-value.md` — §1·§3·§4 "합격가능성 밴드"→"적합도 5단계"(AC-1).
 
 ## 5. 완료 조건
 DISCOVERY/Charter/DESIGN/workitem에서 "합격가능성 밴드" 표현이 사라지고 "적합도 5단계"로 통일되며, DISCOVERY §15 Insight I-1/2/3가 promote(done/planned+linked)된다.
