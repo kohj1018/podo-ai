@@ -21,6 +21,7 @@ interface ResumeApiResponse {
 interface PreviewState {
   maskedText: string
   evidenceSummary: EvidenceSummary
+  resumeId: number
 }
 
 // 허용 확장자 목록
@@ -34,7 +35,8 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3001'
 // 파일 drag/drop(.txt/.md) + textarea paste 양쪽 지원.
 // 업로드 후 T-034 응답(masked_preview + evidence_summary)을 MaskingPreview에 전달.
 // T-041: 비허용 포맷 안내 + 100KB 초과 client pre-check + 로딩 skeleton + error toast.
-export function ResumeUpload() {
+// T-039: "분석 시작" onClick — score 트리거 후 feed 이동(onNavigateFeed). 주입 없으면 no-op.
+export function ResumeUpload({ onNavigateFeed }: { onNavigateFeed?: (path: string) => void } = {}) {
   const [pasteText, setPasteText] = useState('')
   const [preview, setPreview] = useState<PreviewState | null>(null)
   const [uploading, setUploading] = useState(false)
@@ -96,12 +98,27 @@ export function ResumeUpload() {
       setPreview({
         maskedText: body.data.masked_preview,
         evidenceSummary: body.data.evidence_summary,
+        resumeId: body.data.resume_id,
       })
     } catch {
       setUploadError(true)
     } finally {
       setUploading(false)
     }
+  }
+
+  // T-039: score 트리거 → localStorage에 resume_id 저장 → feed 이동.
+  // 해석 확정(§8): POST /api/v1/resumes/:id/score (T-037 확정 트리거).
+  // resume_id 전달: localStorage('podo_active_resume_id') — 단일 사용자 M3 단순 옵션.
+  async function handleStartAnalysis() {
+    if (!preview) return
+    const { resumeId } = preview
+    await fetch(`${API_BASE}/api/v1/resumes/${resumeId}/score`, { method: 'POST' })
+    localStorage.setItem('podo_active_resume_id', String(resumeId))
+    // 실앱 기본 navigation: feed(/)로 이동(채점 후 fresh load). 테스트는 onNavigateFeed 주입으로 override.
+    // useRouter 대신 window.location — top-level hook이 없어 router context 없는 다른 spec을 깨지 않음.
+    if (onNavigateFeed) onNavigateFeed('/')
+    else window.location.assign('/')
   }
 
   return (
@@ -174,13 +191,14 @@ export function ResumeUpload() {
         <MaskingPreview maskedText={preview.maskedText} evidenceSummary={preview.evidenceSummary} />
       )}
 
-      {/* "이 이력서로 분석 시작" — preview 수신 전 disabled (T-039가 클릭 핸들러 연결) */}
-      {/* Button.primary — DESIGN §2-3 button.primary.bg=color.accent(grape-600 CSS 변수).
+      {/* "이 이력서로 분석 시작" — preview 수신 후 활성(T-039 클릭 핸들러 연결).
+          Button.primary — DESIGN §2-3 button.primary.bg=color.accent(grape-600 CSS 변수).
           brand.gradient는 §2-4 FENCED(fit 링/로고/인사 strip만) — 버튼 사용 금지. */}
       <button
         type="button"
         data-testid="start-analysis-btn"
         disabled={!preview}
+        onClick={() => void handleStartAnalysis()}
         style={{
           marginTop: '12px',
           background: 'var(--grape-600)',
