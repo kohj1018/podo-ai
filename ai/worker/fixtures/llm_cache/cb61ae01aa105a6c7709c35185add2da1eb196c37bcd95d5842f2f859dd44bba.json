@@ -1,0 +1,1 @@
+{"response": "{\"winner\":\"a\",\"confidence\":\"medium\",\"reason\":\"Job A has fewer core prerequisite gaps and more direct critical matches than Job B, with strong frontend domain alignment and explicit framework/API evidence. Job B is also strong-aligned, but it has an additional core gap from lacking backend experience and fewer direct critical matches overall.\"}"}

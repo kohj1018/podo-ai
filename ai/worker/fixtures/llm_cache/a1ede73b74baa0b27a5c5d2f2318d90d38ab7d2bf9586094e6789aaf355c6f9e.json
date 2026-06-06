@@ -1,0 +1,1 @@
+{"response": "{\"winner\":\"a\",\"confidence\":\"medium\",\"reason\":\"Job A has fewer core prerequisite gaps and more of its critical requirements are directly matched, with strong domain alignment in the same frontend family. Job B has more missing/weak critical coverage, so A is the better fit despite some unmet technical details in both.\"}"}

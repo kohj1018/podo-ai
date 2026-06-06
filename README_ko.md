@@ -27,7 +27,19 @@
 
 ## 상태
 
-초기 빌드 단계. **스택 확정** ([ADR-101](docs/90-decisions/project/ADR-101-stack-selection.md)): 폴리글랏 TS(Next.js web / NestJS+Prisma api) + Python(OpenAI SDK worker/crawler/eval), Postgres+pgvector — 폴리글랏 모노레포 스캐폴딩 완료. **디자인 시스템 정의** ([DESIGN.md](docs/20-system/DESIGN.md), concept "포도 친구"). **A-1(크롤링 실현성) 검증됨**(2026-06-04). 그 외 발굴 가정(A-2~A-12)은 **미검증**(인터뷰 전). [assumption tracker](docs/10-charter/DISCOVERY.md) §12 참조.
+**M1(알고리즘 이식)**·**M2(서비스 와이어링)** 구현 완료: 검증된 fit 랭킹 알고리즘이 이제 서비스로 end-to-end 동작한다 — 수집 → worker 스코어링(결정론·캐시) → Postgres → API 서빙 → 적합도 5단계 배지·JD 인용 근거·커버리지 패널 피드 UI. 전체 파이프라인은 `pnpm e2e`로 로컬에서 **오프라인/무키** 재현 가능(아래 참조). 스택([ADR-101](docs/90-decisions/project/ADR-101-stack-selection.md))·디자인 시스템([DESIGN.md](docs/20-system/DESIGN.md), concept "포도 친구") 확정. **A-1(크롤링 실현성) 검증됨**(2026-06-04). 그 외 발굴 가정(A-2~A-12)은 **미검증**(인터뷰 전). [assumption tracker](docs/10-charter/DISCOVERY.md) §12 참조.
+
+## 로컬 E2E (오프라인·무키)
+
+단일 명령으로 커밋된 fixture 기반 전체 파이프라인을 **외부 LLM 호출 0회**로 돌린다(결정론 LLM 응답은 커밋된 웜캐시에서 재생):
+
+```bash
+pnpm e2e        # docker compose up → prisma migrate → crawl(fixture) → score(웜캐시) → 서빙 → feed/coverage assert
+```
+
+전제: Docker, Node ≥18(`pnpm install`), `uv`(Python). crawl은 라이브 토스·당근 API 대신 `crawler/fixtures/seed_jobs.txt`를, score는 `ai/worker/fixtures/llm_cache`를 재생하므로 네트워크·`OPENAI_API_KEY` 불요.
+
+**웜캐시 1회 시드(키 보유자):** 커밋된 웜캐시는 키 보유자가 1회 생성한다. `OPENAI_API_KEY`를 설정한 뒤 `pnpm e2e:warm`을 돌리고 생성된 `ai/worker/fixtures/llm_cache/*.json`을 커밋하면, 이후 `pnpm e2e`와 `e2e-smoke` CI 게이트가 무키로 통과한다. 키 유무와 무관하게 동일 코드 경로(캐시 hit/miss만 차이).
 
 ## 문서
 
@@ -40,7 +52,7 @@
 
 ## 다음 단계
 
-스택(`/bootstrap-stack`)·디자인(`/bootstrap-design`) 확정 완료. 권장 다음 명령: **`/plan-workitem M1`** — foundation 마일스톤을 분해하되, A-3(상대 랭킹 Kendall τ) 검증을 *첫 task*로 박고 스코어러 구현은 그 뒤(Charter §6 discovery exit check).
+M1·M2 구현 완료. 로컬 실행은 `pnpm e2e`(위 [로컬 E2E](#로컬-e2e-오프라인무키) 참조). 다음 마일스톤(M3)은 아직 미정의 — [DISCOVERY](docs/10-charter/DISCOVERY.md) §13 기회 백로그에서 범위를 정의(`/discover-product --update`)한 뒤 **`/plan-workitem M3`**로 분해.
 
 ## 라이선스
 

@@ -1,0 +1,1 @@
+{"response": "{ \"winner\": \"b\", \"confidence\": \"high\", \"reason\": \"Job B has stronger domain alignment and at least one direct critical match, with fewer core prerequisite gaps than Job A. Job A is only adjacent and lacks direct evidence for most critical backend requirements, making it a weaker fit.\" }"}

@@ -1,0 +1,1 @@
+{"response": "{\"matched_evidence_ids\":[],\"match_level\":\"missing\",\"confidence\":\"high\",\"explanation\":\"제공된 증거에는 Kafka나 메시지 큐 기반 비동기 처리 경험을 직접적으로 뒷받침하는 내용이 없습니다.\"}"}

@@ -1,0 +1,1 @@
+{"response": "{\"matched_evidence_ids\":[],\"match_level\":\"missing\",\"confidence\":\"high\",\"explanation\":\"제공된 증거에는 Kotlin이나 Spring Boot로 백엔드 서버를 개발한 경험을 직접적으로 뒷받침하는 내용이 없고, REST API 연동 경험만 있어 요구사항을 충족한다고 보기 어렵습니다.\"}"}

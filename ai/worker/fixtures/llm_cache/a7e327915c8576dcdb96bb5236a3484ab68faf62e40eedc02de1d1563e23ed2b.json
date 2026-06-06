@@ -1,0 +1,1 @@
+{"response": "{\"winner\":\"b\",\"confidence\":\"medium\",\"reason\":\"Both roles are adjacent backend fits with no direct critical matches, but B has fewer core prerequisite gaps and fewer missing critical requirements overall. A also has broader risks around backend framework, async/messaging, DB optimization, and microservices experience.\"}"}

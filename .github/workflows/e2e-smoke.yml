@@ -1,0 +1,53 @@
+name: e2e-smoke
+
+# fresh-clone E2E 졸업 게이트 (graduation §5 #3 / M2 stabilize learning #2).
+# 무키(OPENAI_API_KEY 미주입) — 커밋된 웜캐시(ai/worker/fixtures/llm_cache)로 외부 호출 0회.
+# 웜캐시가 비어있으면 e2e.mjs가 명확한 에러로 실패한다(키 보유자가 `pnpm e2e:warm` 1회 후 커밋).
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'ai/**'
+      - 'crawler/**'
+      - 'podo/**'
+      - 'infra/**'
+      - 'scripts/e2e.mjs'
+      - '.github/workflows/e2e-smoke.yml'
+
+jobs:
+  e2e-smoke:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: podo
+          POSTGRES_PASSWORD: podo
+          POSTGRES_DB: podo
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U podo -d podo"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://podo:podo@localhost:5432/podo
+      E2E_SKIP_COMPOSE: '1'
+      # NOTE: OPENAI_API_KEY 의도적 미주입 — 무키 재현성을 게이트로 강제(웜캐시 경로).
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - name: Install JS deps
+        run: pnpm install --frozen-lockfile
+      - name: Run fresh-clone E2E (keyless — committed warm cache)
+        run: node scripts/e2e.mjs --no-compose

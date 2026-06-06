@@ -1,0 +1,1 @@
+{"response": "{\"matched_evidence_ids\":[],\"match_level\":\"missing\",\"confidence\":\"high\",\"explanation\":\"제공된 증거 항목들에는 Docker나 Kubernetes를 포함한 컨테이너 기반 서비스 운영 경험을 직접적으로나 간접적으로 뒷받침하는 내용이 없다.\"}"}

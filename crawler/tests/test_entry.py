@@ -95,6 +95,38 @@ def test_AC_1_entry_crawls_and_persists(
         assert runs == [("daangn", "success"), ("toss", "success")]
 
 
+def test_fixture_mode_crawls_without_network(
+    conn: psycopg.Connection[tuple[Any, ...]],
+) -> None:
+    """fixture_jobs 주입 시 client 미사용으로 채널별 upsert + crawl_run 기록(E2E 재현)."""
+    fixture_jobs = {
+        "toss": [
+            {
+                "job_id": "toss-fx-1",
+                "company": "toss",
+                "title": "Frontend Engineer",
+                "url": "https://toss.test/fx1",
+                "raw_text": "React TypeScript",
+            }
+        ],
+        "daangn": [
+            {
+                "job_id": "daangn-fx-1",
+                "company": "daangn",
+                "title": "Backend Engineer",
+                "url": "https://daangn.test/fx1",
+                "raw_text": "Go server",
+            }
+        ],
+    }
+    # client=None — fixture 모드는 네트워크 클라이언트를 건드리지 않는다.
+    summary = crawl(conn, None, now=_NOW, fixture_jobs=fixture_jobs)
+    assert summary["toss"]["new"] == 1 and summary["daangn"]["new"] == 1
+    with conn.cursor() as cur:
+        cur.execute("SELECT channel, status FROM crawl_runs ORDER BY channel")
+        assert cur.fetchall() == [("daangn", "success"), ("toss", "success")]
+
+
 def test_AC_2_crawl_runs_without_openai_key(
     conn: psycopg.Connection[tuple[Any, ...]],
     monkeypatch: pytest.MonkeyPatch,
