@@ -52,6 +52,8 @@ known-first-party = ["core", "worker", "eval", "crawler"]
 # 테스트 가독성 > 줄 길이. format·F(unused)·I(import 정렬)는 그대로 적용. 구현 파일은 E501 유지.
 [tool.ruff.lint.per-file-ignores]
 "**/tests/**" = ["E501"]
+# 일회성 capstone/검증 harness: 긴 log 문자열·서술 주석이 많아 E501 완화 (tests와 동류, ADR-102 정신).
+"validation/**" = ["E501"]
 
 [tool.mypy]
 python_version = "3.11"
