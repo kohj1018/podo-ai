@@ -138,8 +138,8 @@ def compress_table(table: MatchingTable, ctx: dict[str, str]) -> dict[str, Any]:
         "preferred_technical_gaps": preferred_technical_gaps,
         "behavioral_gaps": behavioral_gaps,
         "product_duty_gaps_not_blocking": product_duty_gaps_not_blocking,
-        # 키 이름은 listwise_rerank/pairwise_compare 프롬프트가 참조하는 `invalid_matches`와
-        # 일치해야 한다 (프롬프트는 SPEC 고정 — 데이터를 프롬프트에 맞춘다).
+        # 키 이름은 listwise_rerank/pairwise_compare 프롬프트가 참조하는
+        # `invalid_matches`와 일치해야 한다 (프롬프트는 SPEC 고정 — 데이터를 맞춘다).
         "invalid_matches": invalid_count,
         "risks": risks[:8],  # SPEC §4-2 risks[:8] 상한 준수
     }

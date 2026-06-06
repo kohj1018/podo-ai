@@ -21,7 +21,8 @@ def _load_root_env() -> None:
 
     레포 루트는 루트 전용 마커(.git/uv.lock/pnpm-lock.yaml/.env.example)로 식별한다.
     실 .env가 없으면 no-op(실제 환경변수/기본값 사용). 마커를 못 찾으면 기본 탐색 폴백.
-    실제 환경변수가 .env보다 우선한다(load_dotenv override=False) — 배포 시 표준 주입 경로.
+    실제 환경변수가 .env보다 우선한다(load_dotenv override=False).
+    배포 시 표준 주입 경로.
     """
     markers = (".git", "uv.lock", "pnpm-lock.yaml", ".env.example")
     for parent in Path(__file__).resolve().parents:

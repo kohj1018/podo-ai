@@ -72,7 +72,8 @@ def llm_cache_get(key: str) -> str | None:
     if not path.exists():
         return None
     try:
-        return json.loads(path.read_text(encoding="utf-8")).get("response")
+        response = json.loads(path.read_text(encoding="utf-8")).get("response")
+        return response if isinstance(response, str) else None
     except (OSError, ValueError):
         return None
 
