@@ -1,3 +1,23 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* §2 토큰 레이어 — raw hex는 여기(토큰 정의)에만. 컴포넌트는 var() 참조(§9 raw hex 금지). */
+:root {
+  --ink: #2a2630;
+  --paper: #fffbf7;
+  /* 적합도(합격가능성) 5-band FILL (meter/dot — 항상 텍스트 라벨 동반) — DESIGN §2-1 */
+  --band-1-fill: #d6566a;
+  --band-2-fill: #e0913f;
+  --band-3-fill: #c9b26b;
+  --band-4-fill: #54a98c;
+  --band-5-fill: #2e9d6b;
+  /* 적합도 5-band INK (텍스트, AA) */
+  --band-1-ink: #c32f41;
+  --band-2-ink: #8a5a12;
+  --band-3-ink: #7e6a1c;
+  --band-4-ink: #2c7d5d;
+  --band-5-ink: #1c7a49;
+  /* brand gradient — FENCED §2-4 (fit 링 arc 전용) */
+  --brand-gradient: linear-gradient(135deg, #8b3dd4 0%, #c950c0 50%, #f5709f 100%);
+}

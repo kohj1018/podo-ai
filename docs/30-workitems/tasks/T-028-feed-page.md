@@ -1,7 +1,7 @@
 # T-028-feed-page
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 feature
@@ -24,6 +24,7 @@ Next.js 단일 피드 페이지를 만든다 — `GET /api/v1/feed`의 `recommen
 
 ## 4-1. 변경 예정 파일/경로
 - `podo/apps/web/app/page.tsx`, `podo/apps/web/components/JobCard.tsx`, `podo/apps/web/components/FitScoreRing.tsx`, `podo/apps/web/components/PassBand.tsx`, `podo/apps/web/test/feed.spec.tsx`
+- 추가: `podo/apps/web/components/FeedList.tsx`(Feed 패턴 §7-3 — client fetch+커서), `app/globals.css`(§2 band/gradient 토큰), `vitest.config.ts`(jsdom+react), `package.json`+`pnpm-lock.yaml`(RTL/jsdom/plugin-react devDeps)
 
 ## 5. 완료 조건
 피드가 중복제거된 공고를 적합도 5단계 + fit 배지와 함께 rank_position 순으로 렌더하고, 커서 무한 스크롤이 동작한다.
@@ -49,6 +50,10 @@ Next.js 단일 피드 페이지를 만든다 — `GET /api/v1/feed`의 `recommen
 ## 8. 메모
 - DESIGN cross-check: JobCard·FitScoreRing·PassBand는 **재사용**(신규 primitive X). PassBand "합격가능성" → "적합도"로 relabel(M2 명칭 결정 — DESIGN 용어 reconcile은 후속). band-* fill/ink 토큰, raw hex 금지(§2-5 의미는 색+텍스트 라벨 동반).
 - 해석 확정: 적합도 배지 = `fit_level` 1:1(별도 calibration X, M2 결정).
+- 구현 노트(2026-06-06): 메인 세션 수동. JobCard/FitScoreRing/PassBand = DESIGN §7-2 구현, FeedList = §7-3 Feed 패턴(client). 토큰 레이어: `globals.css :root`에 band-*-fill/ink + brand-gradient(raw hex는 여기만), 컴포넌트는 `var(--band-{level}-*)` 동적 참조(§9 raw hex 0 — components grep 0). gradient는 FitScoreRing(FENCED §2-4)만.
+- 테스트 인프라: `@testing-library/react`+`jsdom`+`@vitejs/plugin-react@^4`(vitest2/vite5 호환 — v6는 vite6 요구) 추가, `vitest.config`에 jsdom+react. RTL render로 AC 검증(순수 컴포넌트 — DI 부트 무관).
+- **무한 스크롤 범위**: cursor 페이지네이션 + 중복제거 append를 "더 보기" 트리거로 구현(AC-2 핵심 = cursor 로드+append, 테스트됨). *auto-on-scroll(IntersectionObserver)*는 jsdom 미지원 + 동일 cursor 메커니즘이라 thin 확장으로 이연. **리스트 가상화(§7-4)**는 M2 데이터 규모(수십 건)상 YAGNI — 이연(후속 대용량 시 react-window).
+- PassBand held(fit_level null) → "적합도 보류"(가짜 점수 0) — 상세 보류 렌더는 T-029.
 
 ## 9. 의존성
 - depends_on: [T-026]
