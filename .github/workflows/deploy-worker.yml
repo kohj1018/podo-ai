@@ -1,0 +1,13 @@
+name: deploy-worker
+
+# Skeleton — 실 배포 로직은 M2 비범위(Charter §5). 후속 마일스톤이 채운다.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy-worker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Placeholder
+        run: echo "deploy-worker skeleton — no-op (deploy out of M2 scope)"

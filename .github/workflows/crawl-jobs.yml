@@ -1,0 +1,17 @@
+name: crawl-jobs
+
+# 일일 수집 cron 골격 (ARCH §7-3 주기 수집 / F-008).
+# 실 수집 실행 로직(crawl LLM無 / score LLM有 분리)은 T-025 가 채운다.
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 매일 1회 (UTC 18:00 ≈ KST 03:00).
+    - cron: '0 18 * * *'
+
+jobs:
+  crawl-jobs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Placeholder
+        run: echo "crawl-jobs skeleton — no-op (real crawl in T-025)"

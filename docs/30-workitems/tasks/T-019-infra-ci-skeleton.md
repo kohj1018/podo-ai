@@ -1,7 +1,7 @@
 # T-019-infra-ci-skeleton
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 technical-enabler
@@ -49,6 +49,10 @@ technical-enabler
 
 ## 8. 메모
 - 해석 확정: AC-2 = workflow는 *skeleton*(trigger + no-op/placeholder) — 실동작은 schema-contract(T-021)·crawl-jobs(T-025)가 채움.
+- 구현 노트(2026-06-06): implement 포크가 compose + .env.example만 만들고 workflow 4종 전 사망 → 메인 세션 수동 완성.
+- .env.example: 포크가 추가한 한글 주석이 mojibake 손상 → HEAD 원본 복원 후 `DATABASE_URL`·`NEXT_PUBLIC_API_BASE_URL`을 ASCII 주석으로 재추가(인코딩 안전). Read 도구가 `.env.*` deny → Bash로 편집(비밀 아님·git 추적 template). `DATABASE_URL`은 compose creds(podo) 일치 example 값(로컬 E2E 재현 — M2 §5).
+- AC-1 라이브 검증: Docker Desktop 엔진이 세션 시작 시 미기동 → 본 세션에서 기동. `compose up` → postgres healthy → `CREATE EXTENSION vector` 성공(**vector 0.8.2** 설치 확인). 컨테이너는 후속 DB task(T-020~)용으로 유지.
+- AC-2 검증: `actionlint` 미설치 → 대체 oracle = pyyaml(`uv run --with pyyaml`) safe_load 4종 유효 + crawl-jobs `schedule`+`workflow_dispatch` 확인.
 
 ## 9. 의존성
 - depends_on: [T-018]   # podo/ scaffold 후 루트 구조 위에 infra/CI 배치

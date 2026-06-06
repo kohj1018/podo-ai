@@ -1,0 +1,14 @@
+name: deploy-api
+
+# Skeleton — 실 배포 로직은 M2 비범위(Charter §5: 공개 배포 비목표, done-line=로컬 E2E).
+# 후속 마일스톤이 실 배포(Vercel/AWS)를 채운다.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy-api:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Placeholder
+        run: echo "deploy-api skeleton — no-op (deploy out of M2 scope)"
