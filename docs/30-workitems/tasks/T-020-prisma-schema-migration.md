@@ -1,7 +1,7 @@
 # T-020-prisma-schema-migration
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 migration
@@ -29,7 +29,7 @@ Prisma를 스키마 SSOT로 최소 5테이블(`job_postings`·`crawl_runs`·`ran
 - vector 컬럼·HNSW·검색 DML(F-006 비범위) · Python read/write(T-021) · worker write 로직(T-022) · 추가 user 테이블.
 
 ## 4-1. 변경 예정 파일/경로
-- `podo/apps/api/prisma/schema.prisma`, `podo/apps/api/prisma/migrations/**`, `podo/apps/api/package.json`, `pnpm-lock.yaml`
+- `podo/apps/api/prisma/schema.prisma`, `podo/apps/api/prisma/migrations/**`, `podo/apps/api/package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`(allowBuilds: prisma 빌드 승인)
 
 ## 5. 완료 조건
 `prisma migrate dev`가 5테이블 + pgvector extension을 생성하고, `ranking_runs` 복합 unique 키와 `recommendations` 정렬 컬럼/인덱스가 존재한다.
@@ -61,6 +61,10 @@ Prisma를 스키마 SSOT로 최소 5테이블(`job_postings`·`crawl_runs`·`ran
 - repair-plan 2026-06-06 [default] P1 Plan-dep: Adopt — depends_on에 T-019 추가(migrate dev는 DB 런타임 필요).
 - repair-plan 2026-06-06 [default] P1 Plan-ambiguity: Adopt — `\dt` 전체 카운트→이름 필터(Prisma `_prisma_migrations` 제외).
 - repair-plan 2026-06-06 [default] P1 Plan-ambiguity: Adopt — 인덱스 `(run_id, rank_position)`(current-run 한정 커서, T-026 정합).
+- 구현 노트(2026-06-06): 메인 세션 수동(DB 마이그레이션 corruption 리스크 + 포크 사망 패턴). PK는 **Int autoincrement(SERIAL)** — Python(T-022/T-024)이 raw SQL write → DB측 id 생성 필수(cuid/uuid는 client-side). 컬럼 snake_case(T-021 Python 계약).
+- Prisma **6.19.3로 핀**: 설치 시 최신 7.8.0이 잡혔으나 Prisma 7은 datasource `url = env(...)` 제거(→`prisma.config.ts`+driver adapter 요구)로 task 클래식 워크플로와 불일치 → 6.x 다운그레이드(task §3 정합·안정성·ADR-006). allowBuilds에 prisma/@prisma/engines/@prisma/client 빌드 승인.
+- DATABASE_URL은 **.env 생성 없이** 명령 인라인 주입(AGENTS.md .env 금지 + Read deny 준수). 마이그레이션: `--create-only` 생성 → migration.sql 맨 앞 `CREATE EXTENSION IF NOT EXISTS vector` prepend → `migrate dev` 적용.
+- 라이브 검증: 5 application 테이블 + vector 0.8.2 + ranking_runs 7컬럼 unique + recommendations (run_id,rank_position) 인덱스·fit_level nullable 전부 psql 확인. `migrate status`=up to date.
 
 ## 9. 의존성
 - depends_on: [T-018, T-019]   # T-018 api scaffold(Prisma 위치) + T-019 docker PG(migrate dev는 DB 런타임 필요 — cross-LLM P1)

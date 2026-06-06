@@ -1,0 +1,87 @@
+// Prisma = 폴리글랏 스키마 SSOT (ARCH §3-2 규칙2: DDL은 Prisma 소유).
+// 최소 5테이블 + pgvector extension(raw SQL prepend, migration.sql). T-020.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// crawler 소유 (§3-2) — 수집 공고.
+model JobPosting {
+  id              Int              @id @default(autoincrement())
+  source          String
+  company         String
+  title           String
+  url             String           @unique
+  raw_text        String
+  role_family     String?
+  posted_at       DateTime?
+  closing_at      DateTime?
+  diff_status     String?
+  fetched_at      DateTime         @default(now())
+  recommendations Recommendation[]
+
+  @@map("job_postings")
+}
+
+// crawler 소유 — run별 1행(coverage 투명성).
+model CrawlRun {
+  id           Int      @id @default(autoincrement())
+  channel      String
+  run_at       DateTime @default(now())
+  status       String
+  new_count    Int      @default(0)
+  closed_count Int      @default(0)
+  error        String?
+
+  @@map("crawl_runs")
+}
+
+// worker 소유 — evidence opaque JSONB(result) + 결정적 복합 unique 키(캐시 hit = GS-1-through-DB).
+model RankingRun {
+  id                Int              @id @default(autoincrement())
+  resume_id         Int
+  job_set_hash      String
+  model             String
+  prompt_version    String
+  scoring_mode      String
+  ranking_mode      String
+  cache_key_version String
+  result            Json
+  created_at        DateTime         @default(now())
+  resume            Resume           @relation(fields: [resume_id], references: [id])
+  recommendations   Recommendation[]
+
+  @@unique([resume_id, job_set_hash, model, prompt_version, scoring_mode, ranking_mode, cache_key_version])
+  @@map("ranking_runs")
+}
+
+// worker 소유 — feed projection(scalar). NestJS가 opaque JSONB 파싱 없이 정렬·커서 feed 생성.
+model Recommendation {
+  id               Int        @id @default(autoincrement())
+  run_id           Int
+  job_posting_id   Int
+  rank_position    Int
+  fit_level        Int? // nullable — held 공고는 NULL(T-022 pending projection)
+  domain_alignment String?
+  status           String // scored | held
+  run              RankingRun @relation(fields: [run_id], references: [id])
+  job_posting      JobPosting @relation(fields: [job_posting_id], references: [id])
+
+  @@index([run_id, rank_position]) // current-run 한정 커서(T-026)
+  @@map("recommendations")
+}
+
+// api 소유 — config/seed 합성 이력서(M2: UI 업로드 비범위).
+model Resume {
+  id           Int          @id @default(autoincrement())
+  content      String
+  created_at   DateTime     @default(now())
+  ranking_runs RankingRun[]
+
+  @@map("resumes")
+}
