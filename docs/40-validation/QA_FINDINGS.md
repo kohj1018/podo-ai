@@ -64,6 +64,49 @@
 - `a3_tau.py` — n<2 guard 정상, small-sample tau=0.0 → verdict=NOGO 안전.
 - `selection.py select_balanced` — `selected[:limit]` 최종 슬라이스 + `used_ids` 중복 방지 정상.
 
+## M2
+
+> `/stabilize-milestone M2` (2026-06-06) qa 위임 + 메인 세션 직접 검증 결과. 대상: T-018~T-031 (polyglot 서비스 와이어링 — DB 영속·API 서빙·crawler cron·feed UI·worker 경계 하드닝). 통합 validate exit 0(130 passed / 13 skipped — DB-gated + jsdom-deferred) 위에서 *lint/type/unit이 못 잡는* 결정성·소유권·엣지·게이트 정합 점검. **코드-결함 P0 0건 → graduation의 #5 (QA_FINDINGS P0) 기준은 충족.** (단 §5 #3 E2E·#6 GS-1-through-DB는 별도 — IMPROVEMENT_GUIDE 참조.) finding 전수 기록(ADR-046#d3). QA-M2-001은 qa subagent와 메인 세션이 독립 수렴 — 신뢰도 상승.
+
+### P0
+없음. (worker 소유권 write 경계·held(LLM miss) 보류 영속·verbatim JSONB 저장·복합키 upsert 모두 충족. 데이터 손실·무결성 파괴급 결함 없음.)
+
+### P1
+- **QA-M2-001** | P1 | [관측됨] | linked: T-022 | status: open | `ai/worker/src/worker/report.py:52` (← `pipeline.py:211/292/379`)
+  - 발견: `build_report`가 `"pending_job_ids": list(pending_job_ids)`로 저장하는데 `pending_job_ids`는 `set[str]`(pipeline.py). `list(set[str])`의 순서는 PYTHONHASHSEED에 의해 **프로세스마다 비결정적** → `python -m worker`를 2회(별도 프로세스) 돌리면 저장된 `ranking_runs.result` JSONB의 `pending_job_ids` 배열 순서가 달라져 **byte-identical 위반**(FAC-2 / GS-1-through-DB).
+  - 근거: jsonb는 객체 키만 정규화하고 **배열 순서는 보존**한다. `persistence.py:121`이 *recommendations held 행*은 `sorted(...)`하므로 사용자 노출 점수·정렬은 결정적이나, *result JSONB의 pending_job_ids*는 정렬 없이 저장. 무키 fresh-clone E2E 경로(전 공고 cache miss → 전부 held)에서는 held가 다수라 이 hole이 **상시 노출**. 인-프로세스 라운드트립 테스트(test_persistence.py)는 단일 프로세스라 동일 set→list 순서로 통과 → **검출 불가**(oracle gap).
+  - 결정/권장: `report.py:52`를 `sorted(pending_job_ids, key=int)`(또는 `sorted(str(j) for j in pending_job_ids)`)로 교체(one-line). + 별도 프로세스 2회 실행 결정성 테스트 추가. `/repair-workitem T-022`.
+
+### P2
+- **QA-M2-002** | P2 | [관측됨] | linked: T-020,T-026 | status: open | `podo/apps/api/src/feed/feed.service.ts:41-55` + `prisma/schema.prisma:64-77`
+  - 발견: `recommendations`에 `(run_id, job_posting_id)` UNIQUE 제약이 없다. feed의 per-page `seen` dedup + `nextCursor = recs.length===take`는 *run당 job_posting_id 유일*을 암묵 전제. persist_run이 각 공고를 scored XOR held로 1회만 insert하므로 현재는 무결하나, 제약 부재로 미래 중복 insert 시 dedup이 cross-page를 못 잡고 nextCursor가 어긋날 수 있는 *잠재* 위험. (reviewer REV-M2-003 DELETE-reinsert WHY와 수렴.)
+  - 결정/권장: `@@unique([run_id, job_posting_id])` 추가(불변식을 DB로 승격) + `nextCursor`를 dedup-후 `items.length` 기준으로 견고화. accept-with-note(현 데이터 무결).
+- **QA-M2-003** | P2 | [관측됨] | linked: T-023 | status: accepted-with-note | `ai/worker/src/worker/__main__.py:19-39`
+  - 발견: `_ensure_seed_resume`가 `resumes`(§3-2상 **api 소유**)에 worker가 write — 소유권 규칙1 위반 외형. (qa subagent가 P1로 제기.)
+  - 근거/완화: **T-023 §8에 문서화된 M2 편의 예외** — "M2엔 api 업로드 경로 부재 → 진입점이 seed 1회 멱등 주입, 후속 api seed 경로 생기면 이관." 의도적·문서화·follow-up 명시 → 경계 위반 아님(validator도 수용).
+  - 결정/권장: M3에서 api/migration으로 seed 이관 시 닫음. 현 상태 accept.
+- **QA-M2-004** | P2 | [관측됨] | linked: T-027 | status: open | `podo/apps/api/src/coverage/coverage.service.ts:27-48`
+  - 발견: 채널당 2 쿼리 × 2채널 = 요청당 4 쿼리(N+1). 채널 2개라 즉각 문제 없음.
+  - 결정/권장: `crawl_runs` 단일 `GROUP BY channel`(`MAX(run_at) FILTER (WHERE status='success')` + `DISTINCT ON`)로 통합. 채널 확장 전 리팩터.
+- **QA-M2-005** | P2 | [가설] | linked: T-022 | status: open | `ai/worker/src/worker/persistence.py:107-118`
+  - 발견: `int(fr["job_id"])`·`int(jid)` 암묵 캐스팅 — job_id가 비정수 문자열이면 `ValueError`. 정상 경로(DB autoincrement int)는 안전하나 픽스처/미래 소스 확장 시 취약.
+  - 결정/권장: 의미 있는 에러 메시지 보강 또는 int 보존. 낮은 우선순위.
+- **QA-M2-006** | P2 | [관측됨] | linked: T-026 | status: open | `podo/apps/api/src/feed/feed.service.ts:25-28`
+  - 발견: `currentRun`을 `created_at: 'desc'`만으로 선택 — 동일 ms 두 run insert 시 tie 비결정적. warm-cache 재실행은 복합키 UPDATE(id 불변)라 안전, 다른 입력 두 run의 극단 동시 insert만 위험.
+  - 결정/권장: `orderBy: [{created_at:'desc'},{id:'desc'}]` 보조 정렬 추가.
+- **QA-M2-007** | P2 | [관측됨] | linked: T-024 | status: open | `crawler/src/crawler/persistence.py:76-84` (reviewer REV-M2-006 cross-list)
+  - 발견: 빈 fetch(`jobs == []`)일 때 `closed = existing - today_urls`가 해당 source 전체 공고를 **마감 처리**. fetch 실패로 빈 결과가 온 날이면 정상 공고를 일괄 마감하는 오동작 가능. F-008 "신규 0건 날 정상 기록" 엣지와 충돌 소지.
+  - 결정/권장: `if closed and jobs:` guard 또는 "빈 fetch=전체 마감이 의도" WHY 주석 명문화. `/repair-workitem T-024` 후보.
+- **QA-M2-008** | P2 | [관측됨] | linked: T-020,T-021 | status: open | `ai/tests/test_schema_contract.py:69-78`
+  - 발견: schema-contract가 `recommendations.fit_level` *존재*만 assert하고 **nullable 여부는 미검증**. nullable은 M2-repair-6(held=NULL) 핵심 불변식인데, 미래 마이그레이션이 `NOT NULL`로 되돌려도 contract가 green → held insert가 런타임에야 깨짐. `crawl_runs` 정렬 인덱스 assertion도 부재.
+  - 결정/권장: `fit_level`의 `is_nullable='YES'` assert 추가(R6 가드를 M2-repair-6 불변식까지 확장). accept-with-note.
+
+### 관찰 메모
+- **13 DB-gated skips가 graduation 시점에 남기는 미검증**: 실 DB에서의 ① 7컬럼 복합 unique·인덱스 실존, ② GS-1 byte-identical JSONB(실 DB 왕복), ③ persist→feed end-to-end held NULL, ④ upsert 멱등성. *task-time(T-021/022/026/027 validation report)엔 DATABASE_URL 주입 라이브 green*이나, 본 stabilize run은 DATABASE_URL 미설정으로 skip. graduation E2E가 이를 닫아야 함.
+- GS-1 사용자 노출 신호(fit_level·band·rank_position)는 결정적(recommendations sorted + ranking 결정론). 비결정성은 *evidence blob의 pending_job_ids 배열 순서*에 국한(QA-M2-001).
+- crawler `__main__.py`: `now` 1회 생성 후 두 채널 공유 — 설계 의도(결정성), defect 아님(`last_success_at` MAX 파생은 정상).
+- **M1 carryover**: QA-M1-001(GS2_MIN_SAMPLE 비강제)은 `gates.py:101`에 `total < GS2_MIN_SAMPLE` 강제 추가됨 → **likely 해소**. QA-M1-002(`_is_grounded` 토큰 휴리스틱)은 여전히 존재 → open 유지(M2 eval 비범위).
+
 ## 일반
 
 ### P0

@@ -38,7 +38,35 @@ Telemetry — M1
 - Cross-stabilize 회귀 신호: 0건 (M1 = 첫 마일스톤, 선행 없음)
 ```
 
+### M2 — /stabilize-milestone (2026-06-06)
+- **졸업 가능: NO (근소)** — 14/14 task done · 통합 validate exit 0(130 passed / 13 skipped) · AC 매핑 32/32(100%) · **QA_FINDINGS 코드결함 P0 0**. 다만 graduation §5 미충족 2건:
+  - **#3 E2E Pass — 미충족(현 커밋 상태로 fresh-clone 재현 불가):** (a) `app.enableCors()`(web:3000→api:3001 필수)가 **uncommitted**(`main.ts`), (b) `.cache/llm`이 **gitignored** + 무키 score용 fixture/오케스트레이션 부재 → 무키 fresh clone은 전 공고가 cache miss→**held**(점수 0건)라 "적합도 5단계 렌더" done-line 불성립(T-023 §8이 "무키 결정성은 웜캐시/fake 필요 — E2E 오케스트레이션 소관"이라 명시), (c) **단일 crawl→score→feed 오케스트레이션 명령·runbook 부재**(README는 "next: /plan-workitem M1"·구 "pass likelihood" 용어로 stale), (d) `nest-cli.json`·`tsconfig.build.json` untracked. *per-task validator는 DB-path 유닛(T-021/022/026/027 DATABASE_URL 주입 라이브 green)·UI(T-028/029 RTL)를 커버하나 통합 fresh-clone E2E는 자동 게이트로 미실증.*
+  - **#6 (선택) GS-1-through-DB — at risk:** QA-M2-001(pending_job_ids JSONB 배열 순서 비결정) — 무키 E2E(전부 held) 경로에서 상시 노출. report.py:52 one-line `sorted()`로 닫힘.
+- **reviewer(code): P0 0 / P1 0 / P2 6** — **F-011이 M1 부채를 깨끗이 해소 확인**(REV-M1-001/002/007 `extract_json`·`load_prompt`/`render` 단일화 + REV-M1-002 `DOM_RANK` SSOT + REV-M1-003 eval private-import 0). reviewer(design): 메인 세션이 design subagent의 P0 2건(FitScoreRing ink·CoveragePanel error)을 검증 후 **P1로 하향**(graduation P0 게이트는 QA_FINDINGS 기준이므로 무관, but 과대평가 회피). qa: [QA_FINDINGS `## M2`](QA_FINDINGS.md) (P0 0 / P1 1 / P2 7). **수렴(신뢰도↑):** QA-M2-001 결정성 hole을 qa subagent·메인 세션이 독립 발견.
+- **Dependency hygiene:** `pip-audit`(uv export → uvx, 1회) → **No known vulnerabilities found** ✅ (로컬 workspace pkg `core/eval/worker/crawler`는 PyPI 부재로 skip — 정상). `pnpm audit --prod` → **22건 (high 8 / moderate 12 / low 2)** — 주범 `next`(<15.5.16, 14 advisories) + `@nestjs/common`·`@nestjs/core`. → 아래 §2 P1. 6개월 unused deps 해당없음(신생 monorepo).
+- **Deterministic preflight:** ADR-ref 전부 resolve(M2 신규 doc은 기존 ADR만 인용 · 미존재 boilerplate#는 Reserved/Parked/Dropped 표 · bare `ADR-1`=`ADR-1NN` 템플릿 placeholder FP) · anchor(#arch-7-1/3/4 · #design-2-colors/7-components) 전부 존재 · FAC↔AC unmapped 0(27/27). **ADR-104 Surfaces 등재 6 usage-site backref 누락 → 아래 §2 P1.** globals.css `--ink`(#2a2630)·`--paper`(#fffbf7)가 DESIGN §2-1 SSOT(#2B2433 / #FFFBF6)와 drift → §2 P1(미세). raw-hex 컴포넌트 0(globals.css=토큰 instantiation 층). Doc-link 외부검사 **skip**(markdown-link-check 미설치). ARCH §7-x `### Don'ts` header 부재 → 5-4 grep skip(문서화된 milestone-level gap — 소유권·read-only·opaque 경계는 per-task validate + reviewer가 커버).
+- **DISCOVERY↔Charter staleness:** mtime drift 없음(Charter가 DISCOVERY보다 최신). 단 **용어 divergence 확인 — M2 결정 "적합도 5단계" ↔ Charter/DISCOVERY "합격가능성"**(Charter 6× · DISCOVERY 12×) → §2 P1 reconcile(M2 §7 · F-010 §12 열린 질문과 정합). DISCOVERY §15 Insight Backlog I-1/I-2/I-3가 **M2 F-010에서 실제 구현됐는데 status=open 잔존** → §2 P1 promote.
+
+```
+Telemetry — M2
+- Tasks: 14 / 14 (100%)
+- AC↔테스트 매핑: 32 / 32 (100%)
+- FAC coverage: 27 / 27 (100%)
+- Evidence Bundle 신뢰도: High 14 / Medium 0 / Low 0
+- Validate exit code: 0 (130 passed / 13 skipped — DB-gated 11 + jsdom-deferred 2 + 1)
+- Findings: P0 1 / P1 9 / P2 18  (P0 = E2E fresh-clone 재현성 gap; QA_FINDINGS 코드결함 P0 = 0)
+- Cross-stabilize 회귀 신호: 2건 — [Design-draft]·[Discovery-insight]가 M1→M2 재등장(patterned doc-state drift: M1이 권고한 DESIGN status 정리·insight promote·용어 reconcile가 마일스톤 간 미적용)
+```
+
 ## 1. 우선순위
+
+### M2
+1. (P0) **E2E fresh-clone 재현성 확보** — `enableCors()` 커밋 + 무키 score 경로(`.cache/llm` 커밋 or 합성 fixture) + 단일 crawl→score→feed 오케스트레이션 명령/runbook(README 갱신). graduation §5 #3 직결.
+2. (P1) **GS-1-through-DB 결정성 hole** — `report.py:52` `sorted()`(QA-M2-001). 게이트 직결·one-line.
+3. (P1) **web UI error/empty 상태 + CoveragePanel 에러 표면화** — Fail#3(거짓 완전성 차단·G3) 직결. CoveragePanel `.catch(()=>{})`·FeedList 무-catch silent fail 제거.
+4. (P1) **의존성** — `next`≥15.5.16 bump + NestJS 갱신 + 재audit(high 8건).
+5. (P1) **doc reconcile 일괄** — DISCOVERY/Charter/DESIGN "적합도" 용어 통일 + Insight I-1/2/3 promote + DESIGN status=draft 정리 + globals.css token SSOT 동기 + ADR-104 backref 6건.
+6. (P2) reviewer 리팩토링 6건(REV-M2-001~006) + design 폴리시(8-state·GreetingCard·dashed-border) — 전부 behavior-preserving.
 
 ### M1
 1. (P1) **GS-2 측정 신뢰성** — GS2_MIN_SAMPLE 강제 + `_is_grounded` 한계 명문화 (QA-M1-001/002, T-016). 게이트 정합 직결.
@@ -74,7 +102,54 @@ Telemetry — M1
   - 권장: 액션 = "스코프 회수"가 아니라 외부 증거 수집 후 promote. `/plan-workitem`이 회수.
   - 참고: DISCOVERY↔Charter drift(시그널 1~3)는 **clean** — Charter mtime이 DISCOVERY보다 최신 + §2.1/§3.1/§9 모두 채워짐 → drift P1 미발생.
 
+### M2
+
+- **M2-E2E-001** | P0 | [관측됨] | linked: M2,T-018,T-022,T-023 | status: open | `podo/apps/api/src/main.ts`(uncommitted) · `.gitignore`(.cache/llm) · `README.md`
+  - 발견: M2 done-line(§5 #3 "fresh clone → docker compose up + prisma migrate + seed + 단일 오케스트레이션으로 crawl→score→feed 완주 + localhost:3000 렌더")이 **현 커밋 상태로 재현 불가**. (a) `app.enableCors()`가 working tree에만 존재(uncommitted) → fresh clone은 web→api CORS 차단, (b) `.cache/llm` gitignored + 무키 score용 fixture/오케스트레이션 부재 → 무키 fresh clone은 전 공고 cache miss→held(점수 0건), (c) 단일 오케스트레이션 명령·runbook 부재(README stale), (d) `nest-cli.json`·`tsconfig.build.json` untracked.
+  - 근거: T-023 §8이 "무키 결정성은 웜캐시/fake 필요 — E2E 오케스트레이션 소관"이라 *명시적으로 이연*. 본 stabilize는 코드/커밋 금지라 enableCors를 커밋할 수 없음. graduation §5 #3 미충족의 직접 원인.
+  - 권장: `/repair-workitem`(또는 신규 task)으로 ① enableCors 커밋, ② 무키 score 경로 확정(웜캐시 커밋 or 합성 score fixture), ③ `make e2e`류 단일 오케스트레이션 + README runbook, ④ untracked nest 설정 커밋. 이후 fresh clone에서 1회 실증 → graduation 재평가.
+- **M2-GS1-002** | P1 | [관측됨] | linked: T-022 | status: open | `ai/worker/src/worker/report.py:52`
+  - 발견/권장: pending_job_ids `set`→`list` 비결정 — [QA_FINDINGS QA-M2-001](QA_FINDINGS.md) 참조. `sorted(...)` one-line. (게이트 finding이라 QA_FINDINGS owning, 우선순위 가시성 위해 cross-list.)
+- **REV-M2-UI-001 [Web-error-state]** | P1 | [관측됨] | linked: T-028,T-029 | status: open | `podo/apps/web/components/CoveragePanel.tsx:33` · `FeedList.tsx:22-40`
+  - 발견: web UI에 error/empty 상태가 부재. CoveragePanel은 `.catch(() => {})`로 fetch 실패를 **삼켜** 영구 "수집 현황 불러오는 중…" 표시 → 수집 API 장애 시 *거짓 완전성*(Fail #3 / Charter G3 — CoveragePanel의 존재 이유와 정면 충돌). FeedList `loadMore`도 catch 없음 → fetch reject 시 빈 `<ul>`만, EmptyState/ErrorState/skeleton 미구현(DESIGN §7-3/§7-4 일급 상태).
+  - 근거: DESIGN §7-4 CoveragePanel error="수집 실패" 경고(danger) 필수 · §9 "ErrorState 숨기지 않고 노출". 해피패스만 구현, 실패 분기 누락.
+  - 권장: CoveragePanel catch에서 error state(`var(--band-1-ink)` danger "수집 실패") + FeedList error/empty 렌더 + 초기 skeleton. `/repair-workitem T-029`.
+- **DSN-M2-FITRING** | P1 | [관측됨] | linked: T-028 | status: open | `podo/apps/web/components/FitScoreRing.tsx:6-13`
+  - 발견: 링이 SVG arc가 아니라 **원 전체를 brand-gradient로 채우고** 점수 숫자 색이 `var(--paper)`(크림 흰색). DESIGN §7-2 "점수 숫자는 ink(장식 금지)" 위반 + §2-4는 gradient를 *arc*에 fence. gradient 밝은 끝(#f5709f)에서 흰 숫자 AA 대비 미달 우려(§2-5).
+  - 근거: design subagent가 P0로 제기 → 메인 세션 검증 결과 *기능 결함 아님(숫자 렌더·색만 의존 아님)·graduation 비차단* → **P1 하향**. 단 DESIGN §7-2/§2-4/§2-5 다중 위반.
+  - 권장: SVG strokeDasharray arc + 중앙 숫자 `var(--ink)` on paper track. 또는 최소 숫자색 ink + 대비 확인.
+- **[Design-token-drift]** | P1 | [관측됨] | linked: T-018,T-028 | status: open | `podo/apps/web/app/globals.css:7,8`
+  - 발견: globals.css `--ink: #2a2630`·`--paper: #fffbf7`가 DESIGN §2-1 SSOT(`ink:#2B2433`·`paper:#FFFBF6`)와 **불일치**. 5-band 신호 토큰은 정확히 일치하나 두 중립색이 drift. raw-hex grep은 컴포넌트가 토큰명을 쓰므로 *구조적으로 못 잡음* — 본 SSOT 정합 검사가 유일 가드.
+  - 근거: ADR-027 DESIGN=시각 SSOT. 시각 영향은 미세(~1 hex unit)하나 token=SSOT 계약 위반.
+  - 권장: globals.css 2값을 DESIGN §2-1로 동기(trivial). 누락 토큰(`--muted`·`--grape-*` 등 컴포넌트 미참조분)은 필요 시 추가.
+- **[Surface-backref]** | P1 | [관측됨] | linked: F-011,T-030 | status: open | `compare_pairwise.py:17`·`llm.py:14`·`rerank_listwise.py:19`·`parse_resume.py:16`·`parse_job.py:14`·`matching.py:22`
+  - 발견: ADR-104 `## Surfaces`가 등재한 6개 usage-site가 leaf util(`_json_util`/`_prompts`)을 import하나 **`ADR-104` 역참조 주석 부재**(F-011 §4 "변경 파일에 `per ADR-104` 부착" 미이행). 신규 leaf 모듈·`rank_aggregate`(DOM_RANK)에는 backref 존재.
+  - 근거: ADR-045#d3 Surfaces forward check. *실질(중복 제거·import)은 충족* — 순수 doc-trace gap.
+  - 권장: 6개 import 라인에 `# per ADR-104` 1줄 부착. 낮은 실질 우선순위.
+- **[Dependency]** | P1 | [관측됨] | linked: F-005,T-018 | status: open | `podo/apps/web/package.json`(next) · `podo/apps/api/package.json`(@nestjs/*)
+  - 발견: `pnpm audit --prod` 22건(high 8 / moderate 12 / low 2). `next`(<15.5.16) 14 advisories(cache poisoning 등) + `@nestjs/common`·`@nestjs/core`.
+  - 권장: `next`≥15.5.16 bump, NestJS 갱신 후 재audit. pip-audit는 clean.
+- **[DISCOVERY-Charter-drift]** | P1 | [관측됨] | linked: docs/10-charter, M2 | status: open
+  - 발견: M2가 "적합도 5단계" 노출로 확정했으나 Charter(§3.1/§4)·DISCOVERY는 "합격가능성"(Charter 6×·DISCOVERY 12×) 잔존. UI 코드는 이미 "적합도"로 통일(design subagent 확인) → *user-visible 불일치는 없고 doc SSOT만 lag*.
+  - 권장: `/bootstrap-project --apply` 또는 `/discover-product --update`로 DISCOVERY(SSOT)→Charter 용어 reconcile + DESIGN §2/§7 라벨 동기(M2 §7·F-010 §12 열린 질문 닫음).
+- **[Insight-backlog]** | P1 | [관측됨] | linked: docs/10-charter/DISCOVERY.md §15 | status: open
+  - 발견: I-1(신뢰 thesis 보류·근거)·I-2(5단계 밴드)·I-3(누락0 투명성 커버리지)가 **M2 F-010에서 실제 UI로 구현**됐으나 §15 status=open 잔존(M1 stabilize도 동일 지적 — 미적용 재발).
+  - 권장: 외부 증거(인터뷰/라벨) 수집 후 promote, 또는 "구현 반영됨(증거는 출시 후)"로 status 갱신. `/plan-workitem`이 회수.
+- **[Design-draft]** | P1 | [관측됨] | linked: docs/20-system/DESIGN.md | status: open (실질↓, M1→M2 재발)
+  - 발견: DESIGN.md `status=draft` + M2는 실제 UI 구현(T-028/029) → ADR-027#amend-3 신호. M1이 "status 라벨 정리" 권고했으나 미적용(Cross-stabilize 회귀 신호).
+  - 권장: DESIGN.md status를 accepted로 승격(또는 프로젝트 draft 컨벤션 명문화). `/bootstrap-design` 재실행은 불필요(문서 충실).
+
 ## 3. 권장 리팩토링
+
+### M2 (P2 — reviewer 위임 + design 폴리시, 전부 behavior-preserving)
+- **REV-M2-001** | P2 | [관측됨] [Clean-Code: Naming] | T-022 | `persistence.py:21-23` — `SCORING_MODE`(고정) vs `DEFAULT_RANKING_MODE`(디폴트) 역할 차이가 이름에 안 드러남. `_FIXED_SCORING_MODE` 또는 주석으로 "변경불가 고정값" 명시.
+- **REV-M2-002** | P2 | [관측됨] [Clean-Code: Function-size/SRP] | T-022 | `persistence.py:62-127` — `persist_run`이 직렬화+ranking upsert+rec DELETE+scored insert+held insert 5단계 혼재. `_upsert_ranking_run`/`_replace_recommendations` 분리 후보(rule-of-3 미달이라 강제 아님).
+- **REV-M2-003** | P2 | [관측됨] [Clean-Code: Comment-WHY] | T-022 | `persistence.py:104` — DELETE-reinsert WHY에 *숨은 invariant*(recommendations에 `(run_id,job_posting_id)` unique 부재 → full delete 필수) 누락. QA-M2-002와 수렴 — DB unique 추가가 근본 해법.
+- **REV-M2-004** | P2 | [관측됨] [Clean-Code: Naming] | T-023 | `__main__.py:19-39` — `_ensure_seed_resume` 독스트링의 `bootstrap`↔이름 `ensure` 동사 혼용. `_get_or_insert_seed_resume` 또는 독스트링 통일.
+- **REV-M2-005** | P2 | [관측됨] [Clean-Code: Duplication] | T-022,T-024 | `persistence.py:100-102`·`crawler/persistence.py:107-110`·`__main__.py:37-38` — `fetchone()+assert+int(row[0])` 패턴 3회(rule-of-3 충족). `core/db.py`에 `_fetch_returning_id(cur)` 추출 후보(레이어 정합 확인 후).
+- **REV-M2-006** | P2 | [관측됨] [Clean-Code: Comment-WHY / behavior 경계] | T-024 | `crawler/persistence.py:76-84` — 빈 fetch 시 `closed = existing - today_urls`가 전체 마감 처리(WHY/guard 부재). [QA_FINDINGS QA-M2-007](QA_FINDINGS.md)로도 기록 — `if closed and jobs:` guard 권장.
+- **DSN-M2-P2** | P2 | [관측됨] | T-028,T-029 | design 폴리시 묶음 — held 링이 solid `border`(DESIGN §6 dashed 1.5px 미적용) · `GreetingCard` 미구현(DESIGN §7-2 등재, empty-state strip) → `[Design-inventory-pending]` · `FeedList` DESIGN §7 미등재(layout wrapper) → `[Design-inventory-drift]` · "더 보기"가 raw `<button>`(DESIGN §7-1 Button.ghost 미사용) · JobCard hover/focus·8-state skeleton 미구현. M2(로컬 E2E) 규모상 폴리시 이연 가능, M3 전 정리 권장.
+- **[Doc-stale]** | P2 | [관측됨] | T-018 | `README.md` — M2 완료 미반영(여전히 "next: /plan-workitem M1" · "pass likelihood" 구 용어). E2E runbook 추가 시 함께 갱신.
 
 ### M1 (P2 — 전부 behavior-preserving)
 - **REV-M1-004** | P2 | [Clean-Code: WHY-comment] | T-003 | `rank_aggregate.py:188-191` — `STATUS_WEIGHT.get(...,0.7)` unknown-status default의 calibration WHY 주석 추가.
@@ -96,6 +171,14 @@ Telemetry — M1
 **Instruction 개선 후보 (ADR-022 ratchet evidence label 부착 — *보고만*, AGENTS.md/agent/skill body 자동 수정 X):**
 - [관측됨 · 본 세션 2회] qa subagent가 *광범위 다영역* 위임 프롬프트에서 조사만 반복하고 finding 블록을 turn 내 미출력(각 35·27 tool-use). 3차에 "Read-only · ~10 reads · output-first · pytest 금지(이미 green)" 제약을 주자 12 tool-use에 정상 출력. 후보: `qa.md`(또는 stabilize 단계 4 위임 프롬프트)에 *tool-call 예산 + finding-block-before-turn-end self-check* 명문화. (동일 제약에서 reviewer는 정상 출력 — qa 쪽 고유 friction.)
 - [관측됨] 본 하니스에 SendMessage 부재 → paused subagent 재개 불가. 위임 프롬프트는 *self-contained + output-first*를 디폴트로 둬야 안전(재spawn 비용 회피).
+
+### M2 — ADR 후보 + instruction 개선 후보
+**ADR 후보:** **없음.** M2는 ARCH §3-1 레이어 경계·의존성 규칙을 *변경하지 않았다*(milestone §1 "새 layer 아니라 물리 매핑 인스턴스화"). 필요했던 경계 ADR(ADR-103 eval↔worker / ADR-104 worker shared-util)은 M2 진입 전 이미 생성됐고 F-011이 집행 완료. *유일한 결정-기록 후보*는 "무키 fresh-clone E2E 결정성 전략"(웜캐시 커밋 vs 합성 score fixture vs 항상-키)이나, ADR보다 M2-E2E-001 repair task의 결정으로 충분(layer 규칙 아님).
+
+**Instruction 개선 후보 (ADR-022 ratchet evidence label 부착 — *보고만*, AGENTS.md/agent/skill body 자동 수정 X):**
+- [관측됨 · 본 세션 reviewer 1회 + M1 qa 2회] **subagent budget-exhaustion 재발이 reviewer로 확산.** 첫 reviewer(code) 위임이 24 tool-use를 탐색에 소진하고 `"Now let me check…"` process line으로 종료 — finding 블록 미출력. 재spawn 시 *"≤6 reads · first message=findings · F-011은 이미 검증됨(재확인 금지)"* 제약으로 6 tool-use에 정상 출력. 후보: stabilize 단계 4·5 위임 프롬프트(또는 `qa.md`/`reviewer.md`)에 **명시적 read-budget + "final message MUST be findings" self-check**를 박기(M1은 qa만, M2는 reviewer까지 → 공통화). SendMessage 부재로 paused subagent 재개 불가 → 위임 *self-contained + output-first* 디폴트 재확인.
+- [관측됨 · 본 세션 1회] **design subagent severity 인플레.** design surface 위임이 P0 2건(FitScoreRing·CoveragePanel)을 제기했으나 메인 세션 검증 결과 둘 다 *기능/그래듀에이션 비차단* → P1 하향. design 위임은 DESIGN의 *aspirational* 8-state 매트릭스를 *위반*으로 과보고하는 경향. 후보: design 위임 프롬프트에 **"P0 = 기능/접근성 *차단*만; 미구현 폴리시·상태는 P1 이하"** severity 기준 명시.
+- [관측됨 · Cross-stabilize] **마일스톤 간 doc-reconcile 누락 패턴.** M1이 권고한 DESIGN status 정리·Insight promote·용어 reconcile가 M2까지 미적용([Design-draft]·[Discovery-insight] 재등장 = 회귀 신호 2건). 후보: graduation checklist에 *"직전 stabilize의 P1 doc-reconcile 항목 close 여부"* 점검 1줄 추가 검토(ADR-014 graduation contract 확장 후보).
 
 ## 5. Repair decision log
 
