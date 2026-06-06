@@ -10,12 +10,10 @@ extract_skills_evidence: 결정적 Skills 헤딩 파싱 → LLM 누락 보완 (A
 from __future__ import annotations
 
 import re
-from pathlib import Path
 from typing import Any, Callable
 
 from core.models import EvidenceItem
-
-_PROMPTS_DIR = Path(__file__).parent / "prompts"
+from worker._prompts import load_prompt, render
 
 # Skills 헤딩으로 인식할 정규식 패턴 (한/영 대소문자 포함, h1~h6).
 # "Tech Stack"(영문 bare) · h4~h6 헤딩까지 포괄해야 결정적 추출이 누락되지 않는다
@@ -32,19 +30,6 @@ _BULLET_RE = re.compile(r"^\s*[-*•·]\s+(.+)$")
 # 헤딩 패턴 (다음 섹션 시작 감지용)
 _HEADING_RE = re.compile(r"^\s*#{1,6}\s+\S|^\s*[-*•·]\s+\S", re.MULTILINE)
 _SECTION_HEADING_RE = re.compile(r"^#{1,6}\s+", re.MULTILINE)
-
-
-def _load_prompt(name: str) -> str:
-    """prompts/<name>.md 파일을 읽어 반환한다."""
-    return (_PROMPTS_DIR / f"{name}.md").read_text(encoding="utf-8")
-
-
-def _render(template: str, **kwargs: object) -> str:
-    """{{VAR}} 플레이스홀더를 치환한다 (SPEC §7-1)."""
-    result = template
-    for key, value in kwargs.items():
-        result = result.replace("{{" + key + "}}", str(value))
-    return result
 
 
 def _parse_bullets_from_section(
@@ -142,8 +127,8 @@ def extract_evidence(
     """
     from worker.llm import JSON_SYSTEM, call_structured
 
-    template = _load_prompt("resume_extract")
-    user = _render(template, RESUME_TEXT=resume_text)
+    template = load_prompt("resume_extract")
+    user = render(template, RESUME_TEXT=resume_text)
 
     def _validate(data: dict[str, Any]) -> dict[str, Any]:
         if "evidence" not in data or not isinstance(data["evidence"], list):

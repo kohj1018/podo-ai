@@ -364,7 +364,8 @@ def compute_fit(
 # §5-2: 정렬 모드 상수
 RANKING_MODES: tuple[str, ...] = ("bt_primary", "fit_primary", "domain_fit_bt")
 
-# §5-2: 도메인 tier → 정렬 키 숫자
+# §5-2: 도메인 tier → 정렬 키 숫자.
+# SSOT per ADR-104 — rerank_listwise·pipeline·eval이 import. 복제 금지(REV-M1-002).
 DOM_RANK: dict[str, int] = {"strong": 3, "adjacent": 2, "weak": 1, "mismatch": 0}
 
 

@@ -8,28 +8,13 @@ _ensure_unique_ids: 리스트 내 requirement_id 유일성 보장.
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Any, Callable
 
 from core.models import JobPosting
-
-_PROMPTS_DIR = Path(__file__).parent / "prompts"
+from worker._prompts import load_prompt, render
 
 # JD 원문 컷오프 (SPEC §7-2)
 MAX_RAW_CHARS = 12000
-
-
-def _load_prompt(name: str) -> str:
-    """prompts/<name>.md 파일을 읽어 반환한다."""
-    return (_PROMPTS_DIR / f"{name}.md").read_text(encoding="utf-8")
-
-
-def _render(template: str, **kwargs: object) -> str:
-    """{{VAR}} 플레이스홀더를 치환한다."""
-    result = template
-    for key, value in kwargs.items():
-        result = result.replace("{{" + key + "}}", str(value))
-    return result
 
 
 def _apply_prerequisite_defaults(
@@ -80,8 +65,8 @@ def structure_job(
     """
     from worker.llm import JSON_SYSTEM, call_structured
 
-    template = _load_prompt("jd_extract")
-    user = _render(
+    template = load_prompt("jd_extract")
+    user = render(
         template,
         COMPANY=company,
         TITLE=title,

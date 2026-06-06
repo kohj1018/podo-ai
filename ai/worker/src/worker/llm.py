@@ -9,10 +9,9 @@ API 에러 기반으로 처리 — 모델명 하드코딩 없음 (SPEC §8-1).
 
 from __future__ import annotations
 
-import json
-import re
 from typing import Any, Callable
 
+from worker._json_util import extract_json
 from worker.cache import llm_cache_get, llm_cache_put, make_key
 from worker.config import LLM_SEED, OPENAI_API_KEY, OPENAI_MODEL, SCHEMA_VERSION
 
@@ -28,22 +27,6 @@ JSON_SYSTEM = (
 
 class LLMError(Exception):
     """LLM 호출 또는 검증이 최대 시도 후에도 실패한 경우."""
-
-
-def _extract_json(text: str) -> Any:
-    """응답에서 JSON을 추출한다 — code fence 제거 + greedy shrink (SPEC §8-1).
-
-    실패 시 ValueError를 raise한다.
-    """
-    # code fence 제거
-    cleaned = re.sub(r"```(?:json)?\s*", "", text).strip().rstrip("`").strip()
-    # 첫 { 또는 [ 부터 마지막 } 또는 ] 까지 greedy shrink
-    for start_ch, end_ch in [("{", "}"), ("[", "]")]:
-        start = cleaned.find(start_ch)
-        end = cleaned.rfind(end_ch)
-        if start != -1 and end != -1 and end >= start:
-            return json.loads(cleaned[start : end + 1])
-    raise ValueError(f"JSON을 찾을 수 없음: {text[:120]!r}")
 
 
 def _openai_call(system: str, user: str, max_tokens: int, temperature: float) -> str:
@@ -162,7 +145,7 @@ def call_structured(
         )
 
         try:
-            data = _extract_json(raw)
+            data = extract_json(raw)
             result = validate(data)
             return result
         except Exception as exc:  # noqa: BLE001 — 시스템 경계(LLM 외부 출력) 에러 수집

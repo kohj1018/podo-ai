@@ -18,7 +18,6 @@ from __future__ import annotations
 
 import json
 import re
-from pathlib import Path
 from typing import Any, Callable
 
 from core.models import (
@@ -33,23 +32,10 @@ from core.models import (
     Resume,
     clamp,
 )
+from worker._prompts import load_prompt, render
 from worker.llm import JSON_SYSTEM, call_structured
 
 MAX_RESUME_CHARS = 9000
-
-_PROMPTS_DIR = Path(__file__).parent / "prompts"
-
-
-def _load_prompt(name: str) -> str:
-    return (_PROMPTS_DIR / f"{name}.md").read_text(encoding="utf-8")
-
-
-def _render(template: str, **kwargs: object) -> str:
-    """{{VAR}} 플레이스홀더를 치환한다."""
-    result = template
-    for key, value in kwargs.items():
-        result = result.replace("{{" + key + "}}", str(value))
-    return result
 
 
 # ---------------------------------------------------------------------------
@@ -240,7 +226,7 @@ def _llm_verify(
     if not rows:
         return rows
 
-    template = _load_prompt("match_verifier")
+    template = load_prompt("match_verifier")
 
     resume_text = resume.raw_text[:MAX_RESUME_CHARS]
 
@@ -281,7 +267,7 @@ def _llm_verify(
         ensure_ascii=False,
     )
 
-    user = _render(
+    user = render(
         template,
         RESUME_TEXT=resume_text,
         EVIDENCE=evidence_json,

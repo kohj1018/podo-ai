@@ -10,7 +10,6 @@ build_matching_table: LLM(requirement_evidence_match) 호출 →
 from __future__ import annotations
 
 import json
-from pathlib import Path
 from typing import Any, Callable
 
 from core.models import (
@@ -20,9 +19,8 @@ from core.models import (
     MatchRow,
     Requirement,
 )
+from worker._prompts import load_prompt, render
 from worker.llm import JSON_SYSTEM, call_structured
-
-_PROMPTS_DIR = Path(__file__).parent / "prompts"
 
 # SPEC §6-1: same-category 그룹 재시도 대상 카테고리
 GROUP_CATEGORIES: set[str] = {
@@ -34,18 +32,6 @@ GROUP_CATEGORIES: set[str] = {
     "framework",
     "language",
 }
-
-
-def _load_prompt(name: str) -> str:
-    return (_PROMPTS_DIR / f"{name}.md").read_text(encoding="utf-8")
-
-
-def _render(template: str, **kwargs: object) -> str:
-    """{{VAR}} 플레이스홀더를 치환한다."""
-    result = template
-    for key, value in kwargs.items():
-        result = result.replace("{{" + key + "}}", str(value))
-    return result
 
 
 def _resolve_evidence(
@@ -156,7 +142,7 @@ def _do_rematch(
     _call_fn: Callable[..., Any] | None = None,
 ) -> MatchRow:
     """1회 rematch 재시도 — 실패 시 원 row 반환."""
-    template = _load_prompt("rematch_evidence")
+    template = load_prompt("rematch_evidence")
     evidence_json = json.dumps(
         [
             {
@@ -172,7 +158,7 @@ def _do_rematch(
         ],
         ensure_ascii=False,
     )
-    user = _render(
+    user = render(
         template,
         REQUIREMENT_TEXT=row.requirement_text,
         REQUIREMENT_TYPE=row.requirement_type,
@@ -232,7 +218,7 @@ def build_matching_table(
     req_map: dict[str, Requirement] = {r.requirement_id: r for r in all_reqs}
 
     # --- 1. LLM 호출 ---
-    template = _load_prompt("requirement_evidence_match")
+    template = load_prompt("requirement_evidence_match")
     evidence_json = json.dumps(
         [
             {
@@ -264,7 +250,7 @@ def build_matching_table(
         ],
         ensure_ascii=False,
     )
-    user = _render(
+    user = render(
         template,
         COMPANY=job.company,
         TITLE=job.title,

@@ -9,12 +9,12 @@ run_pairwise: 모든 후보 쌍을 A/B·B/A 양방향 비교.
 from __future__ import annotations
 
 import json
-import re
 from itertools import combinations
 from pathlib import Path
 from typing import Any, Callable
 
 from core.models import CONFIDENCES, MatchingTable, PairwiseResult, clamp
+from worker._json_util import extract_json
 from worker.rerank_listwise import compress_table
 
 # pairwise_compare 프롬프트 (T-005에서 verbatim 이식됨)
@@ -30,17 +30,6 @@ _JSON_SYSTEM = (
 
 # confidence 우선순위 (낮은 것 선택용)
 _CONF_RANK: dict[str, int] = {"low": 0, "medium": 1, "high": 2}
-
-
-def _extract_json(text: str) -> Any:
-    """응답에서 JSON을 추출한다 (순환 import 방지로 로컬 구현)."""
-    cleaned = re.sub(r"```(?:json)?\s*", "", text).strip().rstrip("`").strip()
-    for start_ch, end_ch in [("{", "}"), ("[", "]")]:
-        start = cleaned.find(start_ch)
-        end = cleaned.rfind(end_ch)
-        if start != -1 and end != -1 and end >= start:
-            return json.loads(cleaned[start : end + 1])
-    raise ValueError(f"JSON을 찾을 수 없음: {text[:120]!r}")
 
 
 def _compare_once(
@@ -64,7 +53,7 @@ def _compare_once(
         temperature=0.0,
     )
     try:
-        data = _extract_json(raw)
+        data = extract_json(raw)
     except Exception:
         return "tie", "low"
 

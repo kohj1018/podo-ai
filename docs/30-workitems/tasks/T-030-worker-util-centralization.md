@@ -1,7 +1,7 @@
 # T-030-worker-util-centralization
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 refactor
