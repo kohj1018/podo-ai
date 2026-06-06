@@ -23,22 +23,56 @@ interface PreviewState {
   evidenceSummary: EvidenceSummary
 }
 
+// 허용 확장자 목록
+const ALLOWED_EXTENSIONS = ['.txt', '.md']
+// 클라이언트 사이드 파일 크기 상한: 100KB
+const MAX_FILE_SIZE = 100 * 1024
+
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3001'
 
 // /resume 업로드 영역 — FeedList 패턴(API_BASE 환경변수) 차용.
 // 파일 drag/drop(.txt/.md) + textarea paste 양쪽 지원.
 // 업로드 후 T-034 응답(masked_preview + evidence_summary)을 MaskingPreview에 전달.
+// T-041: 비허용 포맷 안내 + 100KB 초과 client pre-check + 로딩 skeleton + error toast.
 export function ResumeUpload() {
   const [pasteText, setPasteText] = useState('')
   const [preview, setPreview] = useState<PreviewState | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [fileError, setFileError] = useState<string | null>(null)
+  const [uploadError, setUploadError] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // 파일 선택 시 클라이언트 사이드 포맷/크기 검증
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) {
+      setFileError(null)
+      return
+    }
+
+    const ext = `.${file.name.split('.').pop()?.toLowerCase()}`
+    if (!ALLOWED_EXTENSIONS.includes(ext)) {
+      setFileError('현재 .txt / .md 파일 또는 텍스트 붙여넣기만 지원합니다.')
+      // 파일 선택 초기화 — 업로드 전송 차단
+      e.target.value = ''
+      return
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      setFileError('파일이 너무 큽니다(최대 100KB).')
+      e.target.value = ''
+      return
+    }
+
+    setFileError(null)
+  }
 
   async function handleUpload() {
     const file = fileInputRef.current?.files?.[0]
     const hasInput = file || pasteText.trim()
     if (!hasInput) return
 
+    setUploadError(false)
     setUploading(true)
     try {
       let res: Response
@@ -54,12 +88,17 @@ export function ResumeUpload() {
         })
       }
 
-      if (!res.ok) return
+      if (!res.ok) {
+        setUploadError(true)
+        return
+      }
       const body = (await res.json()) as ResumeApiResponse
       setPreview({
         maskedText: body.data.masked_preview,
         evidenceSummary: body.data.evidence_summary,
       })
+    } catch {
+      setUploadError(true)
     } finally {
       setUploading(false)
     }
@@ -70,10 +109,19 @@ export function ResumeUpload() {
       {/* 파일 입력 — .txt/.md only */}
       <input
         ref={fileInputRef}
+        data-testid="file-input"
         type="file"
         accept=".txt,.md"
+        onChange={handleFileChange}
         style={{ display: 'block', marginBottom: '8px' }}
       />
+
+      {/* 포맷/크기 안내 메시지 — AC-1 */}
+      {fileError && (
+        <p data-testid="format-error" style={{ color: 'var(--band-1-ink)', margin: '0 0 8px' }}>
+          {fileError}
+        </p>
+      )}
 
       {/* paste 텍스트 영역 */}
       <textarea
@@ -88,8 +136,41 @@ export function ResumeUpload() {
         업로드
       </button>
 
-      {/* 마스킹 preview — 응답 수신 후 표시 */}
-      {preview && (
+      {/* 에러 toast — 업로드 실패 */}
+      {uploadError && (
+        <p data-testid="upload-error" style={{ color: 'var(--band-1-ink)', margin: '8px 0 0' }}>
+          업로드 실패. 다시 시도해보세요.
+        </p>
+      )}
+
+      {/* 로딩 skeleton — AC-2.
+          shimmer 애니메이션은 @media (prefers-reduced-motion: reduce)에서 비활성.
+          CSS 클래스 방식으로 분기(globals.css 에 .shimmer 정의 필요 — T-041 범위).
+          가짜 점수/preview는 로딩 중 표시하지 않는다. */}
+      {uploading && (
+        <div data-testid="loading-skeleton" style={{ marginTop: '12px' }}>
+          <div
+            className="shimmer"
+            style={{
+              height: '16px',
+              borderRadius: '4px',
+              marginBottom: '8px',
+            }}
+          />
+          <div
+            className="shimmer"
+            style={{
+              height: '16px',
+              borderRadius: '4px',
+              width: '60%',
+            }}
+          />
+          <p style={{ color: 'var(--muted)', marginTop: '8px' }}>이력서 분석 중…</p>
+        </div>
+      )}
+
+      {/* 마스킹 preview — 응답 수신 후 표시, 로딩 중에는 미표시(AC-2) */}
+      {!uploading && preview && (
         <MaskingPreview maskedText={preview.maskedText} evidenceSummary={preview.evidenceSummary} />
       )}
 

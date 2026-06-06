@@ -29,4 +29,29 @@
   --coverage-on-bg: #eaf6f0;
   --coverage-on-border: #cdebdc;
   --faint: #8a8090;
+  /* border / secondary text (DESIGN §2) — skeleton line→line-strong, muted=text.secondary */
+  --line: #f6e4ec;
+  --line-strong: #edd0dc;
+  --muted: #6c6475;
+}
+
+/* skeleton shimmer (DESIGN §7-4: surface 위 line→line-strong / §8 모션) */
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+.shimmer {
+  background-image: linear-gradient(90deg, var(--line) 25%, var(--line-strong) 50%, var(--line) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+/* reduced-motion: shimmer 비활성(정적 색 유지) — AC-2 / DESIGN §8 모션 */
+@media (prefers-reduced-motion: reduce) {
+  .shimmer {
+    animation: none;
+  }
 }
