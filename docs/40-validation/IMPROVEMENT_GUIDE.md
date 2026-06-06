@@ -39,9 +39,9 @@ Telemetry — M1
 ```
 
 ### M2 — /stabilize-milestone (2026-06-06)
-- **졸업 가능: NO (근소)** — 14/14 task done · 통합 validate exit 0(130 passed / 13 skipped) · AC 매핑 32/32(100%) · **QA_FINDINGS 코드결함 P0 0**. 다만 graduation §5 미충족 2건:
-  - **#3 E2E Pass — 미충족(현 커밋 상태로 fresh-clone 재현 불가):** (a) `app.enableCors()`(web:3000→api:3001 필수)가 **uncommitted**(`main.ts`), (b) `.cache/llm`이 **gitignored** + 무키 score용 fixture/오케스트레이션 부재 → 무키 fresh clone은 전 공고가 cache miss→**held**(점수 0건)라 "적합도 5단계 렌더" done-line 불성립(T-023 §8이 "무키 결정성은 웜캐시/fake 필요 — E2E 오케스트레이션 소관"이라 명시), (c) **단일 crawl→score→feed 오케스트레이션 명령·runbook 부재**(README는 "next: /plan-workitem M1"·구 "pass likelihood" 용어로 stale), (d) `nest-cli.json`·`tsconfig.build.json` untracked. *per-task validator는 DB-path 유닛(T-021/022/026/027 DATABASE_URL 주입 라이브 green)·UI(T-028/029 RTL)를 커버하나 통합 fresh-clone E2E는 자동 게이트로 미실증.*
-  - **#6 (선택) GS-1-through-DB — at risk:** QA-M2-001(pending_job_ids JSONB 배열 순서 비결정) — 무키 E2E(전부 held) 경로에서 상시 노출. report.py:52 one-line `sorted()`로 닫힘.
+- **졸업 가능: NO (근소, 초판) → 재grade YES (Fix round 2, 2026-06-06)** — 14/14 task done · 통합 validate exit 0(134 passed / 15 skipped) · **E2E exit 0**(`pnpm e2e` 메인 세션 실측: crawl(fixture)→score(웜캐시)→api 서빙→assert scored 6/held 0/양 소스) · AC 매핑 32/32(100%) · **QA_FINDINGS 코드결함 P0 0**. 초판 미충족 2건 모두 회수:
+  - **#3 E2E Pass — 미충족(현 커밋 상태로 fresh-clone 재현 불가):** (a) `app.enableCors()`(web:3000→api:3001 필수)가 **uncommitted**(`main.ts`), (b) `.cache/llm`이 **gitignored** + 무키 score용 fixture/오케스트레이션 부재 → 무키 fresh clone은 전 공고가 cache miss→**held**(점수 0건)라 "적합도 5단계 렌더" done-line 불성립(T-023 §8이 "무키 결정성은 웜캐시/fake 필요 — E2E 오케스트레이션 소관"이라 명시), (c) **단일 crawl→score→feed 오케스트레이션 명령·runbook 부재**(README는 "next: /plan-workitem M1"·구 "pass likelihood" 용어로 stale), (d) `nest-cli.json`·`tsconfig.build.json` untracked. *per-task validator는 DB-path 유닛(T-021/022/026/027 DATABASE_URL 주입 라이브 green)·UI(T-028/029 RTL)를 커버하나 통합 fresh-clone E2E는 자동 게이트로 미실증.* **→ 회수됨(Fix round 2, 26aa0c9/4ad8ca7):** 결정적 crawl fixture + 50-entry 웜캐시(`LLM_CACHE_DIR`) + 단일 오케스트레이션 `scripts/e2e.mjs`(`pnpm e2e` exit 0 실측) + CI `e2e-smoke.yml`(무키) + README runbook.
+  - **#6 (선택) GS-1-through-DB — at risk:** QA-M2-001(pending_job_ids JSONB 배열 순서 비결정) — 무키 E2E(전부 held) 경로에서 상시 노출. report.py:52 one-line `sorted()`로 닫힘. **→ 회수됨:** keyed↔keyless 재채점 result **byte-identical**(`3a4680f5`) 실측(Fix round 2).
 - **reviewer(code): P0 0 / P1 0 / P2 6** — **F-011이 M1 부채를 깨끗이 해소 확인**(REV-M1-001/002/007 `extract_json`·`load_prompt`/`render` 단일화 + REV-M1-002 `DOM_RANK` SSOT + REV-M1-003 eval private-import 0). reviewer(design): 메인 세션이 design subagent의 P0 2건(FitScoreRing ink·CoveragePanel error)을 검증 후 **P1로 하향**(graduation P0 게이트는 QA_FINDINGS 기준이므로 무관, but 과대평가 회피). qa: [QA_FINDINGS `## M2`](QA_FINDINGS.md) (P0 0 / P1 1 / P2 7). **수렴(신뢰도↑):** QA-M2-001 결정성 hole을 qa subagent·메인 세션이 독립 발견.
 - **Dependency hygiene:** `pip-audit`(uv export → uvx, 1회) → **No known vulnerabilities found** ✅ (로컬 workspace pkg `core/eval/worker/crawler`는 PyPI 부재로 skip — 정상). `pnpm audit --prod` → **22건 (high 8 / moderate 12 / low 2)** — 주범 `next`(<15.5.16, 14 advisories) + `@nestjs/common`·`@nestjs/core`. → 아래 §2 P1. 6개월 unused deps 해당없음(신생 monorepo).
 - **Deterministic preflight:** ADR-ref 전부 resolve(M2 신규 doc은 기존 ADR만 인용 · 미존재 boilerplate#는 Reserved/Parked/Dropped 표 · bare `ADR-1`=`ADR-1NN` 템플릿 placeholder FP) · anchor(#arch-7-1/3/4 · #design-2-colors/7-components) 전부 존재 · FAC↔AC unmapped 0(27/27). **ADR-104 Surfaces 등재 6 usage-site backref 누락 → 아래 §2 P1.** globals.css `--ink`(#2a2630)·`--paper`(#fffbf7)가 DESIGN §2-1 SSOT(#2B2433 / #FFFBF6)와 drift → §2 P1(미세). raw-hex 컴포넌트 0(globals.css=토큰 instantiation 층). Doc-link 외부검사 **skip**(markdown-link-check 미설치). ARCH §7-x `### Don'ts` header 부재 → 5-4 grep skip(문서화된 milestone-level gap — 소유권·read-only·opaque 경계는 per-task validate + reviewer가 커버).
@@ -53,9 +53,10 @@ Telemetry — M2
 - AC↔테스트 매핑: 32 / 32 (100%)
 - FAC coverage: 27 / 27 (100%)
 - Evidence Bundle 신뢰도: High 14 / Medium 0 / Low 0
-- Validate exit code: 0 (130 passed / 13 skipped — DB-gated 11 + jsdom-deferred 2 + 1)
-- Findings: P0 1 / P1 9 / P2 18  (P0 = E2E fresh-clone 재현성 gap; QA_FINDINGS 코드결함 P0 = 0)
-- Cross-stabilize 회귀 신호: 2건 — [Design-draft]·[Discovery-insight]가 M1→M2 재등장(patterned doc-state drift: M1이 권고한 DESIGN status 정리·insight promote·용어 reconcile가 마일스톤 간 미적용)
+- Validate exit code: 0 (134 passed / 15 skipped) · E2E exit 0 (`pnpm e2e` 메인 세션 실측)
+- Findings: P0 0 / P1 9 / P2 18  (초판 P0=E2E fresh-clone gap → Fix round 2 회수; QA_FINDINGS 코드결함 P0 = 0)
+- Cross-stabilize 회귀 신호: 2건 — [Design-draft]·[Discovery-insight]가 M1→M2 재등장(patterned doc-state drift: M1이 권고한 DESIGN status 정리·insight promote·용어 reconcile가 마일스톤 간 미적용 — M3 전 회수 권장)
+- 재grade (Fix round 2, 2026-06-06): 졸업 가능 NO→**YES**. graduation §5 6/6 충족(task done·validate exit 0·E2E exit 0·AC 100%·P0 0·GS-1-through-DB byte-identical)
 ```
 
 ## 1. 우선순위

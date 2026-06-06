@@ -70,6 +70,8 @@
 
 > **Fix round 2026-06-06** (메인 세션, stabilize 회수 + 커밋): **resolved** — QA-M2-001(report.py `sorted(pending_job_ids)` + test_report.py), QA-M2-002(recommendations `@@unique([run_id,job_posting_id])` + migration `20260606130000_rec_unique` + contract assert), QA-M2-006(feed currentRun `id desc` 보조정렬), QA-M2-007(crawler 빈 fetch 전체마감 guard + test), QA-M2-008(schema-contract `fit_level` nullable + unique assert). **deferred** — QA-M2-003(accepted-with-note 유지), QA-M2-004(coverage N+1 — 채널 확장 전), QA-M2-005(int 캐스팅 — 낮음). 검증: 게이트 exit 0(131 passed) + clean DB(podo_test) 5 passed.
 
+> **Fix round 2 (E2E) 재grade 2026-06-06** (메인 세션): graduation §5 #3(fresh-clone E2E) + #6(GS-1-through-DB) 회수 → **졸업 가능 YES**. 코드결함 신규 0 — `### P0` 0 유지. 실측: keyed score 6 scored/0 held → keyless 재채점 result byte-identical(`3a4680f5`) → `pnpm e2e` exit 0(crawl fixture→웜캐시→api 서빙→feed/coverage assert). 상세 [IMPROVEMENT_GUIDE M2-E2E-001](IMPROVEMENT_GUIDE.md).
+
 ### P0
 없음. (worker 소유권 write 경계·held(LLM miss) 보류 영속·verbatim JSONB 저장·복합키 upsert 모두 충족. 데이터 손실·무결성 파괴급 결함 없음.)
 
