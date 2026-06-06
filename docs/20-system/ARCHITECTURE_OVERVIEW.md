@@ -155,7 +155,7 @@ draft
 - 스테이징/프로덕션 포트는 Vercel(web)·AWS 이전 시(api/worker) 결정 — *나중에*(A-INFRA).
 
 **환경변수 이름 (값은 비움 — secrets는 `.env`, `.gitignore` 정합, AGENTS.md 민감파일 규율):**
-- `DATABASE_URL`(Postgres+pgvector 연결 — Prisma·Worker·Crawler 공유), `OPENAI_API_KEY`(Worker), `OPENAI_MODEL_ID`/`PROMPT_VERSION`(캐시 키 핀 — GS-1), `AWS_*`/`S3_ENDPOINT`(LocalStack → 추후 AWS), `NEXT_PUBLIC_API_BASE_URL`(web→api).
+- `DATABASE_URL`(Postgres+pgvector 연결 — Prisma·Worker·Crawler 공유), `OPENAI_API_KEY`(Worker), `OPENAI_MODEL`/`PROMPT_VERSION`(캐시 키 핀 — GS-1), `AWS_*`/`S3_ENDPOINT`(LocalStack → 추후 AWS), `NEXT_PUBLIC_API_BASE_URL`(web→api).
 - 구체 목록·기본값은 STACK_SETUP_PLAN.md에서 관리. `.env`는 커밋 금지.
 
 **주요 디렉터리 역할 (핵심):**

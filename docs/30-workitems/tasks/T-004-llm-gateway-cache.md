@@ -17,7 +17,7 @@ technical-enabler
 ## 3. 구현 항목
 - `ai/worker/src/worker/llm.py` — 게이트웨이(`call_text`/`call_structured`/`_extract_json`/재시도).
 - `ai/worker/src/worker/cache.py` — `make_key`/get/put/네임스페이스/REFRESH + 저장 어댑터(Postgres JSONB; MVP는 worker 소유 테이블, ARCH §7-3). 캐시 키에 시간·랜덤·환경 값 혼입 금지(§3-1, /validate 1순위 점검).
-- `ai/worker/src/worker/config.py` — `SCHEMA_VERSION`·`OPENAI_MODEL_ID`·`PROMPT_VERSION`·`LLM_SEED`·도메인 토큰 env 로딩(STACK_SETUP_PLAN §4 env명). (경로: src-layout — ADR-102 D5)
+- `ai/worker/src/worker/config.py` — `SCHEMA_VERSION`·`OPENAI_MODEL`·`PROMPT_VERSION`·`LLM_SEED`·도메인 토큰 env 로딩(STACK_SETUP_PLAN §4 env명). (경로: src-layout — ADR-102 D5)
 
 ## 4. 제외 항목
 - 프롬프트 내용(T-005) · 캐시 무효화/마이그레이션 정책(F-001 §12 열린 질문, 후속) · Redis(YAGNI, ADR-101 D-DB).

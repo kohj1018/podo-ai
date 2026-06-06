@@ -63,7 +63,7 @@ docker compose -f infra/docker-compose.yml up -d   # Postgres+pgvector, LocalSta
 |------|--------|------|
 | `DATABASE_URL` | Prisma · Worker · Crawler | Postgres+pgvector 연결(공유) |
 | `OPENAI_API_KEY` | Worker | LLM 스코어링 |
-| `OPENAI_MODEL_ID` | Worker | 캐시 키 핀 — GS-1 (구체 ID 미정) |
+| `OPENAI_MODEL` | Worker | 캐시 키 핀 — GS-1 (기본 `gpt-5.4-mini`, 프로토타입 검증 모델) |
 | `PROMPT_VERSION` | Worker | 캐시 키 핀 — GS-1 |
 | `S3_ENDPOINT` / `AWS_*` | Worker/Crawler | LocalStack → 추후 AWS |
 | `NEXT_PUBLIC_API_BASE_URL` | web | web → api |

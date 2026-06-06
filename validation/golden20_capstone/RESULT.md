@@ -13,14 +13,19 @@
 
 Artifacts in this dir: `runner.py` (harness), `detail.json` (per-pair), `result.txt` (full report).
 
-## 재현 (결정적, ~무료 — 캐시 히트)
+## 재현 (이 머신 한정 — 결정적·~무료)
 
 ```
 # 레포 루트에서:
 python validation/golden20_capstone/runner.py
 ```
-첫 실행만 LLM 라이브(`.cache/llm`에 박힘), 이후는 캐시 히트로 결정적. 프로토타입 레포 경로는
-`PROTOTYPE_ROOT` env로 override (기본 = dev-practice/podo-algorithm-test).
+**전제(없으면 재현 안 됨):** (1) 프로토타입 레포(`PROTOTYPE_ROOT`, 기본 dev-practice/podo-algorithm-test)
+존재 — 인간 라벨/이력서/raw JD가 거기 있음(podo-ai엔 없음). (2) `.cache/llm`(gitignore)이 채워져
+있어야 결정적·무료; 비어 있으면 첫 실행이 LLM 라이브(크레딧).
+
+즉 **"이 머신 + 프로토타입 + 캐시"일 때만 재현**이지, podo-ai만 fresh-clone하면 안 돈다.
+영구 CI 게이트로 쓰려면 입력(라벨·이력서·JD)+캐시를 podo-ai 안으로 vendoring하거나, podo-ai
+자체 골든셋을 구축해야 함(PORTING_GUIDE §6 — 권장: 프로덕션 도메인용 자체 골든셋).
 
 ## 메트릭 정합성 — 4 체크포인트 (runner.py 기준)
 
