@@ -1,7 +1,7 @@
 # T-037-resume-scoring-connection
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 feature
@@ -24,7 +24,14 @@ feature
 - 마스킹 로직(T-036). · 업로드 엔드포인트(T-034). · UI "분석 시작" onClick·feed 렌더(T-039 — 본 task는 트리거 *엔드포인트*까지). · 하류 PII scan(T-040). · 알고리즘/캐시 키 재설계(SPEC 불변). · 도메인 자동분류 모델(§8 — M3는 config 기본).
 
 ## 4-1. 변경 예정 파일/경로
-<!-- 구현 시점에 채운다. -->
+- `ai/worker/src/worker/persistence.py` — `load_resume(conn, resume_id)` 추가(마스킹본 → Resume) + Resume import
+- `ai/worker/src/worker/__main__.py` — `run(resume_id=None)` 분기(부재=seed 경로 보존) + `main()` `--resume-id` argv/env 파싱
+- `ai/worker/tests/test_main.py` (신규) — AC-1: DB 마스킹 이력서 채점 + evidence>0 + ranking_runs(resume_id)
+- `podo/apps/api/src/resumes/worker-runner.port.ts` (신규, write_set 이탈) — WorkerRunner port + SubprocessWorkerRunner(`uv run python -m worker --resume-id`)
+- `podo/apps/api/src/resumes/resumes.service.ts` — `score(resumeId)` + WorkerRunner 주입
+- `podo/apps/api/src/resumes/resumes.controller.ts` — `POST /api/v1/resumes/:id/score`
+- `podo/apps/api/src/resumes/resumes.module.ts` (write_set 이탈) — WorkerRunner provider 배선
+- `podo/apps/api/test/resumes.spec.ts` (§6-1 지정, write_set 이탈) — AC-2 트리거 + 404; T-034 AC-1 생성자 3인자화
 
 ## 5. 완료 조건
 worker가 DB의 마스킹 이력서(resume_id)를 읽어 채점하고 그 resume_id로 결과를 영속하며, 채점 후 하류 표면 어디에도 PII가 남지 않는다.
@@ -54,6 +61,8 @@ worker가 DB의 마스킹 이력서(resume_id)를 읽어 채점하고 그 resume
 - 열린 질문(도메인): 업로드 이력서의 primary/secondary domains — M3는 config USER_DOMAINS 기본값 사용(자동 분류 비범위). ADR-105 또는 후속 재검토.
 - repair-plan 2026-06-07 [default] P1 Plan-ambiguity(T-039:AC-1): Adopt — 스코어링 트리거를 본 task에 확정(엔드포인트 + worker resume_id); 기존 하류 scan AC-2를 트리거 AC로 교체, scan은 T-040 이관.
 - architect 호출 권장: NestJS→Python subprocess(새 프로세스 경계, cross-stack — ADR-007 자동호출 X, 텍스트 제안만).
+- 구현 결정(2026-06-07): 경계 설계를 메인 세션에서 분석(별도 architect agent 미호출 — plan이 sync subprocess+완료 시 200을 이미 확정, scripts/e2e.mjs phase4 `uv run python -m worker`가 검증된 호출 템플릿). **3계층 검증**: AC-1(Python `run(resume_id)`)이 ranking_run 생성을, AC-2(TS, fake WorkerRunner)가 엔드포인트 트리거 계약을, stabilize E2E가 실 subprocess를 실증. WorkerRunner port(DI)로 테스트 주입 가능하게 함.
+- write_set 이탈(필요 산출): `worker-runner.port.ts`(신규 port)·`resumes.module.ts`(provider 배선)·`resumes.spec.ts`(§6-1 AC-2 지정). plan §9 write_set이 이들을 누락 — 트리거 구현·DI·테스트에 기계적으로 필요. 상위 문서 후행 갱신 필요(WORKFLOW 4-A): ARCH §7-3에 NestJS→Python worker 트리거 subprocess 패턴 미기재 → P1 [Arch-iface-7-3] 후속(§7-3 본문 또는 ADR; T-034 §7-1 sync와 함께 stabilize-M3 doc-sync로 회수).
 
 ## 9. 의존성
 - depends_on: [T-036, T-034]   # 마스킹 구현 + 업로드로 resumes에 마스킹본; 트리거 엔드포인트는 T-034 ResumesModule 확장(cross-stack)

@@ -6,6 +6,8 @@ seed 이력서는 config.load_seed_resume()로 주입(SPEC §9-4, 실 PII 비범
 
 from __future__ import annotations
 
+import os
+import sys
 from typing import Any, Callable
 
 import psycopg
@@ -42,18 +44,25 @@ def _ensure_seed_resume(
 def run(
     conn: psycopg.Connection[tuple[Any, ...]],
     *,
+    resume_id: int | None = None,
     ranking_mode: str = persistence.DEFAULT_RANKING_MODE,
     structured_call_fn: Callable[..., Any] | None = None,
     listwise_call_fn: Callable[..., str] | None = None,
     pairwise_call_fn: Callable[..., str] | None = None,
 ) -> int:
-    """seed 이력서 + DB jobs로 run_scoring 후 영속하고 run_id 반환(커밋은 호출자).
+    """이력서 + DB jobs로 run_scoring 후 영속하고 run_id 반환(커밋은 호출자).
 
+    resume_id가 주어지면 DB의 (업로드·마스킹) 이력서를 채점한다(M3 업로드 경로).
+    None이면 기존 seed 경로(M2 무키 E2E `python -m worker` 보존).
     call_fn이 None이면 run_scoring이 실 LLM(call_structured)을 쓴다. 테스트/무키 경로는
     fake를 주입한다(M2 §5: OPENAI_API_KEY 없으면 fixture/캐시 경로).
     """
-    resume = config.load_seed_resume()
-    resume_id = _ensure_seed_resume(conn, resume)
+    if resume_id is not None:
+        resume = persistence.load_resume(conn, resume_id)
+        rid = resume_id
+    else:
+        resume = config.load_seed_resume()
+        rid = _ensure_seed_resume(conn, resume)
     jobs = persistence.load_jobs(conn)
     result = run_scoring(
         resume=resume,
@@ -63,16 +72,26 @@ def run(
         listwise_call_fn=listwise_call_fn,
         pairwise_call_fn=pairwise_call_fn,
     )
-    return persistence.persist_run(
-        conn, resume_id, jobs, result, ranking_mode=ranking_mode
-    )
+    return persistence.persist_run(conn, rid, jobs, result, ranking_mode=ranking_mode)
+
+
+def _parse_resume_id() -> int | None:
+    """`--resume-id N` argv 또는 `RESUME_ID` env에서 채점 대상 이력서 id를 읽는다."""
+    argv = sys.argv[1:]
+    if "--resume-id" in argv:
+        i = argv.index("--resume-id")
+        if i + 1 < len(argv):
+            return int(argv[i + 1])
+    env = os.environ.get("RESUME_ID")
+    return int(env) if env else None
 
 
 def main() -> None:
-    """`python -m worker` — DB 연결 → run → commit → run_id 출력."""
+    """`python -m worker [--resume-id N]` — DB 연결 → run → commit → run_id 출력."""
+    resume_id = _parse_resume_id()
     conn = db.connect()
     try:
-        run_id = run(conn)
+        run_id = run(conn, resume_id=resume_id)
         conn.commit()
         print(f"ranking_run persisted: id={run_id}")
     finally:

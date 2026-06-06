@@ -5,8 +5,12 @@ import { PrismaService } from '../src/prisma/prisma.service'
 import { RegexResumeMaskerStub } from '../src/resumes/resume-masker.port'
 import { ResumesController } from '../src/resumes/resumes.controller'
 import { ResumesService } from '../src/resumes/resumes.service'
+import { WorkerRunner } from '../src/resumes/worker-runner.port'
 
 const hasDb = Boolean(process.env.DATABASE_URL)
+
+// create() 경로 전용 테스트용 no-op 트리거(스코어링 미기동).
+const noopRunner = { run: async () => {} } as unknown as WorkerRunner
 
 interface UploadedResumeFile {
   originalname: string
@@ -27,7 +31,7 @@ describe.skipIf(!hasDb)('ResumesService 업로드 (DB)', () => {
   beforeAll(async () => {
     prisma = new PrismaService()
     await prisma.$connect()
-    service = new ResumesService(prisma, new RegexResumeMaskerStub())
+    service = new ResumesService(prisma, new RegexResumeMaskerStub(), noopRunner)
   })
   afterAll(async () => {
     if (ids.length) await prisma.resume.deleteMany({ where: { id: { in: ids } } })
@@ -97,5 +101,51 @@ describe('ResumesController 포맷·크기 경계', () => {
     expect(caught).toBeInstanceOf(HttpException)
     expect(caught?.getStatus()).toBe(413)
     expect((caught?.getResponse() as { code: string }).code).toBe('RESUME_TOO_LARGE')
+  })
+})
+
+// T-037 AC-2 — POST /resumes/:id/score가 worker를 그 resume_id로 기동(트리거 계약).
+// 실제 ranking_run 생성은 T-037 AC-1(Python run(resume_id)), 실 subprocess는 stabilize E2E가 실증.
+describe('ResumesController 스코어링 트리거 (T-037 AC-2)', () => {
+  it('test_AC_2_score_endpoint_triggers_ranking_run', async () => {
+    const calls: number[] = []
+    const fakeRunner = {
+      run: async (id: number) => {
+        calls.push(id)
+      },
+    } as unknown as WorkerRunner
+    const fakePrisma = {
+      resume: {
+        findUnique: async ({ where }: { where: { id: number } }) => ({ id: where.id }),
+      },
+    } as unknown as PrismaService
+    const service = new ResumesService(fakePrisma, new RegexResumeMaskerStub(), fakeRunner)
+    const controller = new ResumesController(service)
+
+    const res = await controller.score('7')
+
+    expect(calls).toEqual([7]) // worker가 resume_id=7로 기동됨
+    expect(res.data.resume_id).toBe(7)
+    expect(res.data.status).toBe('scored')
+  })
+
+  it('test_AC_2_score_unknown_resume_404', async () => {
+    const fakePrisma = {
+      resume: { findUnique: async () => null },
+    } as unknown as PrismaService
+    const service = new ResumesService(fakePrisma, new RegexResumeMaskerStub(), {
+      run: async () => {},
+    } as unknown as WorkerRunner)
+    const controller = new ResumesController(service)
+
+    let caught: HttpException | undefined
+    try {
+      await controller.score('999')
+    } catch (e) {
+      caught = e as HttpException
+    }
+    expect(caught).toBeInstanceOf(HttpException)
+    expect(caught?.getStatus()).toBe(404)
+    expect((caught?.getResponse() as { code: string }).code).toBe('RESUME_NOT_FOUND')
   })
 })

@@ -3,13 +3,14 @@ import {
   Controller,
   HttpException,
   HttpStatus,
+  Param,
   Post,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common'
 import { FileInterceptor } from '@nestjs/platform-express'
 import { CreateResumeDto } from './dto/create-resume.dto'
-import { type CreateResumeResult, ResumesService } from './resumes.service'
+import { type CreateResumeResult, ResumesService, type ScoreResult } from './resumes.service'
 
 // FileInterceptor가 주입하는 multer 파일의 최소 형태(@types/multer 의존 회피).
 interface UploadedResumeFile {
@@ -71,6 +72,20 @@ export class ResumesController {
     }
 
     const result = await this.resumes.create({ raw, source, format })
+    return { data: result }
+  }
+
+  // POST /api/v1/resumes/:id/score — 업로드 이력서를 스코어링 루프에 기동(worker 채점).
+  @Post('api/v1/resumes/:id/score')
+  async score(@Param('id') id: string): Promise<{ data: ScoreResult }> {
+    const resumeId = Number.parseInt(id, 10)
+    if (!Number.isInteger(resumeId) || resumeId <= 0) {
+      throw new HttpException(
+        { code: 'RESUME_NOT_FOUND', message: '잘못된 이력서 id.' },
+        HttpStatus.NOT_FOUND, // 404
+      )
+    }
+    const result = await this.resumes.score(resumeId)
     return { data: result }
   }
 }

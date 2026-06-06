@@ -14,6 +14,7 @@ from typing import Any
 
 import psycopg
 
+from core.models import Resume
 from worker import config
 from worker.report import build_report
 
@@ -57,6 +58,24 @@ def load_jobs(conn: psycopg.Connection[tuple[Any, ...]]) -> list[dict[str, Any]]
         }
         for r in rows
     ]
+
+
+def load_resume(conn: psycopg.Connection[tuple[Any, ...]], resume_id: int) -> Resume:
+    """DB 마스킹 이력서(resumes.content)를 run_scoring 입력 Resume로 읽는다.
+
+    content는 이미 마스킹본(직접 식별자 제거 — T-036). 도메인은 M3 기본값
+    (업로드 이력서 자동 도메인 분류는 비범위 — T-037 §8 / seed 기본과 동일).
+    """
+    with conn.cursor() as cur:
+        cur.execute("SELECT content FROM resumes WHERE id = %s", (resume_id,))
+        row = cur.fetchone()
+    if row is None:
+        raise ValueError(f"resume_id={resume_id} 없음 (resumes에 미존재)")
+    return Resume(
+        raw_text=str(row[0]),
+        primary_domains=["frontend"],
+        secondary_domains=["backend"],
+    )
 
 
 def persist_run(
