@@ -1,0 +1,57 @@
+20-PAIR GOLDEN EVAL (capstone) — podo-ai LIVE vs prototype baseline 16/20
+personas: {'junior_frontend': 6, 'devops_infra_security': 6, 'ai_ml_application': 4, 'backend_platform': 4} | total pairs=20
+metric: podo-ai eval.golden_pairs.evaluate_pairs (strict A/B by rank, tie-aware by fit)
+
+[junior_frontend] run_scoring LIVE on 6 jobs (domains ['frontend', 'web']/['fullstack'])
+  -> strict 5/6  unavailable=0  pending=[]
+     #1 toss-5311744003          fit=4 dom=strong
+     #2 toss-4076130003          fit=3 dom=strong
+     #3 daangn-6692173003        fit=3 dom=strong
+     #4 daangn-7689088003        fit=3 dom=strong
+     #5 toss-4076141003          fit=2 dom=strong
+     #6 toss-7503655003          fit=1 dom=weak
+
+[devops_infra_security] run_scoring LIVE on 6 jobs (domains ['devops', 'cloud', 'infra']/['security', 'backend'])
+  -> strict 6/6  unavailable=0  pending=[]
+     #1 toss-7702581003          fit=2 dom=strong
+     #2 toss-6677722003          fit=1 dom=strong
+     #3 daangn-5004587003        fit=1 dom=strong
+     #4 toss-6600650003          fit=3 dom=adjacent
+     #5 daangn-6045408003        fit=2 dom=adjacent
+     #6 toss-7503655003          fit=1 dom=weak
+
+[ai_ml_application] run_scoring LIVE on 6 jobs (domains ['ml_ai', 'ai']/['data', 'backend'])
+  -> strict 4/4  unavailable=0  pending=[]
+     #1 toss-6545457003          fit=3 dom=strong
+     #2 toss-7503655003          fit=2 dom=strong
+     #3 toss-6308074003          fit=2 dom=adjacent
+     #4 daangn-7507320003        fit=2 dom=adjacent
+     #5 daangn-7655325003        fit=2 dom=weak
+     #6 toss-7702581003          fit=2 dom=weak
+
+[backend_platform] run_scoring LIVE on 6 jobs (domains ['backend']/['fullstack', 'devops', 'cloud', 'infra'])
+  -> strict 4/4  unavailable=0  pending=[]
+     #1 toss-6613962003          fit=5 dom=strong
+     #2 daangn-6640363003        fit=3 dom=strong
+     #3 toss-6600650003          fit=2 dom=strong
+     #4 toss-7702581003          fit=2 dom=adjacent
+     #5 daangn-5004587003        fit=1 dom=adjacent
+     #6 toss-7503655003          fit=1 dom=weak
+
+================================================================
+RESULT
+================================================================
+  junior_frontend          strict 5/6  unavailable=0  pending=[]
+  devops_infra_security    strict 6/6  unavailable=0  pending=[]
+  ai_ml_application        strict 4/4  unavailable=0  pending=[]
+  backend_platform         strict 4/4  unavailable=0  pending=[]
+
+  STRICT (rank-based, A_better/B_better): 19/20  acc=0.95
+  tie-aware: 20/20
+  unavailable pairs (excluded): 0  | total scored: 20/20
+  prototype baseline: 16/20 (acc=0.80)
+
+DISAGREEMENTS (system != human, strict):
+  prop-junior_frontend-05: label=A_better system=B a=daangn-7689088003 b=daangn-6692173003 cat=same_domain_close
+
+per-pair detail -> detail.json
