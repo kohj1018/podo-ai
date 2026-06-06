@@ -1,7 +1,7 @@
 # T-026-feed-endpoint
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 technical-enabler
@@ -28,6 +28,7 @@ NestJS가 `GET /api/v1/feed`를 서빙한다 — worker 영속 `recommendations`
 
 ## 4-1. 변경 예정 파일/경로
 - `podo/apps/api/src/feed/feed.module.ts`, `feed.controller.ts`, `feed.service.ts`, `podo/apps/api/src/common/error.filter.ts`, `podo/apps/api/test/feed.spec.ts`
+- 추가: `podo/apps/api/src/prisma/prisma.service.ts`(NestJS Prisma 래퍼), `podo/apps/api/src/app.module.ts`(FeedModule 배선), `podo/biome.json`(unsafeParameterDecoratorsEnabled — NestJS 파라미터 데코레이터)
 
 ## 5. 완료 조건
 `GET /api/v1/feed`가 `rank_position` 순 공고 목록을 커서 페이지로 반환하고 근거를 opaque로 첨부하며, NestJS는 어떤 worker 테이블에도 write하지 않는다.
@@ -56,6 +57,11 @@ NestJS가 `GET /api/v1/feed`를 서빙한다 — worker 영속 `recommendations`
 - 해석 확정: 정렬·커서 = `recommendations.rank_position`(cross-LLM P0/M2-repair-1) — `result.final_ranking` 파싱 금지. `result`는 evidence opaque.
 - repair-plan 2026-06-06 [default] P1 Plan-ambiguity: Adopt — current run(최신 ranking_runs) 한정 + cursor `(run_id, rank_position)`(stale run 행 미혼입).
 - repair-plan 2026-06-06 [default] P0 Plan-FAC-coverage: Adopt-modified — held 행(fit_level null)을 feed에 포함(scored 뒤 → T-029 보류 렌더).
+- 구현 노트(2026-06-06): 메인 세션 수동. current run = 최신 `ranking_runs`(orderBy created_at desc). `result`는 `unknown`으로 opaque pass-through(파싱 0). error.filter는 APP_FILTER로 모듈 등록.
+- 테스트 전략: Vitest/esbuild가 `emitDecoratorMetadata` 미지원 → NestJS DI 풀부트(Test.createTestingModule)+supertest 불가(swc 미도입 — 리스크 회피). 대신 **FeedService를 실 PrismaService로 직접 인스턴스화**해 AC-1(current run/cursor/no-stale/held) + AC-2 opaque 검증, error envelope는 AllExceptionsFilter.catch() 직접 호출 검증, AC-3는 feed.service.ts 소스 정적 스캔(create/update/delete 0). HTTP 배선(routing/pipe/filter)은 표준 NestJS — 미부트.
+- biome `unsafeParameterDecoratorsEnabled: true`(biome.json) — NestJS 파라미터 데코레이터(@Query) 파싱 필수(미설정 시 "Decorators are not valid here").
+- prisma.service.ts: PrismaClient 확장(onModuleInit $connect). FeedService는 write 메서드 호출 0(AC-3) — read-only.
+- DB 테스트는 DATABASE_URL 없으면 skip(게이트 보호). 라이브: DATABASE_URL 주입 시 api vitest 4 passed(feed 3 + health 1), cleanup으로 멱등.
 
 ## 9. 의존성
 - depends_on: [T-018, T-020, T-022]
