@@ -19,7 +19,13 @@ git add ai/worker/fixtures/llm_cache
 
 이후 `pnpm e2e`(무키) 및 CI e2e-smoke가 이 캐시로 외부 호출 0회로 통과한다.
 
+## 캐시 계약 (현재 커밋된 웜캐시)
+
+`OPENAI_MODEL=gpt-5.4-mini` · `PROMPT_VERSION=v1` · `SCHEMA_VERSION=v1`로 생성됨(전부
+config.py 기본값). CI `e2e-smoke.yml`이 이 3값을 핀해 cache hit을 보장한다.
+
 ## 무효화
 
-캐시 키 핀(`OPENAI_MODEL` / `PROMPT_VERSION` / `SCHEMA_VERSION`) 또는 fixture JD 텍스트가
-바뀌면 키가 달라져 캐시가 stale된다. `pnpm e2e:warm`을 다시 돌려 재생성·재커밋한다.
+위 3개 핀 또는 fixture JD 텍스트(`crawler/fixtures/seed_jobs.txt`)가 바뀌면 키가 달라져
+캐시가 stale된다. `pnpm e2e:warm`을 다시 돌려 재생성하고, 바뀐 핀을 `e2e-smoke.yml`에도
+반영한 뒤 재커밋한다.

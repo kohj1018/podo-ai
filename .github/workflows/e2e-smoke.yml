@@ -35,6 +35,11 @@ jobs:
     env:
       DATABASE_URL: postgresql://podo:podo@localhost:5432/podo
       E2E_SKIP_COMPOSE: '1'
+      # 캐시 키 핀 — 커밋된 웜캐시(ai/worker/fixtures/llm_cache)를 생성한 값과 일치해야
+      # cache hit. 재생성 시 이 3값 + 웜캐시를 함께 갱신(cache.py make_key 구성요소).
+      OPENAI_MODEL: gpt-5.4-mini
+      PROMPT_VERSION: v1
+      SCHEMA_VERSION: v1
       # NOTE: OPENAI_API_KEY 의도적 미주입 — 무키 재현성을 게이트로 강제(웜캐시 경로).
     steps:
       - uses: actions/checkout@v4
