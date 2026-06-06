@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common'
-import type { PrismaService } from '../prisma/prisma.service'
+// NestJS DI: value import 필수(import type은 emitDecoratorMetadata에서 erase → DI 실패).
+import { PrismaService } from '../prisma/prisma.service'
 
 export interface FeedItem {
   posting: unknown

@@ -1,5 +1,5 @@
 import { Controller, DefaultValuePipe, Get, ParseIntPipe, Query } from '@nestjs/common'
-import type { FeedPage, FeedService } from './feed.service'
+import { type FeedPage, FeedService } from './feed.service'
 
 @Controller()
 export class FeedController {
