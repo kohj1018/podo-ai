@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import ast
+from pathlib import Path
+
 from eval.regression import (
     FIXTURE_NAMESPACE,
     all_pass,
@@ -79,3 +82,33 @@ def test_AC_3_guard_violation_detected() -> None:
         "가드 불변식이 오염을 검출해야 함(false negative 방지)"
     )
     assert not all_pass(results)
+
+
+# ---------------------------------------------------------------------------
+# AC-2 (T-031): eval 경계 — worker public-only 의존 (ADR-103)
+# ---------------------------------------------------------------------------
+
+
+def test_AC_2_eval_uses_public_grounding() -> None:
+    """T-031 AC-2: eval이 worker private(_) 심볼을 import하지 않고 worker.grounding 공개 API만 의존한다 (per ADR-103)."""
+    import eval.regression as _reg
+    from worker.grounding import build_haystack, is_extractive
+
+    # 공개 grounding API가 존재·호출 가능해야 함
+    assert callable(build_haystack) and callable(is_extractive)
+
+    # eval 소스 패키지 전체를 AST 스캔 — worker private(_) import 0건 (AC-2 grep 계약)
+    reg_file = _reg.__file__
+    assert reg_file is not None
+    eval_src = Path(reg_file).parent
+    offenders: list[str] = []
+    for py in eval_src.rglob("*.py"):
+        tree = ast.parse(py.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom) and (node.module or "").startswith(
+                "worker"
+            ):
+                for alias in node.names:
+                    if alias.name.startswith("_"):
+                        offenders.append(f"{py.name}: {node.module}.{alias.name}")
+    assert not offenders, f"eval이 worker private 심볼 import: {offenders}"

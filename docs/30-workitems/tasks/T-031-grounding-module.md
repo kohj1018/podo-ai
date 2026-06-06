@@ -1,7 +1,7 @@
 # T-031-grounding-module
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 refactor
@@ -26,7 +26,7 @@ ADR-103 집행 — worker grounding 원시 연산(`_build_haystack`·`_is_extrac
 
 ## 4-1. 변경 예정 파일/경로
 - 신규: `ai/worker/src/worker/grounding.py`, `ai/worker/tests/test_grounding.py`
-- 편집: `ai/worker/src/worker/verify_matches.py`, `ai/eval/src/eval/regression.py`, `ai/eval/src/eval/eval_resumes.py`
+- 편집: `ai/worker/src/worker/verify_matches.py`, `ai/eval/src/eval/regression.py`, `ai/eval/src/eval/eval_resumes.py`, `ai/worker/tests/test_verify.py`, `ai/eval/tests/test_regression.py`
 
 ## 5. 완료 조건
 grounding 원시 연산이 공개 모듈로 모이고, eval이 worker private을 전혀 import하지 않으며, 전체 validate가 행동 변화 없이 green이다.
@@ -50,6 +50,9 @@ grounding 원시 연산이 공개 모듈로 모이고, eval이 worker private을
 
 ## 8. 메모
 - 해석 확정: AC-1 = `build_haystack`/`is_extractive`를 grounding으로 *이전*(re-export 아님) — verify_matches가 grounding을 import해 사용(ADR-103 D2).
+- repair-workitem 2026-06-06 P0 [F821-eval-callsite]: Adopt — eval_resumes.py:120/125 호출부가 private `_build_haystack`/`_is_extractive` 잔존(import만 교체됨) → public 호출로 교체.
+- repair-workitem 2026-06-06 P0 [F821-EvidenceItem]: Adopt — verify_matches.py가 헬퍼 삭제 시 `EvidenceItem` import까지 제거했으나 L203 signature에서 사용 → import 복원.
+- repair-workitem 2026-06-06 P1 [verify-test-missing]: Adopt — §6-1 지정 test_AC_2_eval_uses_public_grounding를 test_regression.py에 추가(eval src AST 스캔=worker private import 0 + 공개 API 호출가능).
 
 ## 9. 의존성
 - depends_on: [T-030]   # verify_matches.py를 T-030(prompts)·본 task(grounding) 둘 다 편집 → write_set 교집합, 같은 wave 금지(순차)

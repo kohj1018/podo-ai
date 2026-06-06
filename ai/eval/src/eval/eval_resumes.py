@@ -19,8 +19,8 @@ from pathlib import Path
 from typing import Any
 
 from core.models import MatchingTable, PairwiseResult, Resume
+from worker.grounding import build_haystack, is_extractive  # per ADR-103
 from worker.rank_aggregate import DOM_RANK, RANKING_MODES, aggregate
-from worker.verify_matches import _build_haystack, _is_extractive
 
 _PERSONA_DIR = Path(__file__).parent / "fixtures" / "personas"
 
@@ -117,12 +117,12 @@ def diagnose(persona: Persona) -> DiagnosticResult:
     ]
 
     # 1. extractive (fail) — 살아남은 evidence 인용이 이력서 verbatim인가
-    haystack = _build_haystack(persona.resume.raw_text, persona.resume.evidence)
+    haystack = build_haystack(persona.resume.raw_text, persona.resume.evidence)
     non_extractive: list[str] = []
     for jid, table in persona.tables.items():
         for row in table["rows"]:
             for quote in row.get("evidence_quotes", []):
-                if not _is_extractive(quote, haystack):
+                if not is_extractive(quote, haystack):
                     non_extractive.append(f"{jid}:{quote!r}")
     invariants.append(
         InvariantEntry(

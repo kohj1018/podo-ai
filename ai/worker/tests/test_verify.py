@@ -497,15 +497,15 @@ class TestHelpers:
         assert _norm("TypeScript\n strict") == "typescript strict"
 
     def test_is_extractive_substring_match(self):
-        from worker.verify_matches import _build_haystack, _is_extractive
+        from worker.grounding import build_haystack, is_extractive  # per ADR-103
 
         evidence = [_make_evidence("E1", "React 18 프로젝트")]
-        haystack = _build_haystack("전체 이력서 React 18 프로젝트 내용", evidence)
-        assert _is_extractive("React 18 프로젝트", haystack) is True
+        haystack = build_haystack("전체 이력서 React 18 프로젝트 내용", evidence)
+        assert is_extractive("React 18 프로젝트", haystack) is True
 
     def test_is_extractive_non_existent(self):
-        from worker.verify_matches import _build_haystack, _is_extractive
+        from worker.grounding import build_haystack, is_extractive  # per ADR-103
 
         evidence = []
-        haystack = _build_haystack("이력서 내용", evidence)
-        assert _is_extractive("없는 텍스트", haystack) is False
+        haystack = build_haystack("이력서 내용", evidence)
+        assert is_extractive("없는 텍스트", haystack) is False

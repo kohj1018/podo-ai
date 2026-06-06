@@ -33,37 +33,20 @@ from core.models import (
     clamp,
 )
 from worker._prompts import load_prompt, render
+from worker.grounding import build_haystack, is_extractive  # per ADR-103
 from worker.llm import JSON_SYSTEM, call_structured
 
 MAX_RESUME_CHARS = 9000
 
 
 # ---------------------------------------------------------------------------
-# 공개 헬퍼 (T-014 불변식 회귀가 import해 재사용 — 공개 심볼 유지)
+# 내부 헬퍼
 # ---------------------------------------------------------------------------
 
 
 def _norm(text: str) -> str:
     """whitespace 접고 lower. 추출형 체크의 정규화 기준 (SPEC §6-2)."""
     return re.sub(r"\s+", " ", text).strip().lower()
-
-
-def _build_haystack(resume_raw_text: str, evidence: list[EvidenceItem]) -> str:
-    """이력서 raw_text + evidence exact_quote + normalized_summary를 정규화해 합친다.
-
-    _is_extractive의 검색 대상(haystack). substring 검색이므로 단일 문자열로 연결.
-    """
-    parts = [_norm(resume_raw_text)]
-    for item in evidence:
-        parts.append(_norm(item.exact_quote))
-        parts.append(_norm(item.normalized_summary))
-    # 공백 구분자로 합침 — 개별 span 경계가 연결되어도 substring 탐색에 영향 없음
-    return " ".join(parts)
-
-
-def _is_extractive(quote: str, haystack: str) -> bool:
-    """정규화된 인용이 haystack에 substring으로 존재하는지 확인한다."""
-    return _norm(quote) in haystack
 
 
 # ---------------------------------------------------------------------------
@@ -88,7 +71,7 @@ def _extractive_pass(rows: list[MatchRow], resume: Resume) -> list[MatchRow]:
       - match_level 강등 (direct/adjacent→weak, weak→missing)
       - confidence=low
     """
-    haystack = _build_haystack(resume.raw_text, resume.evidence)
+    haystack = build_haystack(resume.raw_text, resume.evidence)
     result: list[MatchRow] = []
 
     for row in rows:
@@ -98,7 +81,7 @@ def _extractive_pass(rows: list[MatchRow], resume: Resume) -> list[MatchRow]:
         removed_notes: list[str] = []
 
         for idx, quote in enumerate(row.evidence_quotes):
-            if _is_extractive(quote, haystack):
+            if is_extractive(quote, haystack):
                 kept_quotes.append(quote)
                 if idx < len(row.matched_evidence_ids):
                     kept_ids.append(row.matched_evidence_ids[idx])

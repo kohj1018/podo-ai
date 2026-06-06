@@ -18,7 +18,7 @@ from typing import Any
 
 from core.models import Resume
 from worker.cache import CacheAdapter
-from worker.verify_matches import _build_haystack, _is_extractive
+from worker.grounding import build_haystack, is_extractive  # per ADR-103
 
 # 회귀 골든 전용 캐시 네임스페이스 (SPEC §8-2 — 일반 실행 캐시와 분리)
 FIXTURE_NAMESPACE = "fixture"
@@ -134,12 +134,12 @@ def check_invariants(
         f"mismatch={sorted(mismatch_ranks)} nonmismatch={sorted(nonmismatch_ranks)}",
     )
     # 9. 살아남은 모든 evidence 인용이 추출형 (_is_extractive 재검)
-    haystack = _build_haystack(resume.raw_text, resume.evidence)
+    haystack = build_haystack(resume.raw_text, resume.evidence)
     non_extractive: list[str] = []
     for jid, table in tables.items():
         for row in table["rows"]:
             for quote in row["evidence_quotes"]:
-                if not _is_extractive(quote, haystack):
+                if not is_extractive(quote, haystack):
                     non_extractive.append(f"{jid}:{quote!r}")
     add(
         "all_quotes_extractive",
