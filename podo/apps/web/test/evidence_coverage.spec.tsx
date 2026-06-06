@@ -63,13 +63,25 @@ describe('CoveragePanel (AC-2)', () => {
       ],
       uncollected: ['daangn'],
     }
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ json: async () => cov }))
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => cov }))
     render(<CoveragePanel />)
     await waitFor(() => expect(screen.getByTestId('coverage-panel').textContent).toContain('toss'))
     const panel = screen.getByTestId('coverage-panel')
     expect(panel.textContent).toContain('daangn') // 수집/미수집 채널
     expect(panel.textContent).toContain('마지막 성공') // 마지막 성공 시각
     expect(panel.textContent).toContain('미수집') // 미수집 명시
+  })
+})
+
+describe('CoveragePanel error state (REV-M2-UI-001)', () => {
+  it('test_coverage_error_surfaces_not_silent', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network')))
+    render(<CoveragePanel />)
+    // 실패를 삼키지 않고(Fail#3) 에러 노출 — 영구 "불러오는 중" 금지
+    await waitFor(() =>
+      expect(screen.getByTestId('coverage-panel').getAttribute('data-state')).toBe('error'),
+    )
+    expect(screen.getByTestId('coverage-panel').textContent).toContain('불러오지 못')
   })
 })
 

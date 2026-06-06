@@ -24,7 +24,8 @@ export class FeedService {
   async getFeed(cursor: number, take = 20): Promise<FeedPage> {
     // (a) current run = seed resume 최신 ranking_runs (run 간 stale 혼입 차단 — cross-LLM P1)
     const currentRun = await this.prisma.rankingRun.findFirst({
-      orderBy: { created_at: 'desc' },
+      // 동일 ms 두 run insert 시 tie 비결정 방지 — id desc 보조 정렬(QA-M2-006).
+      orderBy: [{ created_at: 'desc' }, { id: 'desc' }],
       select: { id: true },
     })
     if (!currentRun) {
@@ -42,7 +43,8 @@ export class FeedService {
     const seen = new Set<number>()
     const items: FeedItem[] = []
     for (const r of recs) {
-      if (seen.has(r.job_posting_id)) continue // 중복 공고 dedup
+      // 방어적 dedup — 불변식은 recommendations @@unique([run_id, job_posting_id])가 DB 보장(QA-M2-002).
+      if (seen.has(r.job_posting_id)) continue
       seen.add(r.job_posting_id)
       items.push({
         posting: r.job_posting,

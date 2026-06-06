@@ -49,5 +49,7 @@ def build_report(scoring_result: dict[str, Any]) -> dict[str, Any]:
             "candidate_set": pairwise_comparisons.get("candidate_set", []),
             "comparisons": pairwise_comparisons.get("comparisons", []),
         },
-        "pending_job_ids": list(pending_job_ids),
+        # GS-1 결정성(QA-M2-001): set→list 순서는 PYTHONHASHSEED로 프로세스간 비결정 →
+        # 정렬해 byte-identical 보장(문자열 정렬 — job_id 비정수 가능).
+        "pending_job_ids": sorted(pending_job_ids),
     }

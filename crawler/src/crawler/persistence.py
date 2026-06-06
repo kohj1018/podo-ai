@@ -73,7 +73,8 @@ def upsert_jobs(
                     ),
                 )
 
-        closed = existing - today_urls
+        # 빈 fetch는 수집 실패 신호일 수 있어 전체 마감 오동작 방지(QA-M2-007).
+        closed = existing - today_urls if jobs else set()
         if closed:
             cur.execute(
                 "UPDATE job_postings SET diff_status = %s "

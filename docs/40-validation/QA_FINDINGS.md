@@ -68,6 +68,8 @@
 
 > `/stabilize-milestone M2` (2026-06-06) qa 위임 + 메인 세션 직접 검증 결과. 대상: T-018~T-031 (polyglot 서비스 와이어링 — DB 영속·API 서빙·crawler cron·feed UI·worker 경계 하드닝). 통합 validate exit 0(130 passed / 13 skipped — DB-gated + jsdom-deferred) 위에서 *lint/type/unit이 못 잡는* 결정성·소유권·엣지·게이트 정합 점검. **코드-결함 P0 0건 → graduation의 #5 (QA_FINDINGS P0) 기준은 충족.** (단 §5 #3 E2E·#6 GS-1-through-DB는 별도 — IMPROVEMENT_GUIDE 참조.) finding 전수 기록(ADR-046#d3). QA-M2-001은 qa subagent와 메인 세션이 독립 수렴 — 신뢰도 상승.
 
+> **Fix round 2026-06-06** (메인 세션, stabilize 회수 + 커밋): **resolved** — QA-M2-001(report.py `sorted(pending_job_ids)` + test_report.py), QA-M2-002(recommendations `@@unique([run_id,job_posting_id])` + migration `20260606130000_rec_unique` + contract assert), QA-M2-006(feed currentRun `id desc` 보조정렬), QA-M2-007(crawler 빈 fetch 전체마감 guard + test), QA-M2-008(schema-contract `fit_level` nullable + unique assert). **deferred** — QA-M2-003(accepted-with-note 유지), QA-M2-004(coverage N+1 — 채널 확장 전), QA-M2-005(int 캐스팅 — 낮음). 검증: 게이트 exit 0(131 passed) + clean DB(podo_test) 5 passed.
+
 ### P0
 없음. (worker 소유권 write 경계·held(LLM miss) 보류 영속·verbatim JSONB 저장·복합키 upsert 모두 충족. 데이터 손실·무결성 파괴급 결함 없음.)
 

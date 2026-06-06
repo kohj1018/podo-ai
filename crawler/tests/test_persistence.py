@@ -158,3 +158,24 @@ def test_AC_2_crawl_run_row_and_single_failure_skip(
     jobs = fetch_toss_jobs(_FakeClient())
     assert len(jobs) == 1  # 111(502) skip, 222 수집
     assert jobs[0]["job_id"] == "toss-222"
+
+
+def test_QA_M2_007_empty_fetch_does_not_mass_close(
+    conn: psycopg.Connection[tuple[Any, ...]],
+) -> None:
+    """빈 fetch(수집 실패 신호)는 기존 공고를 전체 마감하지 않는다(QA-M2-007)."""
+    day1 = [
+        _job("toss-1", "https://toss.test/1"),
+        _job("toss-2", "https://toss.test/2"),
+    ]
+    upsert_jobs(conn, "toss", day1, now=_NOW)
+
+    # 빈 fetch → closed 0, 기존 공고 마감 아님(전체 마감 오동작 방지)
+    c = upsert_jobs(conn, "toss", [], now=_NOW)
+    assert c == {"new": 0, "kept": 0, "closed": 0}
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT count(*) FROM job_postings WHERE source = 'toss' AND diff_status = '마감'"
+        )
+        closed = cur.fetchone()
+        assert closed is not None and closed[0] == 0

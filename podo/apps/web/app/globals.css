@@ -4,8 +4,8 @@
 
 /* §2 토큰 레이어 — raw hex는 여기(토큰 정의)에만. 컴포넌트는 var() 참조(§9 raw hex 금지). */
 :root {
-  --ink: #2a2630;
-  --paper: #fffbf7;
+  --ink: #2b2433;
+  --paper: #fffbf6;
   /* 적합도(합격가능성) 5-band FILL (meter/dot — 항상 텍스트 라벨 동반) — DESIGN §2-1 */
   --band-1-fill: #d6566a;
   --band-2-fill: #e0913f;

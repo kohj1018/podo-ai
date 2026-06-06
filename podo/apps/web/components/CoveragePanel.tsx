@@ -19,26 +19,50 @@ function hhmm(iso: string): string {
   return new Date(iso).toISOString().slice(11, 16)
 }
 
-// 커버리지 투명성 패널 — "전부 수집" 인상 차단(Fail #3). 상시 노출. coverage.* 토큰(§2-3).
+// 커버리지 투명성 패널 — "전부 수집" 인상 차단(Fail #3 / Charter G3). 상시 노출.
+// 실패를 삼키지 않고 노출(REV-M2-UI-001) — 투명성 패널이 거짓 완전성을 보이면 존재 이유와 충돌.
 export function CoveragePanel() {
   const [cov, setCov] = useState<Coverage | null>(null)
+  const [error, setError] = useState(false)
 
   useEffect(() => {
     let alive = true
     fetch(`${API_BASE}/api/v1/coverage`)
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`coverage ${r.status}`)
+        return r.json()
+      })
       .then((c: Coverage) => {
         if (alive) setCov(c)
       })
-      .catch(() => {})
+      .catch(() => {
+        if (alive) setError(true)
+      })
     return () => {
       alive = false
     }
   }, [])
 
+  if (error) {
+    return (
+      <section
+        data-testid="coverage-panel"
+        data-state="error"
+        className="mx-auto max-w-2xl rounded-xl border p-3 text-sm"
+        style={{ color: 'var(--band-1-ink)', borderColor: 'var(--band-1-ink)' }}
+      >
+        ⚠ 수집 현황을 불러오지 못했습니다
+      </section>
+    )
+  }
+
   if (!cov) {
     return (
-      <section data-testid="coverage-panel" className="mx-auto max-w-2xl p-3 text-sm">
+      <section
+        data-testid="coverage-panel"
+        data-state="loading"
+        className="mx-auto max-w-2xl p-3 text-sm"
+      >
         수집 현황 불러오는 중…
       </section>
     )
@@ -47,6 +71,7 @@ export function CoveragePanel() {
   return (
     <section
       data-testid="coverage-panel"
+      data-state="ready"
       className="mx-auto max-w-2xl rounded-xl border p-3 text-sm"
       style={{
         backgroundColor: 'var(--coverage-on-bg)',

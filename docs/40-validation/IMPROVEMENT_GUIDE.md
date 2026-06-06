@@ -104,7 +104,9 @@ Telemetry — M2
 
 ### M2
 
-- **M2-E2E-001** | P0 | [관측됨] | linked: M2,T-018,T-022,T-023 | status: open | `podo/apps/api/src/main.ts`(uncommitted) · `.gitignore`(.cache/llm) · `README.md`
+> **Fix round 2026-06-06** (메인 세션, stabilize 회수 + 커밋): **resolved** — M2-GS1-002/QA-M2-001(report.py sorted), REV-M2-UI-001(CoveragePanel/FeedList error·empty 상태 + res.ok 체크 + 테스트), REV-M2-003+QA-M2-002(recommendations `@@unique` + migration + WHY), REV-M2-006+QA-M2-007(crawler 빈 fetch guard), QA-M2-006(feed `id desc`), QA-M2-008(contract nullable/unique assert), [Design-token-drift](globals.css `--ink`/`--paper`→DESIGN §2-1 SSOT). **M2-E2E-001 부분 해소**: (a)enableCors·(d)nest-cli/tsconfig.build는 커밋 `57df9fc`로 닫힘; (b)무키 score fixture·(c)단일 오케스트레이션/README runbook은 잔존(아래 status). **deferred** — [Surface-backref](doc-trace 실질↓), [Dependency](next 메이저 bump=별도 task), [DISCOVERY-Charter-drift]·[Insight-backlog]·[Design-draft](/bootstrap-project SSOT reconcile 경로), DSN-M2-FITRING·DSN-M2-P2(비주얼 폴리시 — 사용자 "기능까지만" 결정), REV-M2-001/002/004/005(behavior-preserving 리팩토링).
+
+- **M2-E2E-001** | P0 | [관측됨] | linked: M2,T-018,T-022,T-023 | status: partial (enableCors·nest 설정 커밋 57df9fc; 무키 fixture·단일 오케스트레이션·README 잔존) | `podo/apps/api/src/main.ts`(uncommitted) · `.gitignore`(.cache/llm) · `README.md`
   - 발견: M2 done-line(§5 #3 "fresh clone → docker compose up + prisma migrate + seed + 단일 오케스트레이션으로 crawl→score→feed 완주 + localhost:3000 렌더")이 **현 커밋 상태로 재현 불가**. (a) `app.enableCors()`가 working tree에만 존재(uncommitted) → fresh clone은 web→api CORS 차단, (b) `.cache/llm` gitignored + 무키 score용 fixture/오케스트레이션 부재 → 무키 fresh clone은 전 공고 cache miss→held(점수 0건), (c) 단일 오케스트레이션 명령·runbook 부재(README stale), (d) `nest-cli.json`·`tsconfig.build.json` untracked.
   - 근거: T-023 §8이 "무키 결정성은 웜캐시/fake 필요 — E2E 오케스트레이션 소관"이라 *명시적으로 이연*. 본 stabilize는 코드/커밋 금지라 enableCors를 커밋할 수 없음. graduation §5 #3 미충족의 직접 원인.
   - 권장: `/repair-workitem`(또는 신규 task)으로 ① enableCors 커밋, ② 무키 score 경로 확정(웜캐시 커밋 or 합성 score fixture), ③ `make e2e`류 단일 오케스트레이션 + README runbook, ④ untracked nest 설정 커밋. 이후 fresh clone에서 1회 실증 → graduation 재평가.

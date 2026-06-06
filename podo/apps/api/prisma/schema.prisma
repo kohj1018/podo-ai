@@ -72,6 +72,7 @@ model Recommendation {
   run              RankingRun @relation(fields: [run_id], references: [id])
   job_posting      JobPosting @relation(fields: [job_posting_id], references: [id])
 
+  @@unique([run_id, job_posting_id]) // run당 공고 1행 불변식 — DB 승격(QA-M2-002)
   @@index([run_id, rank_position]) // current-run 한정 커서(T-026)
   @@map("recommendations")
 }

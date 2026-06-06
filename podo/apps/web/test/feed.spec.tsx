@@ -43,8 +43,8 @@ describe('FeedList cursor infinite scroll (AC-2)', () => {
     const page2 = { items: [item(3, 2, 3)], nextCursor: null }
     const fetchMock = vi
       .fn()
-      .mockResolvedValueOnce({ json: async () => page1 })
-      .mockResolvedValueOnce({ json: async () => page2 })
+      .mockResolvedValueOnce({ ok: true, json: async () => page1 })
+      .mockResolvedValueOnce({ ok: true, json: async () => page2 })
     vi.stubGlobal('fetch', fetchMock)
 
     render(<FeedList />)
@@ -60,5 +60,15 @@ describe('FeedList cursor infinite scroll (AC-2)', () => {
 
     expect(String(fetchMock.mock.calls[0][0])).toContain('cursor=-1')
     expect(String(fetchMock.mock.calls[1][0])).toContain('cursor=1')
+  })
+})
+
+describe('FeedList error state (REV-M2-UI-001)', () => {
+  it('test_feed_error_surfaces_not_silent', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network')))
+    render(<FeedList />)
+    // 실패를 빈 목록으로 삼키지 않고 에러 + 재시도 노출
+    await waitFor(() => expect(screen.getByTestId('feed-error')).toBeTruthy())
+    expect(screen.getByText('다시 시도')).toBeTruthy()
   })
 })

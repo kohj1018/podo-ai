@@ -81,6 +81,20 @@ def test_AC_2_dependent_columns_present_else_fail() -> None:
         "AND indexdef LIKE '%run_id%rank_position%'"
     )
     assert idx, "recommendations (run_id, rank_position) 인덱스 누락 (current-run 커서)"
+    # held(M2-repair-6) 불변식: fit_level은 NULL 허용 — 가짜 점수 금지. R6 가드 확장(QA-M2-008).
+    nullable = db.fetch_all(
+        "SELECT is_nullable FROM information_schema.columns "
+        "WHERE table_name = 'recommendations' AND column_name = 'fit_level'"
+    )
+    assert nullable and nullable[0][0] == "YES", (
+        "recommendations.fit_level이 nullable 아님 — held NULL 영속 불변식 위반(M2-repair-6)"
+    )
+    # run당 공고 1행 불변식(QA-M2-002) — feed dedup/cursor 전제
+    uniq_rec = db.fetch_all(
+        "SELECT indexdef FROM pg_indexes WHERE tablename = 'recommendations' "
+        "AND indexdef LIKE '%UNIQUE%' AND indexdef LIKE '%job_posting_id%'"
+    )
+    assert uniq_rec, "recommendations (run_id, job_posting_id) unique 누락 (QA-M2-002)"
 
     # crawl_runs (run별 컬럼)
     cr = _columns("crawl_runs")
