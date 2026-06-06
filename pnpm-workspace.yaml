@@ -1,0 +1,9 @@
+packages:
+  - "podo/apps/*"
+allowBuilds:
+  '@biomejs/biome': true
+  '@nestjs/core': false
+  esbuild: true
+onlyBuiltDependencies:
+  - "@biomejs/biome"
+  - "esbuild"

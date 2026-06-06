@@ -1,7 +1,7 @@
 # T-018-podo-monorepo-scaffold
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 technical-enabler
@@ -26,7 +26,10 @@ technical-enabler
 - Prisma 스키마(T-020) · 실제 endpoint/UI 로직(F-009/F-010) · Docker/CI(T-019) · Vercel 배포.
 
 ## 4-1. 변경 예정 파일/경로
-- `podo/package.json`, `podo/pnpm-workspace.yaml`, `podo/turbo.json`, `podo/biome.json`, `podo/apps/api/**`(scaffold), `podo/apps/web/**`(scaffold), `pnpm-lock.yaml`
+- 루트(pnpm 워크스페이스 루트): `package.json`(수정), `pnpm-workspace.yaml`, `turbo.json`, `pnpm-lock.yaml`, `.gitignore`(수정 — `*.tsbuildinfo`·`.turbo`)
+- `podo/biome.json`, `podo/vitest.config.ts`
+- `podo/apps/api/**`: `package.json`·`tsconfig.json`·`vitest.config.ts`·`src/{main,app.module,health.controller}.ts`·`test/health.spec.ts`
+- `podo/apps/web/**`: `package.json`·`tsconfig.json`·`vitest.config.ts`·`next.config.mjs`·`next-env.d.ts`·`postcss.config.mjs`·`tailwind.config.ts`·`app/{layout,page}.tsx`·`app/globals.css`·`test/smoke.spec.ts`
 
 ## 5. 완료 조건
 `pnpm install` 후 단일 명령으로 web·api가 기동되고 헬스 경로가 응답하며, TS lint/test가 green이다.
@@ -53,6 +56,9 @@ technical-enabler
 ## 8. 메모
 - 변경 파일이 scaffold라 5개 초과 — ADR-026 sizing 가이드상 *초기 scaffolding은 자연스러운 초과*(분할 권장 텍스트 N/A). 사용자 결정.
 - 해석 확정: AC-1 = "기동+헬스 200"까지(라우팅/미들웨어 표준 골격 — 커스텀 로직 X).
+- 구현 노트(2026-06-06): implement-workitem 포크가 루트 설정만 만들고 generator 단계 전 사망 → 메인 세션 수동 구현. §3의 generator(`@nestjs/cli new`·`create-next-app`) 대신 **hand-written 최소 scaffold** 채택. 사유: (1) 포크 사망, (2) generator 인터랙티브 프롬프트 hang 위험(sandbox 비대화), (3) generator 산출물(ESLint/Jest)이 Biome/Vitest 선택(§3-4/§3-5)과 충돌, (4) ADR-006 surgical(생성 cruft 0). AC-1(vitest health)·AC-2(biome+vitest) 동일 달성, 통합 validate green.
+- 레이아웃 확정: pnpm 워크스페이스 루트=**repo 루트**(`pnpm-workspace.yaml`+`package.json`), TS 코드·공유설정(`podo/biome.json`·`podo/vitest.config.ts`)=`podo/`. 근거: `scripts/verify.mjs`가 repo 루트에서 `pnpm --filter "./podo/**"` 호출 + `podo/biome.json`·`podo/vitest.config.ts` 존재검사 = 의도된 설계(verify.mjs 무수정). turbo.json=루트(turbo는 podo apps만 orchestrate — ADR-101 D-MONO 정합).
+- pnpm 11 빌드승인: `pnpm-workspace.yaml`의 `allowBuilds`(@biomejs/biome·esbuild=true, @nestjs/core=false). pnpm 11이 ignored build script에 명시 boolean을 요구(`onlyBuiltDependencies`만으론 `ERR_PNPM_IGNORED_BUILDS` exit 1). esbuild 빌드는 vitest 동작에 필수.
 
 ## 9. 의존성
 - (선행 없음 — M2 wave 1)

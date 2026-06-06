@@ -31,3 +31,6 @@ __pycache__/
 .ruff_cache/
 .pytest_cache/
 *.egg-info/
+# TS 스택 (podo/) 캐시 산출물 (node_modules·.next·dist는 위에서 커버)
+*.tsbuildinfo
+.turbo/

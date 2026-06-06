@@ -3,9 +3,19 @@
   "private": true,
   "scripts": {
     "validate": "node scripts/verify.mjs",
-    "validate:e2e": "node scripts/verify.mjs --e2e"
+    "validate:e2e": "node scripts/verify.mjs --e2e",
+    "dev": "turbo run dev",
+    "build": "turbo run build"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "turbo": "^2.3.4"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["@biomejs/biome", "esbuild", "@nestjs/core"]
   },
   "engines": {
     "node": ">=18"
-  }
+  },
+  "packageManager": "pnpm@11.1.2"
 }
