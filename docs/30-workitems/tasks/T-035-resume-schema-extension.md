@@ -1,7 +1,7 @@
 # T-035-resume-schema-extension
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 migration
@@ -43,7 +43,9 @@ migration
 - raw 원문 PII 컬럼·암호화 저장(M3 비범위 — `content`=마스킹본만). · 업로드 엔드포인트 코드(T-034). · 마스킹 로직(T-036). · resumes에 user/auth FK(멀티유저 M4).
 
 ## 4-1. 변경 예정 파일/경로
-<!-- 구현 시점에 채운다. -->
+- `podo/apps/api/prisma/schema.prisma` — Resume 모델 3컬럼 추가(masked·source·upload_format)
+- `podo/apps/api/prisma/migrations/20260606171500_resume_upload_fields/migration.sql` — ALTER TABLE resumes ADD COLUMN 3건
+- `ai/tests/test_schema_contract.py` — resumes 컬럼 assert 블록 추가
 
 ## 5. 완료 조건
 `resumes`에 masked·source·upload_format 컬럼이 마이그레이션되고, schema-contract pytest가 그 존재를 검증하며 green이다.

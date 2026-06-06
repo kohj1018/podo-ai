@@ -77,12 +77,15 @@ model Recommendation {
   @@map("recommendations")
 }
 
-// api 소유 — config/seed 합성 이력서(M2: UI 업로드 비범위).
+// api 소유 — 실 이력서 업로드 메타(M3: masked·source·upload_format 추가).
 model Resume {
-  id           Int          @id @default(autoincrement())
-  content      String
-  created_at   DateTime     @default(now())
-  ranking_runs RankingRun[]
+  id            Int          @id @default(autoincrement())
+  content       String       // 마스킹본 전용 (raw PII 미저장 — M3 안전 불변식)
+  masked        Boolean      @default(false)
+  source        String       @default("seed")  // seed | upload | paste
+  upload_format String       @default("txt")   // txt | md | paste
+  created_at    DateTime     @default(now())
+  ranking_runs  RankingRun[]
 
   @@map("resumes")
 }

@@ -100,3 +100,11 @@ def test_AC_2_dependent_columns_present_else_fail() -> None:
     cr = _columns("crawl_runs")
     for col in ("channel", "run_at", "status", "new_count", "closed_count"):
         assert col in cr, f"crawl_runs.{col} 누락 (coverage 파생)"
+
+    # resumes (M3 업로드 메타 — masked·source·upload_format 추가, T-035)
+    rs = _columns("resumes")
+    for col in ("content", "masked", "source", "upload_format"):
+        assert col in rs, f"resumes.{col} 누락 (M3 업로드 메타)"
+    assert rs.get("masked") == "boolean", (
+        f"resumes.masked != boolean: {rs.get('masked')}"
+    )
