@@ -20,4 +20,8 @@
   --band-5-ink: #1c7a49;
   /* brand gradient — FENCED §2-4 (fit 링 arc 전용) */
   --brand-gradient: linear-gradient(135deg, #8b3dd4 0%, #c950c0 50%, #f5709f 100%);
+  /* coverage 패널 토큰 (DESIGN §2-3) — on.text=band-5-ink, off.text=faint */
+  --coverage-on-bg: #eaf6f0;
+  --coverage-on-border: #cdebdc;
+  --faint: #8a8090;
 }

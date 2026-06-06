@@ -1,7 +1,7 @@
 # T-029-evidence-coverage-held
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 feature
@@ -25,6 +25,7 @@ feature
 
 ## 4-1. 변경 예정 파일/경로
 - `podo/apps/web/components/EvidenceBlock.tsx`, `podo/apps/web/components/CoveragePanel.tsx`, `podo/apps/web/components/JobCard.tsx`, `podo/apps/web/app/page.tsx`, `podo/apps/web/test/evidence_coverage.spec.tsx`
+- 추가: `podo/apps/web/app/globals.css`(§2-3 coverage 토큰 — coverage-on-bg/border, faint)
 
 ## 5. 완료 조건
 공고 펼침이 JD 인용+매핑을 표시하고, 커버리지 패널이 수집/미수집+마지막 시각을 표시하며, 보류 공고는 가짜 점수 없이 보류로 표시된다.
@@ -53,6 +54,11 @@ feature
 - DESIGN cross-check: EvidenceBlock·CoveragePanel 재사용(신규 primitive X). coverage 토큰 사용, raw hex 0.
 - 해석 확정: 근거는 `result` opaque에서 *표시 전용* 해석(§7-4 — web은 비즈니스 분기에 안 씀). 보류 = Charter thesis("없는 게 틀린 것보다 낫다").
 - repair-plan 2026-06-06 [default] P0 Plan-FAC-coverage: Adopt — held 행(status='held', fit_level null)을 보류 배지로 렌더(T-022 projection·T-026 feed 정합).
+- 구현 노트(2026-06-06): 메인 세션 수동. EvidenceBlock는 `evidence`(opaque result)의 `matching_tables[String(jobId)].rows`를 *표시 전용*으로 방어적 추출(JD 인용=evidence_quotes[0], 매핑=requirement_text + ✓/△ by match_level). 비즈니스 분기 0(§7-4). JobCard에 펼침 토글(aria-expanded) 추가.
+- held 분기: JobCard `status==='held'` → FitScoreRing/PassBand 대신 "보류" 링 + "⏳ 점수 보류 — 재시도 예정"(가짜 점수/band 0 — fitring/passband testid 미렌더). Charter thesis.
+- CoveragePanel: GET /api/v1/coverage fetch → 채널 status + 마지막 성공 hh:mm + 미수집 명시. coverage 토큰(globals.css §2-3: coverage-on-bg/border + faint, on.text=band-5-ink). raw hex는 globals.css(토큰)만 — components grep 0.
+- 접근성: PassBand/held 색+텍스트 라벨, EvidenceBlock ✓/△ + 텍스트, 펼침 button aria-expanded(§2-5 색만 의존 금지). 키보드 포커스 전수 a11y 감사는 후속.
+- 테스트: RTL — AC-1 펼침→인용+매핑, AC-2 CoveragePanel 채널/시각/미수집, AC-3 held 배지+점수/band 미표시. fetch mock(DB 불요). web vitest 6 passed.
 
 ## 9. 의존성
 - depends_on: [T-026, T-027, T-028]   # T-028과 JobCard.tsx/page.tsx write_set 교집합 → 같은 wave 금지(순차)
