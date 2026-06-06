@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from core.models import MatchingTable
-from worker._json_util import extract_json
+from worker._json_util import extract_json  # per ADR-104
 
 # DOM_RANK: rank_aggregate를 SSOT로 import — 캘리브레이션 상수를 복제하면 무음
 # drift로 listwise 삽입 순서 ↔ BT 정렬 키가 어긋나 GS-1 회귀가 생긴다 (REV-M1-002).

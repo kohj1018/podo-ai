@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
-from worker._json_util import extract_json
+from worker._json_util import extract_json  # per ADR-104
 from worker.cache import llm_cache_get, llm_cache_put, make_key
 from worker.config import LLM_SEED, OPENAI_API_KEY, OPENAI_MODEL, SCHEMA_VERSION
 

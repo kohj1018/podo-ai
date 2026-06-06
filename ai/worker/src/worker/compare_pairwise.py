@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from core.models import CONFIDENCES, MatchingTable, PairwiseResult, clamp
-from worker._json_util import extract_json
+from worker._json_util import extract_json  # per ADR-104
 from worker.rerank_listwise import compress_table
 
 # pairwise_compare 프롬프트 (T-005에서 verbatim 이식됨)

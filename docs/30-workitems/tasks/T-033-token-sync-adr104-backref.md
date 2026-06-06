@@ -1,7 +1,7 @@
 # T-033-token-sync-adr104-backref
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 technical-enabler
@@ -22,7 +22,10 @@ M1→M2 누적 문서 부채 중 (3) `globals.css` 색상 토큰 SSOT 동기와 
 - 새 토큰 설계·새 primitive 추가(DESIGN cross-check 시 architect/`bootstrap-design` 권장). · 컴포넌트 raw hex 도입. · ADR-104 D2/D3 *코드* 재중앙화(F-011/T-030·T-031에서 완료 — 본 task는 backref 주석만). · 용어 치환(T-032).
 
 ## 4-1. 변경 예정 파일/경로
-<!-- 구현 시점에 채운다. -->
+- `docs/20-system/DESIGN.md` — §2-2 semantic에 `color.coverage.on-bg`, `color.coverage.on-border` 등록 (AC-1)
+- `ai/worker/src/worker/compare_pairwise.py` — `extract_json` import 라인에 `# per ADR-104` 주석 (AC-2)
+- `ai/worker/src/worker/llm.py` — `extract_json` import 라인에 `# per ADR-104` 주석 (AC-2)
+- `ai/worker/src/worker/rerank_listwise.py` — `extract_json` import 라인에 `# per ADR-104` 주석 (AC-2)
 
 ## 5. 완료 조건
 globals.css CSS 변수가 DESIGN §2 semantic 토큰과 1:1 정합하고, ADR-104 §Surfaces 대상 파일 6건에 `per ADR-104` 역참조 주석이 존재한다.

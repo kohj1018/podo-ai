@@ -94,6 +94,8 @@ color.warning:          band-2-fill
 color.danger:           band-1-fill
 color.info:             grape-600
 color.passband.{1..5}.fill / .ink                # 합격가능성 신호(위 band-*)
+color.coverage.on-bg:     "#EAF6F0"             # coverage 패널 켜짐 배경(globals.css --coverage-on-bg)
+color.coverage.on-border: "#CDEBDC"             # coverage 패널 켜짐 테두리(globals.css --coverage-on-border)
 ```
 
 ### 2-3. Component
