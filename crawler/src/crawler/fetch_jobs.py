@@ -7,10 +7,14 @@ HTTP fetch는 주입된 httpx.Client를 받아 테스트에서 fixture로 대체
 from __future__ import annotations
 
 import html
+import logging
 import re
 from typing import Any
 
+import httpx
 from bs4 import BeautifulSoup
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # §9-1 상수
@@ -157,13 +161,17 @@ def fetch_toss_jobs(client: Any) -> list[dict[str, str]]:
         if not keyword_match(title):
             continue
         job_id = f"toss-{gid}"
-        detail_resp = client.get(
-            f"{TOSS_BASE}/jobs/{gid}", headers=headers, timeout=REQUEST_TIMEOUT
-        )
-        detail_resp.raise_for_status()
-        raw = parse_toss_detail(
-            "toss", detail_resp.json(), job_id=job_id, title=title, url=url
-        )
+        try:
+            detail_resp = client.get(
+                f"{TOSS_BASE}/jobs/{gid}", headers=headers, timeout=REQUEST_TIMEOUT
+            )
+            detail_resp.raise_for_status()
+            raw = parse_toss_detail(
+                "toss", detail_resp.json(), job_id=job_id, title=title, url=url
+            )
+        except httpx.HTTPStatusError as exc:  # QA-M1-005: 단건 실패 skip, 루프 계속
+            logger.warning("toss_detail_skip job_id=%s error=%s", job_id, exc)
+            continue
         results.append(raw)
     return results
 
