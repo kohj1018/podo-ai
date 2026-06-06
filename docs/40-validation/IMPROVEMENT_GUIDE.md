@@ -107,3 +107,29 @@ Telemetry — M1
 - 형식은 본 파일 `## 항목 스키마` SSOT 따름.
 
 <!-- 마일스톤별 그룹핑(`### M1`, `### M2`)은 `/repair-plan`이 *첫 호출 시* 해당 마일스톤 헤더를 자동 신설하고 그 아래에 append. /stabilize-milestone은 본 sub-section을 *추가하거나 수정하지 않음* — /repair-plan만 직접 append. 본 ## 5 sub-section은 *신설 시 헤더 + 본 안내 주석만* 두고 `### M-N` 그룹은 비워둔다. -->
+
+### M2
+
+> `/repair-plan M2` (2026-06-06) — cross-LLM `/validate-plan`(reviewer-tag: default, M2 + F-005~F-011, tasks 제외) 회수. P0 1 + P1 4 영속(P2 1건 = F-007 doc-link은 cap 보호로 미영속, F-007 문서에 직접 수정 적용).
+
+- **M2-repair-1** | P0 | [관측됨] | linked: M2,F-006,F-007,F-009,F-010 | status: applied | decision: Adopt-modified
+  - 발견 (cross-LLM review default): `ranking_runs.result` opaque JSONB pass-through(ARCH §7-1) ↔ `GET /api/v1/feed` 적합도 순 cursor feed(F-009/F-010) 충돌 — opaque만으론 정렬·페이지네이션 계약면 부재.
+  - 결정: Adopt-modified — worker 소유 **`recommendations` feed projection**(scalar `rank_position`·`fit_level`·`status`) 추가(ARCH §3-2가 이미 worker-owned로 명명). NestJS는 projection으로 정렬·커서, `result`는 evidence로 opaque 유지. F-006(스키마)·F-007(영속)·F-009(서빙)·F-010(소비)·M2(§2) 반영.
+- **M2-repair-2** | P1 | [관측됨] | linked: M2,F-010 | status: applied | decision: Adopt
+  - 발견: 직군 분리 탭이 M2 §7·F-010 §5/§12에서 포함/비범위 미확정.
+  - 결정: Adopt — **M2 비범위 확정**(A-7 의존, 단일 모델 시작 — Charter §5). M2 §4·F-010 §5/§12 닫음.
+- **M2-repair-3** | P1 | [관측됨] | linked: F-006,F-008,F-009 | status: applied | decision: Adopt-modified
+  - 발견: `crawl_runs` row cardinality 미정(coverage 기록 ↔ coverage API 동일 shape 의존).
+  - 결정: Adopt-modified — **run별 1행 append** + coverage `last_success_at` = 채널별 `MAX(run_at WHERE status='success')` 파생. F-006 §4/§6 고정.
+- **M2-repair-4** | P1 | [관측됨] | linked: F-011,M2 | status: applied | decision: Adopt
+  - 발견: `worker.grounding` 이전 vs re-export 미정(ADR-103 alias 기각과 정합 필요).
+  - 결정: Adopt — **이전(migrate) 확정**. F-011 §12 닫음(T-031 §8 해석 확정과 정합).
+- **M2-repair-5** | P1 | [관측됨] | linked: F-007 | status: applied | decision: Adopt
+  - 발견: `ranking_runs` upsert 키 미정(FAC-2 바이트 동일성·중복 run 방지 직결).
+  - 결정: Adopt — `(resume_id, job_set_hash, model, prompt_version, scoring_mode, ranking_mode, cache_key_version)` 결정적 복합키. F-007 §6/§12 고정 → F-006 unique 제약 반영.
+
+> `/repair-plan M2` round 2 (2026-06-06) — cross-LLM `/validate-plan`(default, **task-level T-018~T-031**) 회수. P0 1(cross-feature → 아래) + P1 5(task-scope → 각 task `## 8`) + P2 1(상위문서 "4테이블"→5, 직접 수정).
+
+- **M2-repair-6** | P0 | [관측됨] | linked: F-007,F-010,T-020,T-022,T-023,T-026,T-029 | status: applied | decision: Adopt-modified
+  - 발견 (cross-LLM review default, round 2): 보류(held) 공고가 end-to-end 미커버 — `run_scoring`은 held를 `pending_job_ids`에 두고 `final_ranking.ranking`에서 제외(pipeline.py:379/report.py:52)하는데, T-022는 `ranking`에서만 projection 생성 + T-020은 `fit_level Int`(non-null) → held 행 미생성/가짜 fit_level 강제 → F-010 "가짜 점수 대신 보류" AC 붕괴.
+  - 결정: Adopt-modified — `recommendations.fit_level` **nullable** + held projection을 `pending_job_ids`에서 생성(fit_level=NULL·status='held'·scored 뒤 rank_position). T-020(nullable+`(run_id,rank_position)` index)·T-022(held 도출)·T-026(feed 포함·current run)·T-029(보류 렌더)·F-006/F-007 반영.
