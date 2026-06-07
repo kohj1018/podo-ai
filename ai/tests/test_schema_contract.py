@@ -139,6 +139,52 @@ def test_AC_4_users_table_and_user_id_fk_exist() -> None:
     )
 
 
+def test_AC_1_embedding_tables_and_vector_columns_exist() -> None:
+    """T-064 AC-1 — job_embeddings·resume_embeddings 테이블 + vector 컬럼 존재 검증.
+
+    pgvector HNSW 인덱스도 함께 확인(ADR-108 D1 DDL 경계).
+    """
+    # job_embeddings
+    je = _columns("job_embeddings")
+    for col in (
+        "job_posting_id",
+        "embedding",
+        "embedding_version",
+        "model_id",
+        "created_at",
+    ):
+        assert col in je, f"job_embeddings.{col} 누락 (T-064)"
+    # embedding 타입: USER-DEFINED (pgvector vector 타입)
+    assert je.get("embedding") == "USER-DEFINED", (
+        f"job_embeddings.embedding 타입 불일치(기대 USER-DEFINED): {je.get('embedding')!r}"
+    )
+    # HNSW 인덱스 존재
+    je_hnsw = db.fetch_all(
+        "SELECT indexdef FROM pg_indexes WHERE tablename = 'job_embeddings' "
+        "AND indexdef LIKE '%hnsw%'"
+    )
+    assert je_hnsw, "job_embeddings HNSW 인덱스 누락 (T-064)"
+
+    # resume_embeddings
+    re_ = _columns("resume_embeddings")
+    for col in (
+        "resume_id",
+        "embedding",
+        "embedding_version",
+        "model_id",
+        "created_at",
+    ):
+        assert col in re_, f"resume_embeddings.{col} 누락 (T-064)"
+    assert re_.get("embedding") == "USER-DEFINED", (
+        f"resume_embeddings.embedding 타입 불일치(기대 USER-DEFINED): {re_.get('embedding')!r}"
+    )
+    re_hnsw = db.fetch_all(
+        "SELECT indexdef FROM pg_indexes WHERE tablename = 'resume_embeddings' "
+        "AND indexdef LIKE '%hnsw%'"
+    )
+    assert re_hnsw, "resume_embeddings HNSW 인덱스 누락 (T-064)"
+
+
 def test_AC_4_application_events_table_exists() -> None:
     """T-050 AC-4 — application_events 테이블 + user_id FK 존재 검증(지원/즐겨찾기 기록)."""
     ae = _columns("application_events")

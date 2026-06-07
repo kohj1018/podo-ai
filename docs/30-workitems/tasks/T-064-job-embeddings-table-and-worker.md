@@ -1,7 +1,7 @@
 # T-064-job-embeddings-table-and-worker
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 technical-enabler
