@@ -1,7 +1,7 @@
 # T-070-source-discovery-and-method-mapping
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 research-spike
