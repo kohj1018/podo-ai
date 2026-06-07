@@ -1,7 +1,7 @@
 # T-049-feed-accessibility-design-compliance
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 feature
@@ -26,9 +26,11 @@ feature
 - 모션 reduced-motion — T-048 소관.
 
 ## 4-1. 변경 예정 파일/경로
-- `podo/apps/web/components/*.tsx` (a11y 속성 보강)
-- `podo/apps/web/test/a11y.spec.tsx` (신설)
-- `podo/apps/web/test/design_tokens.spec.ts` (raw hex/그라데이션 감사, 신설)
+- `podo/apps/web/components/ResumeUpload.tsx` — 파일 input `<label>`+aria-label(DSN-M3-001) + loading skeleton aria-busy(DSN-M3-002)
+- `podo/apps/web/components/MaskingPreview.tsx` — section+aria-label(암묵 region, DSN-M3-003)
+- `podo/apps/web/components/CoveragePanel.tsx` — ready section aria-label(암묵 region)
+- `podo/apps/web/test/a11y.spec.tsx` (신설 — ARIA/role/band-ink 단언)
+- `podo/apps/web/test/design_tokens.spec.ts` (신설 — components/ raw hex 0 + brand-gradient ≤3 감사)
 
 ## 5. 완료 조건
 핵심 화면이 키보드 전 흐름 도달·ARIA 정합하고, 컴포넌트에 raw hex 0이며 fenced 그라데이션이 3곳에만 등장한다.
@@ -52,6 +54,9 @@ feature
 
 ## 8. 메모
 - DSN-M3-001(파일 input label)·002(aria-busy)·003(preview role=region) 회수 — M3 deferred.
+- 구현 결정(implement): T-043/T-046/T-047에서 ARIA(aria-label·role=alert·aria-busy·aria-expanded)가 대부분 선반영됨 → 본 task는 잔여 DSN-M3 부채 3건(파일 label·skeleton aria-busy·preview region) 보강 + **감사 테스트 2종**(a11y.spec·design_tokens.spec)으로 계약 고정. region은 biome 정합 위해 section+aria-label(암묵 role) — getByRole로 단언.
+- 구현 결정(implement): Tab·Button 컴포넌트는 현 코드에 미존재(단일 피드·inline 토큰 버튼) → a11y 감사는 실존 컴포넌트(JobCard·GreetingCard·CoveragePanel·EvidenceBlock·ResumeUpload·MaskingPreview) 대상. raw hex는 이미 0(globals.css 토큰 정의에만), brand-gradient는 FitScoreRing 1곳(≤3) — design_tokens.spec가 전수 고정.
+- 검증(implement): web vitest a11y 3 + design_tokens 1 pass + 기존 web 회귀 0(34 pass) · `pnpm validate` green.
 
 ## 9. 의존성
 - depends_on: [T-046, T-047]

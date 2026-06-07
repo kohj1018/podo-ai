@@ -26,7 +26,12 @@ export function MaskingPreview({ maskedText, evidenceSummary }: MaskingPreviewPr
   })
 
   return (
-    <div data-testid="masking-preview" style={{ color: 'var(--ink)' }}>
+    // section + aria-label → 암묵 role=region(미리보기 영역, DSN-M3-003 회수).
+    <section
+      data-testid="masking-preview"
+      aria-label="마스킹 미리보기"
+      style={{ color: 'var(--ink)' }}
+    >
       <p data-testid="evidence-summary" style={{ color: 'var(--faint)', fontSize: '13px' }}>
         스킬 {evidenceSummary.skills}개, 경력 {evidenceSummary.experiences}건 인식
       </p>
@@ -57,6 +62,6 @@ export function MaskingPreview({ maskedText, evidenceSummary }: MaskingPreviewPr
           ),
         )}
       </pre>
-    </div>
+    </section>
   )
 }

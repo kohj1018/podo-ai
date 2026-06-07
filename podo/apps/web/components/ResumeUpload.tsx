@@ -123,12 +123,17 @@ export function ResumeUpload({ onNavigateFeed }: { onNavigateFeed?: (path: strin
 
   return (
     <div>
-      {/* 파일 입력 — .txt/.md only */}
+      {/* 파일 입력 — .txt/.md only. label 연결(a11y — DSN-M3-001 회수). */}
+      <label htmlFor="resume-file-input" style={{ display: 'block', marginBottom: '4px' }}>
+        이력서 파일 (.txt / .md)
+      </label>
       <input
+        id="resume-file-input"
         ref={fileInputRef}
         data-testid="file-input"
         type="file"
         accept=".txt,.md"
+        aria-label="이력서 파일 업로드"
         onChange={handleFileChange}
         style={{ display: 'block', marginBottom: '8px' }}
       />
@@ -165,7 +170,7 @@ export function ResumeUpload({ onNavigateFeed }: { onNavigateFeed?: (path: strin
           CSS 클래스 방식으로 분기(globals.css 에 .shimmer 정의 필요 — T-041 범위).
           가짜 점수/preview는 로딩 중 표시하지 않는다. */}
       {uploading && (
-        <div data-testid="loading-skeleton" style={{ marginTop: '12px' }}>
+        <div data-testid="loading-skeleton" aria-busy="true" style={{ marginTop: '12px' }}>
           <div
             className="shimmer"
             style={{

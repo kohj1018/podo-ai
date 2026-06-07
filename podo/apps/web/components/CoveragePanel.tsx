@@ -96,6 +96,7 @@ export function CoveragePanel() {
     <section
       data-testid="coverage-panel"
       data-state="ready"
+      aria-label="수집 현황"
       className="mx-auto max-w-2xl rounded-xl border p-3 text-sm"
       style={{
         backgroundColor: 'var(--coverage-on-bg)',
