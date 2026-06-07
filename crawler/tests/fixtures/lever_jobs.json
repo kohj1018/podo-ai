@@ -1,0 +1,32 @@
+[
+  {
+    "id": "lever-job-001",
+    "text": "Software Engineer",
+    "hostedUrl": "https://jobs.lever.co/acme/lever-job-001",
+    "descriptionPlain": "We are looking for a software engineer to join our team.",
+    "categories": {
+      "location": "Seoul, Korea",
+      "team": "Engineering"
+    }
+  },
+  {
+    "id": "lever-job-002",
+    "text": "Backend Engineer",
+    "hostedUrl": "https://jobs.lever.co/acme/lever-job-002",
+    "descriptionPlain": "Backend engineer for our platform team in Seoul.",
+    "categories": {
+      "location": "Seoul, South Korea",
+      "team": "Platform"
+    }
+  },
+  {
+    "id": "lever-job-003",
+    "text": "Frontend Developer",
+    "hostedUrl": "https://jobs.lever.co/acme/lever-job-003",
+    "descriptionPlain": "Frontend developer role based in San Francisco.",
+    "categories": {
+      "location": "San Francisco, CA",
+      "team": "Product"
+    }
+  }
+]

@@ -1,0 +1,26 @@
+{
+  "jobPostings": [
+    {
+      "id": "wd-job-001",
+      "title": "Software Engineer",
+      "externalUrl": "https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite/job/South-Korea-Seoul/Software-Engineer_wd-job-001",
+      "locationsText": "South Korea, Seoul",
+      "briefDescription": "Software engineer role in NVIDIA Korea office."
+    },
+    {
+      "id": "wd-job-002",
+      "title": "Backend Engineer",
+      "externalUrl": "https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite/job/South-Korea-Seoul/Backend-Engineer_wd-job-002",
+      "locationsText": "Seoul, South Korea",
+      "briefDescription": "Backend engineer for NVIDIA Korea development team."
+    },
+    {
+      "id": "wd-job-003",
+      "title": "Platform Engineer",
+      "externalUrl": "https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite/job/US-CA-Santa-Clara/Platform-Engineer_wd-job-003",
+      "locationsText": "Santa Clara, CA, USA",
+      "briefDescription": "Platform engineer at NVIDIA headquarters."
+    }
+  ],
+  "total": 3
+}

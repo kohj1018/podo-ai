@@ -1,0 +1,25 @@
+{
+  "jobs": [
+    {
+      "id": "ashby-job-001",
+      "title": "Software Engineer",
+      "applicationLink": "https://jobs.ashbyhq.com/acme/ashby-job-001",
+      "descriptionHtml": "<p>Software engineer role based in Seoul, Korea.</p>",
+      "location": "Seoul, Korea"
+    },
+    {
+      "id": "ashby-job-002",
+      "title": "Platform Engineer",
+      "applicationLink": "https://jobs.ashbyhq.com/acme/ashby-job-002",
+      "descriptionHtml": "<p>Platform engineer for our Korea team.</p>",
+      "location": "Seoul, South Korea"
+    },
+    {
+      "id": "ashby-job-003",
+      "title": "Backend Developer",
+      "applicationLink": "https://jobs.ashbyhq.com/acme/ashby-job-003",
+      "descriptionHtml": "<p>Backend developer role in New York.</p>",
+      "location": "New York, USA"
+    }
+  ]
+}

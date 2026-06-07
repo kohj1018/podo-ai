@@ -1,0 +1,25 @@
+{
+  "data": [
+    {
+      "id": "101",
+      "title": "Backend Engineer",
+      "url": "https://bbank.career.greetinghr.com/jobs/101",
+      "description": "백엔드 엔지니어를 모집합니다.",
+      "location": "서울"
+    },
+    {
+      "id": "102",
+      "title": "Frontend Developer",
+      "url": "https://bbank.career.greetinghr.com/jobs/102",
+      "description": "We are looking for a frontend developer.",
+      "location": "서울"
+    },
+    {
+      "id": "103",
+      "title": "DevOps Engineer",
+      "url": "https://bbank.career.greetinghr.com/jobs/103",
+      "description": "플랫폼 엔지니어링 팀에서 DevOps Engineer를 채용합니다.",
+      "location": "서울"
+    }
+  ]
+}

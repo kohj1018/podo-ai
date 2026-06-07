@@ -1,7 +1,7 @@
 # T-071-ats-family-adapters
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 feature
