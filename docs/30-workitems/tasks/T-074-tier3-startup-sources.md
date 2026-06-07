@@ -1,7 +1,7 @@
 # T-074-tier3-startup-sources
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 feature
