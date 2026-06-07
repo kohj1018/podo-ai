@@ -122,8 +122,22 @@ model Resume {
   user          User?        @relation(fields: [user_id], references: [id])
   ranking_runs  RankingRun[]
   scoring_jobs  ScoringJob[]
+  domains       ResumeDomains?
 
   @@map("resumes")
+}
+
+// worker 소유 (§3-2 분석 산출) — 이력서 도메인 자동 분류 결과(T-066).
+// 일반 컬럼(text[]) → schema.prisma 모델(api typed read, T-067 직군 탭 소비). DML=worker.
+model ResumeDomains {
+  resume_id          Int      @id
+  primary_domains    String[]
+  secondary_domains  String[]
+  confidence         String
+  classifier_version String
+  resume             Resume   @relation(fields: [resume_id], references: [id], onDelete: Cascade)
+
+  @@map("resume_domains")
 }
 
 // api 소유 — 채점 작업 상태 추적(T-044). worker는 직접 write 금지(ARCH §3-2 단일 writer).

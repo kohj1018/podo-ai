@@ -209,3 +209,26 @@ def test_AC_4_application_events_table_exists() -> None:
     assert any("user" in n for n in fk_names), (
         f"application_events.user_id FK 누락 (T-050). found: {fk_names}"
     )
+
+
+def test_AC_5_resume_domains_table() -> None:
+    """T-066 AC-5 — resume_domains 테이블 + 컬럼 존재 검증(도메인 자동 분류 영속)."""
+    rd = _columns("resume_domains")
+    for col in (
+        "resume_id",
+        "primary_domains",
+        "secondary_domains",
+        "confidence",
+        "classifier_version",
+    ):
+        assert col in rd, f"resume_domains.{col} 누락 (T-066)"
+    # primary_domains/secondary_domains = text[] (ARRAY)
+    assert rd.get("primary_domains") == "ARRAY", (
+        f"resume_domains.primary_domains 타입 불일치(기대 ARRAY): {rd.get('primary_domains')!r}"
+    )
+    # resume_id FK — resumes 참조
+    fk = db.fetch_all(
+        "SELECT constraint_name FROM information_schema.table_constraints "
+        "WHERE table_name = 'resume_domains' AND constraint_type = 'FOREIGN KEY'"
+    )
+    assert fk, "resume_domains.resume_id FK 누락 (T-066)"

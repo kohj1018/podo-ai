@@ -1,7 +1,7 @@
 # T-066-resume-domain-classifier
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 feature

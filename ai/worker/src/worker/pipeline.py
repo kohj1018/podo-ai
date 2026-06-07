@@ -16,6 +16,7 @@ from typing import Any, Callable
 
 from core.models import MatchingTable, PairwiseResult, Resume, domain_alignment
 from worker.compare_pairwise import run_pairwise
+from worker.domain_classifier import CLASSIFIER_VERSION, classify_domains
 from worker.matching import build_matching_table
 from worker.parse_job import structure_job
 from worker.parse_resume import extract_evidence
@@ -198,11 +199,22 @@ def run_scoring(
 
     # 단계 1: 이력서 evidence 추출 (LLM, 전역 — 실패 시 채점 불가하므로 전파)
     evidence = extract_evidence(resume.raw_text, _call_fn=structured_call_fn)
+
+    # T-066: evidence 추출 직후 도메인 분류 (결정적, LLM 0 — domain_alignment 사용 전).
+    # 신호 빈약(confidence=low) 시 입력 domains 유지 — known/seed 도메인을 unknown으로
+    # 덮지 않는다. 신호 있으면 분류 결과를 scoring(domain_alignment)에 반영.
+    domain_result = classify_domains(evidence)
+    if domain_result.confidence != "low":
+        primary_domains = domain_result.primary_domains
+        secondary_domains = domain_result.secondary_domains
+    else:
+        primary_domains = resume.primary_domains
+        secondary_domains = resume.secondary_domains
     resume_full = Resume(
         raw_text=resume.raw_text,
         evidence=evidence,
-        primary_domains=resume.primary_domains,
-        secondary_domains=resume.secondary_domains,
+        primary_domains=primary_domains,
+        secondary_domains=secondary_domains,
     )
 
     tables: dict[str, MatchingTable] = {}
@@ -225,8 +237,8 @@ def run_scoring(
             # 단계 3: 도메인 정렬 컨텍스트 (결정적, ai/core)
             tier, reason = domain_alignment(
                 jp.role_family,
-                resume.primary_domains,
-                resume.secondary_domains,
+                primary_domains,
+                secondary_domains,
             )
             # 단계 4: 요구↔근거 매칭 (LLM)
             table = build_matching_table(jp, evidence, _call_fn=structured_call_fn)
@@ -248,7 +260,7 @@ def run_scoring(
         fits[jid] = fit
 
     # 단계 7~12: 결정적 오케스트레이션 (이미 계산된 fits 공유 — 재계산 없음)
-    return _rank(
+    result = _rank(
         tables=tables,
         domain_ctx=domain_ctx,
         fits=fits,
@@ -258,6 +270,15 @@ def run_scoring(
         failed_job_ids=pending,
         user_profile=user_profile,
     )
+    # T-066: 분류 결과를 persist_run이 resume_domains로 영속하도록 내부 키로 전달.
+    # persist_run이 build_report 전에 pop → 저장 result(§12 계약)·feed 미오염.
+    result["_resume_domains"] = {
+        "primary_domains": domain_result.primary_domains,
+        "secondary_domains": domain_result.secondary_domains,
+        "confidence": domain_result.confidence,
+        "classifier_version": CLASSIFIER_VERSION,
+    }
+    return result
 
 
 # ---------------------------------------------------------------------------

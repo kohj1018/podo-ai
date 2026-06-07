@@ -18,6 +18,14 @@ export interface FeedPage {
   nextCursor: number | null
 }
 
+// 이력서 도메인 자동 분류 결과(T-066 worker 산출 — read-only 서빙, T-067 직군 탭 소비).
+export interface ResumeDomainsDto {
+  primary_domains: string[]
+  secondary_domains: string[]
+  confidence: string
+  classifier_version: string
+}
+
 // 피드 셸 메타 — 8-상태 분기(F-018)용. items와 분리(getFeed는 커서 페이지네이션, meta는 1회).
 export interface FeedMeta {
   has_resume: boolean
@@ -25,6 +33,7 @@ export interface FeedMeta {
   diff_summary: { new_count: number; expiring_count: number }
   total_pending_count: number // 현재 run의 held(보류) 공고 수
   visible_count: number // 처리완료 정리 후 피드에 보이는 공고 수(ready/empty/all-processed 판별)
+  resume_domains: ResumeDomainsDto | null // T-066: 직군 분류(T-067 탭 소비)
 }
 
 @Injectable()
@@ -39,6 +48,7 @@ export class FeedService {
       diff_summary: { new_count: 0, expiring_count: 0 },
       total_pending_count: 0,
       visible_count: 0,
+      resume_domains: null,
     }
     if (!userId) {
       return empty
@@ -51,6 +61,18 @@ export class FeedService {
     if (!resume) {
       return empty
     }
+
+    // T-066: 이력서 도메인 분류 결과(worker 산출) read-only 서빙 — T-067 직군 탭 소비.
+    const domainsRow = await this.prisma.resumeDomains.findUnique({
+      where: { resume_id: resume.id },
+      select: {
+        primary_domains: true,
+        secondary_domains: true,
+        confidence: true,
+        classifier_version: true,
+      },
+    })
+    const resume_domains: ResumeDomainsDto | null = domainsRow ?? null
 
     // 최신 scoring_job 상태 + ranking_run join 기반 done 판정(T-045 §8).
     const job = await this.prisma.scoringJob.findFirst({
@@ -71,7 +93,7 @@ export class FeedService {
     }
 
     if (!run) {
-      return { ...empty, has_resume: true, scoring_status }
+      return { ...empty, has_resume: true, scoring_status, resume_domains }
     }
 
     // 처리완료(applied/skipped) 제외 — getFeed와 동일 규칙.
@@ -111,6 +133,7 @@ export class FeedService {
       diff_summary: { new_count, expiring_count },
       total_pending_count,
       visible_count,
+      resume_domains,
     }
   }
 

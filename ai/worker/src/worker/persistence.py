@@ -71,11 +71,9 @@ def load_resume(conn: psycopg.Connection[tuple[Any, ...]], resume_id: int) -> Re
         row = cur.fetchone()
     if row is None:
         raise ValueError(f"resume_id={resume_id} 없음 (resumes에 미존재)")
-    return Resume(
-        raw_text=str(row[0]),
-        primary_domains=["frontend"],
-        secondary_domains=["backend"],
-    )
+    # T-066: 하드코딩 제거 — domains는 빈 list 반환.
+    # 도메인 분류는 pipeline.run_scoring에서 extract_evidence 직후 수행된다.
+    return Resume(raw_text=str(row[0]))
 
 
 def persist_run(
@@ -91,6 +89,8 @@ def persist_run(
     복합키 upsert(재실행 시 1행). recommendations = scored(ranking 순서) + held(pending,
     fit_level NULL, scored 뒤). 커밋은 호출자가 관리(conn).
     """
+    # T-066: 분류 결과(내부 키)를 build_report 전에 pop — 저장 result(§12 계약) 미오염.
+    resume_domains = result.pop("_resume_domains", None)
     report = build_report(result)  # SPEC §12 JSONB 계약 — verbatim 저장
     result_json = json.dumps(report, ensure_ascii=False)
     job_set_hash = _job_set_hash(jobs)
@@ -143,4 +143,34 @@ def persist_run(
                 _INSERT_REC,
                 (run_id, int(jid), len(ranking) + k, None, None, "held"),
             )
+
+    # T-066: 이력서 도메인 분류 결과 영속(worker 단일 writer — resume_domains).
+    if resume_domains is not None:
+        _upsert_resume_domains(conn, resume_id, resume_domains)
     return run_id
+
+
+def _upsert_resume_domains(
+    conn: psycopg.Connection[tuple[Any, ...]],
+    resume_id: int,
+    domains: dict[str, Any],
+) -> None:
+    """도메인 분류 결과를 resume_domains에 멱등 upsert(worker 단일 writer, §3-2)."""
+    with conn.cursor() as cur:
+        cur.execute(
+            "INSERT INTO resume_domains "
+            "(resume_id, primary_domains, secondary_domains, confidence, "
+            "classifier_version) VALUES (%s, %s, %s, %s, %s) "
+            "ON CONFLICT (resume_id) DO UPDATE SET "
+            "primary_domains = EXCLUDED.primary_domains, "
+            "secondary_domains = EXCLUDED.secondary_domains, "
+            "confidence = EXCLUDED.confidence, "
+            "classifier_version = EXCLUDED.classifier_version",
+            (
+                resume_id,
+                list(domains.get("primary_domains", [])),
+                list(domains.get("secondary_domains", [])),
+                str(domains.get("confidence", "low")),
+                str(domains.get("classifier_version", "")),
+            ),
+        )
