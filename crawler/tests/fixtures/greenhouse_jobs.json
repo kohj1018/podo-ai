@@ -1,0 +1,22 @@
+{
+  "jobs": [
+    {
+      "id": 11111,
+      "title": "Backend Engineer",
+      "absolute_url": "https://boards.greenhouse.io/daangn/jobs/11111",
+      "content": "<p>당근페이 <b>Backend Engineer</b> 모집합니다.</p>"
+    },
+    {
+      "id": 22222,
+      "title": "Frontend Engineer",
+      "absolute_url": "https://boards.greenhouse.io/daangn/jobs/22222",
+      "content": "<p>We are looking for a <b>Frontend Engineer</b>.</p>"
+    },
+    {
+      "id": 33333,
+      "title": "Platform Engineer",
+      "absolute_url": "https://boards.greenhouse.io/daangn/jobs/33333",
+      "content": "<p>Platform infrastructure team is hiring.</p>"
+    }
+  ]
+}

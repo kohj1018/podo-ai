@@ -7,21 +7,16 @@ HTTP fetch는 주입된 httpx.Client를 받아 테스트에서 fixture로 대체
 from __future__ import annotations
 
 import html
-import logging
 import re
 from typing import Any
 
-import httpx
 from bs4 import BeautifulSoup
 
-logger = logging.getLogger(__name__)
-
 # ---------------------------------------------------------------------------
-# §9-1 상수
+# §9-1 상수 (어댑터 공유 — adapters/toss.py·greenhouse.py가 import)
 # ---------------------------------------------------------------------------
 
 TOSS_BASE = "https://api-public.toss.im/api/v3/ipd-eggnog/career"
-DAANGN_LIST_URL = "https://boards-api.greenhouse.io/v1/boards/daangn/jobs?content=true"
 REQUEST_TIMEOUT = 15
 USER_AGENT = "podo-ai-crawler/0.1 (contact: koh1018.dev@gmail.com)"
 
@@ -143,46 +138,22 @@ def parse_daangn_jobs(list_json: dict[str, Any]) -> list[dict[str, str]]:
 
 
 def fetch_toss_jobs(client: Any) -> list[dict[str, str]]:
-    """토스 목록 + 상세 fetch → raw 공고 list.
+    """토스 목록 + 상세 fetch → raw 공고 list (TossAdapter 위임, 외부 행동 불변).
 
-    client: httpx.Client 호환 (테스트에서 fake로 대체).
-    키워드 필터 통과 공고만 상세 fetch 수행.
+    어댑터 구조(T-062)로 이전했고 이 함수는 _CHANNELS 호환을 위한 thin wrapper다.
+    어댑터 import는 순환 회피를 위해 호출 시점에 지연 로드한다.
     """
-    headers = {"User-Agent": USER_AGENT, "Accept": "application/json, text/html"}
-    resp = client.get(f"{TOSS_BASE}/jobs", headers=headers, timeout=REQUEST_TIMEOUT)
-    resp.raise_for_status()
-    list_json: dict[str, Any] = resp.json()
+    from crawler.adapters.toss import TossAdapter
 
-    results: list[dict[str, str]] = []
-    for item in list_json.get("success", []):
-        gid = item.get("id", "")
-        title = item.get("title", "")
-        url = item.get("absolute_url", "")
-        if not keyword_match(title):
-            continue
-        job_id = f"toss-{gid}"
-        try:
-            detail_resp = client.get(
-                f"{TOSS_BASE}/jobs/{gid}", headers=headers, timeout=REQUEST_TIMEOUT
-            )
-            detail_resp.raise_for_status()
-            raw = parse_toss_detail(
-                "toss", detail_resp.json(), job_id=job_id, title=title, url=url
-            )
-        except httpx.HTTPStatusError as exc:  # QA-M1-005: 단건 실패 skip, 루프 계속
-            logger.warning("toss_detail_skip job_id=%s error=%s", job_id, exc)
-            continue
-        results.append(raw)
-    return results
+    return TossAdapter(client=client).fetch_jobs()
 
 
 def fetch_daangn_jobs(client: Any) -> list[dict[str, str]]:
-    """당근 목록 fetch → raw 공고 list (content 포함, 2차 fetch 불필요).
+    """당근 목록 fetch → raw 공고 list (GreenhouseAdapter 위임, 외부 행동 불변).
 
-    키워드 필터 통과 공고만 반환.
+    당근은 Greenhouse board API라 GreenhouseAdapter(slug="daangn")로 흡수했고 이 함수는
+    _CHANNELS 호환용 thin wrapper다. 어댑터 import는 순환 회피를 위해 지연 로드한다.
     """
-    headers = {"User-Agent": USER_AGENT, "Accept": "application/json, text/html"}
-    resp = client.get(DAANGN_LIST_URL, headers=headers, timeout=REQUEST_TIMEOUT)
-    resp.raise_for_status()
-    jobs = parse_daangn_jobs(resp.json())
-    return [j for j in jobs if keyword_match(j["title"])]
+    from crawler.adapters.greenhouse import GreenhouseAdapter
+
+    return GreenhouseAdapter(company_slug="daangn", client=client).fetch_jobs()
