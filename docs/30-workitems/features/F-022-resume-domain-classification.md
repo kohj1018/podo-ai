@@ -27,7 +27,7 @@ feature
 2. 🔴 분류가 출력 계약(evidence/fit_level shape)을 바꾸려 함 → 동결 위반 → 계약 내 표현으로 제한.
 
 ## 4. 범위
-- **도메인 자동 분류 = evidence(`EvidenceItem.domain`) 집계 + 결정적 스킬→직군 규칙 사전 보강** (사용자 확정 2026-06-07). 새 LLM 호출 0(이미 추출된 evidence 재사용), 결정적. sparse 시 규칙 사전(예: React/Next→frontend, Spring/Django/Node→backend, pandas/Spark/SQL/ML→data)으로 보완. → `load_resume` 하드코딩(frontend/backend) 교체.
+- **도메인 자동 분류 = evidence(`EvidenceItem.domain`) 집계 + 결정적 스킬→직군 규칙 사전 보강** (사용자 확정 2026-06-07). 새 LLM 호출 0(이미 추출된 evidence 재사용), 결정적. sparse 시 규칙 사전(예: React/Next→frontend, Spring/Django/FastAPI→backend, pandas/PyTorch→data; **다의어 Java/SQL/Node·kotlin 등은 evidence 문맥이 처리 — T-066 §2 SKILL_DOMAIN_RULES 확정본**)으로 보완. → `load_resume` 하드코딩(frontend/backend) 교체.
 - 분류 결과로 `Resume.primary_domains`/`secondary_domains`(이미 list — 다중/미확정 표현 가능) 채움 + 도메인 정렬(`domain_alignment`) 파이프라인 연결.
 - 직군 분리 탭 UI(F-018 피드에 탭 추가) — 분류 신뢰 위에서.
 - 다중/미확정 도메인 처리(양 탭 제시).

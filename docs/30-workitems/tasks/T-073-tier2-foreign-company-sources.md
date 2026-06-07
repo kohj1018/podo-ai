@@ -27,7 +27,7 @@ Target universe **Tier2(외국계 한국 채용, 19사)** 수집을 구현한다
 - Tier3/4/5 — T-074/075/076.
 
 ## 4-1. 변경 예정 파일/경로
-- `crawler/src/crawler/sources/registry_seed.py` (Tier2 등록)
+- (`registry_seed.py`는 T-070 소유 read-only — 본 task 미변경)
 - `crawler/src/crawler/adapters/foreign_*.py` (글로벌 custom 어댑터)
 - `crawler/tests/test_tier2_foreign.py`
 

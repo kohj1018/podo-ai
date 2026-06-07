@@ -33,7 +33,7 @@ feature
 - **location 필터를 어댑터 1급 파라미터**(`fetch_jobs(location="KR")`) — 외국계 한국 채용만.
 - 소스 레지스트리(회사↔어댑터↔method↔status) + 티어드(네카라쿠배 최우선 → 외국계 → 스타트업).
 - 소스별 A-1형 게이트 + 커버리지 패널 연동 — **상태 taxonomy**(active/blocked/captcha/login-required/no-korea-jobs/unsupported) 투명 노출.
-- 정적 httpx 우선 → 필요 시 Playwright headless(ARCH §6).
+- **수집은 현 crawler deps(`httpx`+`beautifulsoup4`)로**. SPA는 *내부 JSON API 발견 → httpx 직접 호출* 우선. **Playwright는 현재 의존성 아님** — JS 렌더 불가피 소스는 (a) Playwright 의존성 추가(브라우저 바이너리·CI 부담, 명시 결정) 또는 (b) status=`unsupported`(후속). M5 기본 = httpx 경로.
 - crawler 구조 국소 리팩토링(`crawler/sources/*` 어댑터 분리 — ADR-101#amend).
 - ToS/robots 준수 상시(공식 페이지만, 애그리게이터 영구 제외).
 
@@ -77,7 +77,7 @@ feature
 ## 9. 엣지 케이스
 - 같은 회사가 자체 페이지 + ATS 양쪽 게시 → 중복제거(url 기준 + 회사·직무 휴리스틱).
 - 외국계 영어 JD → 수집은 가능, fit 교차는 F-023에서 검증.
-- ATS 페이지네이션/동적 렌더 → 어댑터별 처리(headless 승격).
+- ATS 페이지네이션 → 어댑터별 처리. 동적 렌더 → 내부 API 우선; JS 필수 시 Playwright 의존성 추가(명시 결정) 또는 unsupported.
 - robots 비허용 소스 → 추가하지 않음.
 
 ## 10. 의존성

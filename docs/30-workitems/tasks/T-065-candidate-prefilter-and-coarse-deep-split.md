@@ -20,10 +20,10 @@ T-064가 영속한 `job_embeddings`를 읽어 **하이브리드 합집합(벡터
 - `podo/apps/api/src/feed/feed.controller.ts` 확장 — coarse 섹션 endpoint(또는 쿼리 파라미터): `GET /api/v1/feed?section=coarse`. `coarse_candidates` 테이블 read-only 조회 → `{job_posting_id, similarity_rank}` 반환(**fit_level·추천 배지 없음**).
 - coarse 섹션 UI(`CoarseSection`) — **섹션 wrapper**(새 카드 컴포넌트 아님): 기존 `JobCard`를 `showFitBadge=false` variant로 렌더(FitScoreRing/PassBand 제거, DESIGN §7-3), 유사도순 목록, "아직 깊이 안 본 공고예요" copy. **deep 피드와 별도 cursor**(ADR-108 D3).
 - `cache_key_version`에 임베딩 모델·후보선별 버전·K 반영(변경 시 결정적 무효화 — ADR-108 D6).
-- Prisma migration: `coarse_candidates` 테이블(`job_posting_id INTEGER FK→job_postings(id)` [JobPosting.id=Int], `user_id TEXT FK→users(id)` [User.id=String cuid], `similarity_rank`, `scored_at`).
+- Prisma migration + **`schema.prisma` `CoarseCandidate` 모델**(일반 컬럼 — api Prisma Client typed read): `coarse_candidates`(`job_posting_id INTEGER FK→job_postings(id)`, **`resume_id INTEGER FK→resumes(id)`**[현재 run 범위 — user_id만으론 이력서 교체·재채점 시 이전 coarse가 섞임], `user_id TEXT FK→users(id)`, `similarity_rank FLOAT`, `cache_key_version TEXT`, `scored_at`). **coarse 조회·cursor는 현재 run의 resume_id 범위로 한정.**
 
 ## 3. 구현 항목
-1. `podo/apps/api/prisma/migrations/YYYYMMDD_add_coarse_candidates/migration.sql` — `coarse_candidates` 테이블 신설(job_posting_id FK, user_id FK, similarity_rank FLOAT, scored_at TIMESTAMPTZ). → 확인: migrate 성공 (AC-3)
+1. `podo/apps/api/prisma/migrations/YYYYMMDD_add_coarse_candidates/migration.sql` + `schema.prisma` `CoarseCandidate` 모델 — `coarse_candidates`(job_posting_id FK, **resume_id FK**, user_id FK, similarity_rank FLOAT, cache_key_version TEXT, scored_at TIMESTAMPTZ). → 확인: migrate 성공 (AC-3)
 2. `ai/worker/src/worker/prefilter.py` — 신설. `select_candidates(...)`: pgvector `<=>` 연산자로 top-K_v 조회(SQL: `ORDER BY embedding <=> $resume_vec LIMIT $K_v`), 도메인·스킬 매칭 집합 계산, 합집합 → K_max cap → 유사도 desc/job_id asc 정렬 → `CandidateSet` 반환. → 확인: 단위 테스트(합집합 로직·tie-break 결정성) (AC-1, AC-4)
 3. `ai/worker/src/worker/scoring_runner.py` — 신설(또는 기존 진입점 수정). `run_full_scoring(resume, all_jobs, db)`:
    - resume 임베딩: T-064 `embed_resume()`로 영속·재사용(매 채점 재생성 금지 — 임베딩 호출 비결정성 차단, GS-1).
@@ -31,7 +31,7 @@ T-064가 영속한 `job_embeddings`를 읽어 **하이브리드 합집합(벡터
    - K개에만 `run_scoring(resume, candidates)` 호출 — 본체 불변.
    - 후보 밖 공고 → `coarse_materialize()`.
    - `cache_key_version` 검증(버전 불일치 시 결정적 무효화). → 확인: 단위 테스트(K개 호출 확인·비용 실측 mock) (AC-2)
-4. `ai/worker/src/worker/coarse_materialize.py` — 신설. `materialize_coarse(non_candidates, similarity_scores, user_id, db)`: `coarse_candidates` upsert(fit_level 컬럼 없음, similarity_rank만). → 확인: 단위 테스트 (AC-3)
+4. `ai/worker/src/worker/coarse_materialize.py` — 신설. `materialize_coarse(non_candidates, similarity_scores, resume_id, user_id, db)`: `coarse_candidates` upsert(**resume_id 포함** — 현재 run 범위, fit_level 컬럼 없음, similarity_rank만). → 확인: 단위 테스트 (AC-3)
 5. `podo/apps/api/src/feed/feed.controller.ts` — coarse 섹션 쿼리 추가(`?section=coarse`). `coarse_candidates` 조회 → `fit_level` 필드 없는 응답. vector 쿼리 코드 api 레이어에 0줄 — worker materialize만 읽음. → 확인: jest (AC-3)
 6. `podo/apps/web/components/CoarseSection.tsx` — 신설. 기존 `JobCard` 재사용(props에 `showFitBadge=false`). "아직 깊이 안 본 공고예요 — 원하면 분석할게요" copy. deep 피드와 별도 cursor/scroll. → 확인: 스냅샷 또는 Playwright (AC-3)
 7. `ai/worker/tests/test_prefilter.py` — AC-1·AC-4 커버(합집합·tie-break·K_max cap·결정성).

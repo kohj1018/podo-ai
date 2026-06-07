@@ -24,16 +24,14 @@ feature
   - 다중 도메인(신호 혼재): `primary_domains`에 복수.
   - 신호 빈약(evidence 없음 or 규칙 미매칭): `confidence="low"` + `primary_domains=["unknown"]`.
   - `CLASSIFIER_VERSION = "v1"` 상수(변경 시 GS-1 무효화).
-- `ai/worker/src/worker/persistence.py` — `load_resume` 하드코딩(`primary=frontend/secondary=backend`) 제거 → `classify_domains(resume.evidence_items)` 결과로 교체. `Resume.primary_domains`, `Resume.secondary_domains` 채움.
-- **분류 결과 영속 계약(P0 — T-067 직군 탭 UI가 confidence/domains를 소비하려면 필요):** **worker 소유 `resume_domains` 테이블**(DDL=Prisma `podo/apps/api/prisma`, DML=Python worker — ARCH §3-2 분석 산출 테이블)에 `(resume_id INTEGER PK/FK→resumes(id)` [Resume.id=Int], `primary_domains text[], secondary_domains text[], confidence text, classifier_version text)`를 upsert. NestJS api(feed/resume)가 이를 **read-only** 서빙(직군 탭이 읽음). worker는 자기 소유 테이블만 write(단일 writer).
+- **`ai/worker/src/worker/pipeline.py` `run_scoring` — classifier 통합 지점(코드 실측 정정)**: evidence는 `load_resume`이 아니라 `run_scoring` 내부 `extract_evidence()`(pipeline.py:200)에서 생성됨. 따라서 **`extract_evidence()` 직후 `classify_domains(evidence)` 호출** → `resume.primary_domains`/`secondary_domains`를 분류 결과로 설정(이후 `domain_alignment`(pipeline.py:226)이 이를 사용) + `resume_domains` upsert.
+- `ai/worker/src/worker/persistence.py` `load_resume` — 하드코딩(`primary=frontend/secondary=backend`) **제거**(load_resume엔 evidence 없음 — raw_text만 읽음). domains는 빈 list 반환(분류는 pipeline에서 evidence 추출 후).
+- **분류 결과 영속 계약(P0 — T-067 직군 탭 UI가 confidence/domains를 소비하려면 필요):** **worker 소유 `resume_domains` 테이블**(DDL=Prisma `podo/apps/api/prisma`, DML=Python worker — ARCH §3-2 분석 산출 테이블)에 `(resume_id INTEGER PK/FK→resumes(id)` [Resume.id=Int], `primary_domains text[], secondary_domains text[], confidence text, classifier_version text)`를 upsert. **`schema.prisma`에 `ResumeDomains` 모델로 추가**(일반 컬럼 — api Prisma Client *typed* read; vector 테이블과 달리 raw SQL 불요). NestJS api(feed/resume)가 read-only 서빙(직군 탭). worker는 자기 소유 테이블만 write(단일 writer).
 - 단위 테스트: 프론트엔드·백엔드·데이터 각 이력서 fixture로 분류 정확성 검증 + 영속/서빙 계약.
 
 ## 3. 구현 항목
 1. `ai/worker/src/worker/domain_classifier.py` — 신설. `SKILL_DOMAIN_RULES: dict[str, str]` 상수(스킬→직군 매핑, 초기 목록 §2 참조). `CLASSIFIER_VERSION = "v1"`. `classify_domains(evidence_items) -> DomainResult`. → 확인: 단위 테스트 (AC-1, AC-4)
-2. `ai/worker/src/worker/persistence.py` — 기존 `load_resume` 함수:
-   - 현재: `resume.primary_domains = ["frontend"]; resume.secondary_domains = ["backend"]` 하드코딩 2줄.
-   - 변경: `result = classify_domains(resume.evidence_items); resume.primary_domains = result.primary_domains; resume.secondary_domains = result.secondary_domains`.
-   - → 확인: 기존 `test_persistence.py` 회귀 없음 + 신규 분류 테스트 (AC-1)
+2. `ai/worker/src/worker/pipeline.py` `run_scoring` — `evidence = extract_evidence(...)`(line 200) **직후** `result = classify_domains(evidence)` → `resume.primary_domains/secondary_domains = result.*`(line 226 `domain_alignment` 사용 *전*) + `resume_domains` upsert. `persistence.load_resume`는 하드코딩 2줄 제거(domains 빈 list). → 확인: `test_persistence.py`·`test_pipeline.py` 회귀 없음 + 분류 테스트 (AC-1)
 3. `ai/worker/tests/test_domain_classifier.py` — 신설. fixture:
    - `frontend_resume`: EvidenceItem.domain="frontend" 다수 + React/Next.js 스킬 → primary=["frontend"] assert.
    - `backend_resume`: EvidenceItem.domain="backend" 다수 + Spring/Django 스킬 → primary=["backend"] assert.
@@ -42,7 +40,7 @@ feature
    - `empty_resume`: evidence 없음 → confidence="low" + primary_domains=["unknown"] assert.
    → 확인: pytest pass (AC-1, AC-4)
 4. `ai/worker/tests/test_domain_classifier.py` — AC-4 결정성 테스트: 동일 fixture 2회 호출 → 동일 결과 assert.
-5. **`resume_domains` 영속 계약(AC-5):** (a) `podo/apps/api/prisma/` migration — `resume_domains`(resume_id INTEGER PK/FK→resumes(id), primary_domains text[], secondary_domains text[], confidence text, classifier_version text); (b) worker `persistence.py`(또는 분류 단계)가 분류 결과를 `resume_domains` upsert(worker 소유 DML); (c) NestJS feed/resume 모듈이 `resume_domains` read-only 서빙(T-067 탭 소비); (d) `ai/tests/test_schema_contract.py`에 `resume_domains` 테이블 assert. → 확인: schema-contract green + api 응답에 domains/confidence 포함. (AC-5)
+5. **`resume_domains` 영속 계약(AC-5):** (a) `podo/apps/api/prisma/` migration + **`schema.prisma` `ResumeDomains` 모델**(api typed read) — `resume_domains`(resume_id INTEGER PK/FK→resumes(id), primary_domains text[], secondary_domains text[], confidence text, classifier_version text); (b) worker `persistence.py`(또는 분류 단계)가 분류 결과를 `resume_domains` upsert(worker 소유 DML); (c) NestJS feed/resume 모듈이 `resume_domains` read-only 서빙(T-067 탭 소비); (d) `ai/tests/test_schema_contract.py`에 `resume_domains` 테이블 assert. → 확인: schema-contract green + api 응답에 domains/confidence 포함. (AC-5)
 
 ## 4. 제외 항목
 - LLM 기반 도메인 분류기 신설 — 비범위(F-022 §5 확정).
@@ -60,7 +58,7 @@ feature
 `load_resume` 하드코딩이 제거되고, 백엔드/데이터/프론트엔드 이력서 fixture 각각에서 올바른 primary/secondary 도메인이 분류된다. 동일 이력서는 항상 동일 도메인을 반환한다.
 
 ## 6. Acceptance Criteria
-- AC-1 [Given] 백엔드·데이터·프론트엔드 각 이력서 fixture(evidence domain 집계 + 스킬 신호 포함) [When] `classify_domains()` 호출 [Then] 각각 올바른 primary_domains(backend/data/frontend)가 반환되고 `load_resume` 하드코딩이 코드에 존재하지 않는다.
+- AC-1 [Given] 백엔드·데이터·프론트엔드 각 이력서 fixture(evidence domain 집계 + 스킬 신호 포함) [When] `classify_domains()` 호출 [Then] 각각 올바른 primary_domains(backend/data/frontend)가 반환되고, `load_resume` 하드코딩이 제거되며 `run_scoring`이 evidence 추출(`extract_evidence`) 직후 분류 결과를 `resume.primary_domains`에 반영한다(`domain_alignment` 사용 전).
 - AC-2 [Given] 신호 빈약 이력서(evidence 없음 or 규칙 미매칭) [When] `classify_domains()` 호출 [Then] `confidence="low"`, `primary_domains=["unknown"]`을 반환하고 오류 없이 처리된다.
 - AC-3 [Given] 풀스택 이력서(frontend+backend 동수 신호) [When] `classify_domains()` 호출 [Then] primary_domains에 복수 도메인이 포함되거나 confidence에 혼재 신호가 명시된다.
 - AC-4 [Given] 동일 이력서 fixture [When] `classify_domains()` 2회 호출 [Then] 동일 DomainResult 반환(결정적, GS-1 정합 — CLASSIFIER_VERSION 핀).
@@ -88,11 +86,11 @@ feature
 - **분류 방식**: 결정적(LLM 아님, F-022 §5) = evidence.domain 집계(1차) + `SKILL_DOMAIN_RULES`(보강). `fullstack`은 frontend+backend 동시 신호 시 추론(사전에 없음). `web`은 frontend로 흡수.
 - **SKILL_DOMAIN_RULES 확정본**: §2 Step-2. 다의어(python/java/typescript/go/sql)·kotlin 제외. `CLASSIFIER_VERSION="v1"` — 사전 변경 시 bump + 재분류(GS-1).
 - **TODO(후속, M5 초기 미포함)**: ① kafka 등 다도메인 스킬 → `dict[str, list[str]]`로 multi-domain(backend+data) 지원. ② linux/nginx 등 약신호 → strong/weak 가중 분리.
-- `load_resume` 변경은 수술적 2줄 교체(ADR-006 YAGNI — 인접 코드 미개선).
+- **(정정 2026-06-08, 코드 실측 — repair)** classifier 통합 지점 = `pipeline.run_scoring`(evidence 추출 직후), *not* `load_resume`(거기엔 evidence 없음 — raw_text만). load_resume은 하드코딩 제거만. `domain_alignment`(pipeline.py:226)이 분류된 domains 사용. `resume_domains`는 schema.prisma 모델(api typed read).
 
 ## 9. 의존성
 - depends_on: []
-- read_set: ["ai/worker/src/worker/persistence.py", "ai/core/src/core/models.py", "podo/apps/api/prisma/schema.prisma"]
-- write_set: ["ai/worker/src/worker/domain_classifier.py", "ai/worker/src/worker/persistence.py", "ai/worker/tests/test_domain_classifier.py", "podo/apps/api/prisma/migrations/**", "podo/apps/api/prisma/schema.prisma", "podo/apps/api/src/feed/**", "ai/tests/test_schema_contract.py"]
+- read_set: ["ai/worker/src/worker/pipeline.py", "ai/worker/src/worker/parse_resume.py", "ai/worker/src/worker/persistence.py", "ai/core/src/core/models.py", "podo/apps/api/prisma/schema.prisma"]
+- write_set: ["ai/worker/src/worker/domain_classifier.py", "ai/worker/src/worker/pipeline.py", "ai/worker/src/worker/persistence.py", "ai/worker/tests/test_domain_classifier.py", "podo/apps/api/prisma/migrations/**", "podo/apps/api/prisma/schema.prisma", "podo/apps/api/src/feed/**", "ai/tests/test_schema_contract.py"]
 - assumptions: ["EvidenceItem.domain 필드가 core/models.py에 이미 존재", "Resume.primary_domains / secondary_domains가 list 타입으로 이미 정의됨"]
 - verifier: "uv run pytest ai/worker/tests/test_domain_classifier.py ai/tests/test_schema_contract.py && pnpm --filter @podo/api test"

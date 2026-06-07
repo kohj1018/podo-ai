@@ -89,6 +89,7 @@ pgvector가 extension만 설치된 상태(컬럼·코드 0건)에서 **`job_embe
 - **resume 임베딩도 영속**(`resume_embeddings`, masked content + `embedding_version` 키): T-065 후보선별의 top-K_v 입력이 run마다 흔들리지 않게(GS-1). pgvector 벡터는 API가 L2 정규화 → cosine=내적.
 - **무키 E2E**: fixture JD·resume 임베딩을 seed(LLM 웜캐시와 동형) → keyless 재현. T-052/e2e 배선에 반영.
 - HNSW `m`/`ef_construction`은 pgvector 기본값 시작(F-023 후 튜닝). 구조화 JD JSONB는 M5 미신설, raw_text로 부족 시 F-023 후 재검토(ADR-108 D1).
+- **(repair 2026-06-08) Prisma 경계**: `job_embeddings`·`resume_embeddings`는 `vector` 타입이라 **Prisma 모델 아님**(raw SQL DDL + Python psycopg/$queryRaw DML). api는 벡터 미접근(ADR-108 D3 — worker만). 일반 컬럼 테이블(resume_domains·source_crawl_status·coarse_candidates)은 schema.prisma 모델(api typed read)로 구분.
 
 ## 9. 의존성
 - depends_on: []

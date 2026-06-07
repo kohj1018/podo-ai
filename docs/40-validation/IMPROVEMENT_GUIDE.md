@@ -569,3 +569,29 @@ Telemetry — M4 (졸업 가능 YES)
   - 발견/결정: T-063 §3/AC가 `status=failing`(구) 사용 + §1 FAC 참조 stale → taxonomy(blocked/captcha/login-required/no-korea-jobs/unsupported) 통일 + FAC 참조를 F-020 FAC-2/4로 정정.
 - **M5-repair-32** | P1 | [관측됨] | linked: F-021 | status: applied | decision: Adopt
   - 발견/결정: F-021 §2/§5/§12가 JSONB "plan 재검토"로 열려 M5 §7과 불일치 → **M5 미신설(raw_text), F-023 후 재검토**로 고정 + resume 임베딩 영속·tech_stack 컬럼 부재 정정.
+
+> **M5 plan↔code 자체 audit (2026-06-08, 메인세션)** — 다른 세션의 T-062 불일치 제보 계기로 전체 점검. 실제 crawler 코드(fetch_jobs.py·persistence.py·deps) 및 기존 coverage 대조. P0 1 + P1 3 영속(P2 2 미영속·적용).
+
+- **M5-repair-33** | P0 | [관측됨] | linked: T-062,T-071,T-072,T-063 | status: applied | decision: Adopt
+  - 발견/결정: T-062가 실제 코드와 불일치 — ① 어댑터 반환형 `JobPosting`→**`RawJob`(dict[str,str], persistence가 소비)** ② 기존 소스=`fetch_jobs.py` 함수(sources/·toss.py·karrot.py 없음) ③ "karrot"→**daangn(당근), 이미 Greenhouse 사용** → GreenhouseAdapter 일반화. ripple T-071/072(JobPosting→RawJob)·T-063(toss·karrot→daangn) 동반 정정.
+- **M5-repair-34** | P1 | [관측됨] | linked: T-072,F-020 | status: applied | decision: Adopt
+  - 발견/결정: Playwright가 현 crawler deps 아님(httpx+bs4뿐)인데 T-072/F-020이 전제 → **httpx+내부JSON API 우선, Playwright는 명시 의존성 추가 결정 또는 status=unsupported**로 정정.
+- **M5-repair-35** | P1 | [관측됨] | linked: F-023,T-069 | status: applied | decision: Adopt
+  - 발견/결정: A-3 τ 위상 모순(F-023 FAC-4·T-069=M5 필수 ↔ M5 §5 "(선택)"·결정 #11 사람평가 후속) → **선택/후속 게이트(졸업 비차단)로 통일**, 비용 회귀만 M5 필수.
+- **M5-repair-36** | P1 | [관측됨] | linked: T-070,T-075,T-076 | status: applied | decision: Adopt
+  - 발견/결정: view-vs-apply 로그인은 *behavioral*(web search 불가) → researcher로 미확정. **T-070이 각 careers_url 실제 fetch로 판정** 명시 + Tier4/5 기본가정(목록 공개 추정·지원시 로그인) 박음.
+
+> **repair-plan M5 round 6 (2026-06-08)** — `/validate-plan M5`(default; 실제 코드 pipeline.py·persistence.py·schema.prisma·feed.service 대조) 1파일. P0 1 + P1 5. depends_on 불변(write_set만 보강 — pipeline.py·schema.prisma 추가).
+
+- **M5-repair-37** | P0 | [관측됨] | linked: T-066 | status: applied | decision: Adopt
+  - 발견/결정: classifier 통합 지점이 `load_resume`(거기엔 evidence 없음 — raw_text만)로 잘못 지정 → **`pipeline.run_scoring`의 `extract_evidence()` 직후**로 정정(domain_alignment 사용 전 분류 + resume_domains upsert). read/write_set에 pipeline.py 추가.
+- **M5-repair-38** | P1 | [관측됨] | linked: T-065 | status: applied | decision: Adopt
+  - 발견/결정: `coarse_candidates`가 user_id만 → 이력서 교체·재채점 시 stale. **resume_id(현재 run 범위) + cache_key_version 추가**, coarse 조회·cursor도 resume_id 범위로.
+- **M5-repair-39** | P1 | [관측됨] | linked: T-073,T-074,T-075,T-076,T-063 | status: applied | decision: Adopt
+  - 발견/결정: tier task §4-1에 `registry_seed.py`가 변경 대상으로 남아 write_set(read-only)·T-070 단일 소유와 모순 → §4-1에서 제거(read-only 명시). T-063 §4-1의 registry.py도 T-062/T-070 소유로 정리.
+- **M5-repair-40** | P1 | [관측됨] | linked: T-063,T-065,T-066,T-064 | status: applied | decision: Adopt
+  - 발견/결정: 신규 테이블 Prisma 모델 vs raw SQL 미고정 → **일반 컬럼(source_crawl_status·coarse_candidates·resume_domains)=schema.prisma 모델(api typed read); vector(job/resume_embeddings)=raw SQL + worker $queryRaw(api 미접근, ADR-108 D3)** 명시.
+- **M5-repair-41** | P1 | [관측됨] | linked: T-071 | status: applied | decision: Adopt
+  - 발견/결정: 그리팅이 목적/AC/write_set엔 있으나 §4-1(greeting.py·fixture)·§5에 누락 → 정합(그리팅·Workday 우선 반영).
+- **M5-repair-42** | P1 | [관측됨] | linked: T-066 | status: rejected | decision: Reject-conflict
+  - 발견/결정: T-066 분할 권고 미적용 — "domain classification end-to-end"(classify→persist→serve) coherent slice. resume_domains는 T-067이 읽는 producer 계약이라 분리 시 단편화. P0 rework(M5-repair-37)가 구조 명확화로 sizing 우려 완화.

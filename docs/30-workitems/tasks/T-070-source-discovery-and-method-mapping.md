@@ -13,7 +13,7 @@ M5 커버리지 확대의 *선행 discovery*. Target universe **Tier1~5**(네카
 - **Target 회사 목록은 per-tier 구현 task에 명시**(Tier1=T-072 · Tier2=T-073 · Tier3=T-074 · Tier4=T-075 · Tier5=T-076, ~85개사 웹검색 실측 2026-06-08). 본 task는 그 목록을 *per-source 검증*(careers_url 동작·method 확정·**view-vs-apply 로그인**·location 필터)하고 **`registry_seed`(master data — 코드, 문서 아님)로 확정**한다 — 회사별 `SourceSpec`. 자체 공식사이트 한정, 애그리게이터 영구 제외.
 - **각 회사 method 분류**: 표준 ATS(greenhouse/lever/ashby/workday) · **한국 ATS/SaaS(그리팅 greetinghr·recruiter.co.kr·incruit·careerlink·applyin)** · 커스텀(자체 SPA/내부 API). ATS면 slug/endpoint, 커스텀이면 목록 URL + 내부 API 추정.
 - **한국 location 필터 실측**(특히 외국계): location 필드(Korea/Seoul/KR)·쿼리로 한국 공고만 거를 수 있는지 확인. 불가 시 status=`no-korea-jobs`.
-- **view-vs-apply 로그인 경계 확인 (Tier4/5 핵심)**: 공고 *목록*이 공개인지 vs 로그인 필요인지 판별 — **목록이 로그인이면 status=`login-required`(공개수집 정책상 미수집·패널 투명 노출)**, 목록 공개·지원만 로그인이면 collectable. (대기업·금융권 대부분 "지원 시 로그인"이라 목록 공개 가능성 — 실측 필수.)
+- **view-vs-apply 로그인 경계 확인 (Tier4/5 핵심, behavioral)**: 공고 *목록*이 공개인지 vs 로그인 필요인지 판별 — **이건 web search로 안 나오는 behavioral 데이터라, 각 careers_url을 httpx로 실제 fetch해 "목록 렌더 vs 로그인 redirect"로 판정**. 목록 로그인이면 status=`login-required`(공개수집 정책상 미수집·패널 투명 노출), 목록 공개·지원만 로그인이면 collectable. (대기업·금융 대부분 "지원 시 로그인"이라 목록 공개 예상 — fetch로 확정.)
 - **사전 차단 점검**: robots/ToS·로그인 요구·캡차·구조 파악 가능 여부 → status 후보 분류.
 - **산출**: `crawler/src/crawler/sources/registry_seed.py` — 회사별 `SourceSpec(company, tier, careers_url, method, ats_slug?, location_filter, status)` + discovery 리포트(tier별 method 분포·상태 카운트).
 

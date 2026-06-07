@@ -10,14 +10,14 @@ feature
 T-070 `registry_seed` + T-071/T-072~076 어댑터 위에서, **전 tier(T-073~076)에서 수집된 소스를 레지스트리에 등록·수집**하고, 수집 상태(소스별 마지막 성공 시각·실패/로그인 사유)를 커버리지 패널 UI에 **투명 노출**한다(F-020 FAC-2 수집 + FAC-4 상태 투명 달성).
 
 ## 2. 작업 범위
-- 소스 레지스트리에 공식 IT기업 소스 ≥3개 등록(Greenhouse 어댑터 경유 ≥1개 포함, 기존 toss·karrot 포함 카운트 가능).
+- 소스 레지스트리에 **T-070 `registry_seed`의 전 tier 소스 등록**(T-073~076 어댑터 경유, 기존 toss·daangn 포함). Greenhouse·그리팅·Workday·custom 혼합.
 - 소스별 수집 결과를 **crawler(Collector) 소유 상태 테이블**에 기록(DDL=Prisma, DML=crawler, api read-only 서빙 — ARCH §3-2 write-owner): `source_id`, `method`, `last_success_at`, `last_error`, `status` — taxonomy: `active`/`blocked`/`captcha`/`login-required`/`no-korea-jobs`/`unsupported`. **T-070 discovery seed의 ats-ready/custom-ready 소스를 등록 가능한 만큼**(Greenhouse·Lever·Ashby + Tier1 커스텀 우선), 미구현·실패도 status로 남김.
 - 커버리지 패널 API(기존 NestJS `coverage` 모듈 확장 — `coverage.controller.ts`+`coverage.service.ts`, ARCH §7-1): `GET /api/v1/coverage`가 소스별 `{name, tier, status, last_success_at}` 반환.
 - 커버리지 패널 UI 컴포넌트(`CoveragePanel`, `podo/apps/web/components/`): 소스별 상태 + 마지막 성공 시각 표시. 수집 실패 소스는 "수집 실패/지연"으로 명시(부분 커버리지 정직 고지 — FAC-3).
 - 오프라인 fixture/mock 기반 E2E 보존(M2 패턴).
 
 ## 3. 구현 항목
-1. `podo/apps/api/prisma/` Prisma migration — `source_crawl_status` 테이블 신설: `source_id TEXT PK`, `tier TEXT`, `method TEXT`, `status TEXT`(active/blocked/captcha/login-required/no-korea-jobs/unsupported), `last_success_at TIMESTAMPTZ`, `last_error TEXT`. → 확인: `pnpm --filter @podo/api prisma migrate dev` 성공 (AC-1)
+1. `podo/apps/api/prisma/` Prisma migration + **`schema.prisma` `SourceCrawlStatus` 모델**(일반 컬럼 — api Prisma Client typed read) — `source_crawl_status`: `source_id TEXT PK`, `tier TEXT`, `method TEXT`, `status TEXT`(active/blocked/captcha/login-required/no-korea-jobs/unsupported), `last_success_at TIMESTAMPTZ`, `last_error TEXT`. → 확인: `pnpm --filter @podo/api prisma migrate dev` 성공 (AC-1)
 2. `crawler/src/crawler/run_sources.py` — 신설 or 기존 runner 확장. 레지스트리의 active 소스를 순회 → `gate_check()` → pass 시 `fetch_jobs()` → `job_postings` upsert → `source_crawl_status` 갱신(last_success_at, status=active). 실패/미수집 시 taxonomy status(blocked/captcha/login-required/no-korea-jobs/unsupported) + last_error 기록. → 확인: fixture 실행 후 DB 상태 확인 (AC-1, AC-2)
 3. `podo/apps/api/src/coverage/coverage.controller.ts`+`coverage.service.ts`(기존 모듈 확장) — `GET /api/v1/coverage`: `source_crawl_status` 조회 → `{sources: [{name, tier, status, last_success_at}]}` 반환. → 확인: vitest supertest (AC-1, AC-2)
 4. `podo/apps/web/components/CoveragePanel.tsx` — 소스별 상태 카드: `active` → 토큰색 + 시각, `blocked/captcha` → 빨강 "차단", `login-required` → 회색 "로그인 필요(미수집)", `no-korea-jobs/unsupported` → 회색 "해당없음/미지원". 전체 성공 거짓 인상 없음 — "N/M 소스 수집 중" 요약. → 확인: vitest fixture mock 시나리오 (AC-2, AC-3)
@@ -30,10 +30,10 @@ T-070 `registry_seed` + T-071/T-072~076 어댑터 위에서, **전 tier(T-073~07
 - 소스별 공고 수 통계 — M6 운영 지표.
 
 ## 4-1. 변경 예정 파일/경로
-- `podo/apps/api/prisma/migrations/` (신규 migration)
-- `crawler/src/crawler/run_sources.py` (신설 또는 확장)
-- `crawler/src/crawler/sources/registry.py` (소스 ≥3 등록 추가)
-- `podo/apps/api/src/coverage/coverage.controller.ts`·`coverage.service.ts` (기존 모듈 확장)
+- `podo/apps/api/prisma/migrations/` (source_crawl_status migration) + `podo/apps/api/prisma/schema.prisma` (`SourceCrawlStatus` 모델)
+- `crawler/src/crawler/run_sources.py` (신설/확장 — registry_seed 로드·실행·source_crawl_status 갱신)
+- (`registry.py`는 T-062 소유 클래스 / `registry_seed.py`는 T-070 소유 데이터 — 본 task는 로드·사용만, 미변경)
+- `podo/apps/api/src/coverage/coverage.controller.ts`·`coverage.service.ts` (기존 모듈 확장 — KNOWN_CHANNELS 하드코딩 제거, source_crawl_status 기반)
 - `podo/apps/web/components/CoveragePanel.tsx` (신설 또는 확장)
 - `crawler/tests/test_run_sources.py` (신설)
 - `podo/apps/api/test/coverage.spec.ts` (신설)
@@ -62,12 +62,13 @@ ATS 어댑터 ≥1종 포함 공식 소스 ≥3개에서 공고가 `job_postings
 - ADR: [ADR-101](../../90-decisions/project/ADR-101-stack-selection.md)
 
 ## 8. 메모
-- CoveragePanel은 기존 F-018 CoveragePanel 참조(이미 M4 범위에 언급). M4 구현 여부에 따라 기존 컴포넌트 확장 or 신설 결정(builder가 파일 확인 후 판단).
-- 열린 질문: Lever/Workday/Ashby 추가 회사 우선순위는 사용자 결정 — 본 task는 ≥3 최소치만 달성.
+- CoveragePanel은 **기존 M4 CoveragePanel 확장**(`podo/apps/web/components/CoveragePanel.tsx` 존재 — 내 credentials 픽스 포함). 신설 X.
+- **기존 `/coverage`와 정합(중요)**: 현 `coverage.service`는 `crawl_runs`에서 `KNOWN_CHANNELS=['toss','daangn']` 하드코딩으로 채널 status 파생. 본 task는 이를 **`source_crawl_status`(전 tier 소스 + 정적 status[login-required/no-korea-jobs/unsupported 포함]) 기반으로 교체** — KNOWN_CHANNELS 하드코딩 제거. **`crawl_runs`는 그대로 유지**(crawler 런 히스토리 — `source_crawl_status`는 현재 스냅샷, 역할 분리). `source_crawl_status`는 crawler가 registry_seed + 런 결과로 갱신(단일 writer).
+- 회사 우선순위·tier는 T-070 registry_seed + T-073~076에서 확정(본 task는 등록·패널만).
 
 ## 9. 의존성
 - depends_on: [T-070, T-071, T-072, T-073, T-074, T-075, T-076]
 - read_set: ["crawler/src/crawler/adapters/**", "crawler/src/crawler/gate.py", "crawler/src/crawler/sources/registry.py", "crawler/src/crawler/sources/registry_seed.py", "podo/apps/api/src/coverage/**", "podo/apps/web/components/**"]
-- write_set: ["podo/apps/api/prisma/migrations/**", "crawler/src/crawler/run_sources.py", "podo/apps/api/src/coverage/coverage.controller.ts", "podo/apps/api/src/coverage/coverage.service.ts", "podo/apps/web/components/CoveragePanel.tsx"]
+- write_set: ["podo/apps/api/prisma/migrations/**", "podo/apps/api/prisma/schema.prisma", "crawler/src/crawler/run_sources.py", "podo/apps/api/src/coverage/coverage.controller.ts", "podo/apps/api/src/coverage/coverage.service.ts", "podo/apps/web/components/CoveragePanel.tsx"]
 - assumptions: ["T-070(registry_seed)·T-071(ATS)·T-072~076(Tier1~5 어댑터/등록) 완료 — 전 tier 소스·어댑터 존재"]
 - verifier: "uv run pytest crawler/tests/test_run_sources.py && pnpm --filter @podo/api test coverage && pnpm --filter @podo/web test coverage_panel"
