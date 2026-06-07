@@ -1,7 +1,7 @@
 # T-075-tier4-conglomerate-sources
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 feature
