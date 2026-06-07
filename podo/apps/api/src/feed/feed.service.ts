@@ -21,9 +21,11 @@ export class FeedService {
   constructor(private readonly prisma: PrismaService) {}
 
   // worker 산출 recommendations를 current run 한정 + rank_position 커서로 서빙(read-only).
-  async getFeed(cursor: number, take = 20): Promise<FeedPage> {
-    // (a) current run = seed resume 최신 ranking_runs (run 간 stale 혼입 차단 — cross-LLM P1)
+  // userId 주어지면 그 사용자 이력서의 run으로 범위 격리(멀티유저, T-042). 미지정 시 전역(하위호환).
+  async getFeed(cursor: number, userId?: string, take = 20): Promise<FeedPage> {
+    // (a) current run = (해당 사용자) 최신 ranking_runs (run 간 stale 혼입 차단 — cross-LLM P1)
     const currentRun = await this.prisma.rankingRun.findFirst({
+      where: userId ? { resume: { user_id: userId } } : undefined,
       // 동일 ms 두 run insert 시 tie 비결정 방지 — id desc 보조 정렬(QA-M2-006).
       orderBy: [{ created_at: 'desc' }, { id: 'desc' }],
       select: { id: true },

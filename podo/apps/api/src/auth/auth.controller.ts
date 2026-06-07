@@ -1,0 +1,79 @@
+import {
+  Body,
+  Controller,
+  ForbiddenException,
+  Get,
+  Post,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common'
+import { AuthGuard } from '@nestjs/passport'
+
+// express 의존 타입 회피 — 컨트롤러가 실제로 쓰는 최소 표면만 선언(feed.spec 패턴 정합).
+interface SessionRequest {
+  login(user: { id: string }, done: (err?: unknown) => void): void
+  logout(done: (err?: unknown) => void): void
+}
+interface JsonResponse {
+  status(code: number): { json(body: unknown): void }
+  redirect(url: string): void
+}
+
+const WEB_ORIGIN = (): string => process.env.WEB_ORIGIN ?? 'http://localhost:3000'
+
+@Controller('auth')
+export class AuthController {
+  // GitHub OAuth 시작 — AuthGuard가 provider로 redirect(핸들러 본문 도달 안 함).
+  @Get('github')
+  @UseGuards(AuthGuard('github'))
+  githubLogin(): void {}
+
+  // 콜백 — AuthGuard가 전략 validate→세션 직렬화 후, 웹 피드로 redirect.
+  @Get('github/callback')
+  @UseGuards(AuthGuard('github'))
+  githubCallback(@Res() res: JsonResponse): void {
+    res.redirect(WEB_ORIGIN())
+  }
+
+  @Get('google')
+  @UseGuards(AuthGuard('google'))
+  googleLogin(): void {}
+
+  @Get('google/callback')
+  @UseGuards(AuthGuard('google'))
+  googleCallback(@Res() res: JsonResponse): void {
+    res.redirect(WEB_ORIGIN())
+  }
+
+  // 로그아웃 — 세션 무효화.
+  @Post('logout')
+  logout(@Req() req: SessionRequest, @Res() res: JsonResponse): void {
+    req.logout(() => {
+      res.status(200).json({ data: { ok: true } })
+    })
+  }
+
+  // 테스트 인증 우회 — NODE_ENV=test 에서만 활성. 프로덕션 빌드 비활성(403).
+  // body { userId } 로 세션을 시드 발급(무키 E2E/CI — 실 OAuth redirect 없이 로그인 상태 진입).
+  @Post('test-session')
+  testSession(
+    @Body() body: { userId: string },
+    @Req() req: SessionRequest,
+    @Res() res: JsonResponse,
+  ): void {
+    if (process.env.NODE_ENV !== 'test') {
+      throw new ForbiddenException({
+        code: 'TEST_SESSION_DISABLED',
+        message: '테스트 세션 우회는 비활성화되어 있습니다.',
+      })
+    }
+    req.login({ id: body.userId }, (err) => {
+      if (err) {
+        res.status(500).json({ error: { code: 'SESSION_ERROR', message: '세션 발급 실패.' } })
+        return
+      }
+      res.status(200).json({ data: { userId: body.userId } })
+    })
+  }
+}

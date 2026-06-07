@@ -108,3 +108,32 @@ def test_AC_2_dependent_columns_present_else_fail() -> None:
     assert rs.get("masked") == "boolean", (
         f"resumes.masked != boolean: {rs.get('masked')}"
     )
+
+
+def test_AC_4_users_table_and_user_id_fk_exist() -> None:
+    """T-042 AC-4 — users 테이블 + resumes.user_id FK 존재 검증(폴리글랏 drift 가드)."""
+    # users 테이블 존재 + 최소 5필드 검증 (ADR-105 Amend1 계정 PII)
+    us = _columns("users")
+    for col in ("provider", "provider_account_id", "email", "display_name"):
+        assert col in us, f"users.{col} 누락 (T-042 계정 필드)"
+
+    # (provider, provider_account_id) 복합 unique — 동일 provider 계정 중복 차단
+    uniq_users = db.fetch_all(
+        "SELECT indexdef FROM pg_indexes WHERE tablename = 'users' "
+        "AND indexdef LIKE '%UNIQUE%' AND indexdef LIKE '%provider_account_id%'"
+    )
+    assert uniq_users, "users (provider, provider_account_id) unique 누락 (T-042)"
+
+    # resumes.user_id FK — users 테이블 참조
+    rs = _columns("resumes")
+    assert "user_id" in rs, "resumes.user_id 누락 (T-042 FK)"
+
+    fk = db.fetch_all(
+        "SELECT constraint_name FROM information_schema.table_constraints "
+        "WHERE table_name = 'resumes' AND constraint_type = 'FOREIGN KEY'"
+    )
+    fk_names = [str(r[0]) for r in fk]
+    # FK 이름에 'user' 포함 여부로 검증 (Prisma 생성 FK명 패턴)
+    assert any("user" in n for n in fk_names), (
+        f"resumes.user_id FK to users 누락 (T-042). found: {fk_names}"
+    )

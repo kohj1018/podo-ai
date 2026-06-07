@@ -33,7 +33,8 @@ export class ResumesService {
   ) {}
 
   // raw → 마스킹(메모리) → 마스킹본만 영속. raw는 DB·로그·예외 메시지에 절대 남기지 않는다(F-013 §8 NFR).
-  async create(input: CreateResumeInput): Promise<CreateResumeResult> {
+  // userId 주어지면 그 사용자 소유로 저장(멀티유저 격리, T-042). 미지정 시 소유자 없음(seed/하위호환).
+  async create(input: CreateResumeInput, userId?: string): Promise<CreateResumeResult> {
     if (!input.raw || input.raw.trim().length === 0) {
       throw new HttpException(
         { code: 'RESUME_EMPTY', message: '이력서 내용이 비어 있습니다.' },
@@ -48,6 +49,7 @@ export class ResumesService {
         masked: true,
         source: input.source,
         upload_format: input.format,
+        user_id: userId ?? null,
       },
     })
     return {
@@ -61,12 +63,19 @@ export class ResumesService {
 
   // 업로드 이력서(resume_id) 스코어링 기동 — worker가 그 id로 채점·영속(ranking_runs/recommendations).
   // M3 로컬: SubprocessWorkerRunner가 `python -m worker --resume-id N`을 완주까지 실행(완료 시 200).
-  async score(resumeId: number): Promise<ScoreResult> {
+  // 소유권 인가(T-042): 이력서에 소유자가 있고 요청자와 다르면 403(타인 이력서 채점 불가).
+  async score(resumeId: number, userId?: string): Promise<ScoreResult> {
     const resume = await this.prisma.resume.findUnique({ where: { id: resumeId } })
     if (!resume) {
       throw new HttpException(
         { code: 'RESUME_NOT_FOUND', message: '이력서를 찾을 수 없습니다.' },
         HttpStatus.NOT_FOUND,
+      )
+    }
+    if (resume.user_id && resume.user_id !== userId) {
+      throw new HttpException(
+        { code: 'RESUME_FORBIDDEN', message: '해당 이력서에 접근할 수 없습니다.' },
+        HttpStatus.FORBIDDEN,
       )
     }
     await this.workerRunner.run(resumeId)

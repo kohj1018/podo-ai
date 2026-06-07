@@ -5,10 +5,13 @@ import {
   HttpStatus,
   Param,
   Post,
+  Req,
   UploadedFile,
+  UseGuards,
   UseInterceptors,
 } from '@nestjs/common'
 import { FileInterceptor } from '@nestjs/platform-express'
+import { SessionGuard } from '../auth/session.guard'
 import { CreateResumeDto } from './dto/create-resume.dto'
 import { type CreateResumeResult, ResumesService, type ScoreResult } from './resumes.service'
 
@@ -19,9 +22,14 @@ interface UploadedResumeFile {
   size: number
 }
 
+interface AuthedRequest {
+  user?: { id: string }
+}
+
 const MAX_BYTES = 100 * 1024 // 100KB
 
 @Controller()
+@UseGuards(SessionGuard)
 export class ResumesController {
   constructor(private readonly resumes: ResumesService) {}
 
@@ -32,6 +40,7 @@ export class ResumesController {
   async create(
     @UploadedFile() file: UploadedResumeFile | undefined,
     @Body() body: CreateResumeDto,
+    @Req() req?: AuthedRequest,
   ): Promise<{ data: CreateResumeResult }> {
     let raw: string
     let source: string
@@ -71,13 +80,14 @@ export class ResumesController {
       format = 'paste'
     }
 
-    const result = await this.resumes.create({ raw, source, format })
+    const result = await this.resumes.create({ raw, source, format }, req?.user?.id)
     return { data: result }
   }
 
   // POST /api/v1/resumes/:id/score — 업로드 이력서를 스코어링 루프에 기동(worker 채점).
+  // 소유권 인가는 ResumesService.score(타인 이력서 채점 시 403 — T-042 데이터 격리).
   @Post('api/v1/resumes/:id/score')
-  async score(@Param('id') id: string): Promise<{ data: ScoreResult }> {
+  async score(@Param('id') id: string, @Req() req?: AuthedRequest): Promise<{ data: ScoreResult }> {
     const resumeId = Number.parseInt(id, 10)
     if (!Number.isInteger(resumeId) || resumeId <= 0) {
       throw new HttpException(
@@ -85,7 +95,7 @@ export class ResumesController {
         HttpStatus.NOT_FOUND, // 404
       )
     }
-    const result = await this.resumes.score(resumeId)
+    const result = await this.resumes.score(resumeId, req?.user?.id)
     return { data: result }
   }
 }

@@ -1,7 +1,7 @@
 # T-042-oauth-auth-module
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 feature
@@ -42,15 +42,18 @@ NestJS `AuthModule`을 신설해 **GitHub·Google OAuth 소셜 로그인 + httpO
 
 ## 4-1. 변경 예정 파일/경로
 - `podo/apps/api/prisma/schema.prisma` — users 테이블 + resumes.user_id FK
-- `podo/apps/api/prisma/migrations/YYYYMMDD_add_users_table/migration.sql` (신규)
-- `podo/apps/api/src/auth/` (신규 디렉토리 + 7개 파일)
-- `podo/apps/api/src/app.module.ts` — AuthModule 등록 + session 미들웨어
-- `podo/apps/api/src/resumes/resumes.controller.ts` — SessionGuard + 소유권 검증
-- `podo/apps/api/src/feed/feed.controller.ts` — SessionGuard + user 범위 필터
+- `podo/apps/api/prisma/migrations/20260607124741_add_users_table/migration.sql` (신규)
+- `podo/apps/api/src/auth/auth.service.ts` · `auth.controller.ts` · `auth.module.ts` · `github.strategy.ts` · `google.strategy.ts` · `session.serializer.ts` · `session.guard.ts` (신규 7파일)
+- `podo/apps/api/src/app.module.ts` — AuthModule 등록
+- `podo/apps/api/src/main.ts` — express-session + passport 미들웨어 + CORS(credentials)
+- `podo/apps/api/src/resumes/resumes.controller.ts` — SessionGuard + req.user 결선
+- `podo/apps/api/src/resumes/resumes.service.ts` — score 소유권 인가(403) + create user_id 연결
+- `podo/apps/api/src/feed/feed.controller.ts` — SessionGuard + user 범위 전달
+- `podo/apps/api/src/feed/feed.service.ts` — getFeed user_id 범위 격리(optional, 하위호환)
 - `podo/apps/api/src/coverage/coverage.controller.ts` — SessionGuard
 - `podo/apps/api/test/auth.spec.ts` (신규)
 - `ai/tests/test_schema_contract.py` — users·user_id FK 검증 추가
-- `podo/apps/api/package.json` + `pnpm-lock.yaml` — 의존성 추가
+- `podo/apps/api/package.json` + `pnpm-lock.yaml` — passport 의존성 추가
 
 ## 4-2. 사용자 직접 수행 (웹 콘솔 — builder/코드 불가, 검증: 최신 공식문서 2026-06)
 > OAuth 앱 등록은 *제공자 웹 콘솔*에서 사람이 해야 한다(코드 불가). client secret은 `.env`/시크릿 매니저에만, **커밋 금지**. **무키 E2E/CI는 `/auth/test-session` 우회 경로**(AC-3/AC-5)로 이 단계 없이 통과.
@@ -90,6 +93,9 @@ GitHub·Google OAuth 로그인으로 `users` 계정이 생성/매칭되고 httpO
 - 동일 이메일이 GitHub·Google 양쪽 → provider+account_id 복합 unique로 별 계정(병합 비범위).
 - **라이브러리 검증(공식문서 2026-06)**: `@nestjs/passport`+`passport`+`passport-github2`(원본 `passport-github`은 GitHub API v3 이후 미유지 fork)+`passport-google-oauth20`+`express-session` = 현행 NestJS Passport 권장 방식과 일치. `@nestjs/config`로 env 주입.
 - **OAuth 콜백 URL 1개 제약(GitHub)**: 로컬/프로덕션 별도 OAuth App. CI/E2E는 `/auth/test-session` 우회라 실 OAuth App 불요.
+- 구현 결정(implement): 세션 스토어 = express-session 기본 MemoryStore(DB 세션 테이블 0 — 스펙 정합). 초기 builder가 넣은 `connect-pg-simple`(Postgres 세션 스토어)는 "DB 세션 테이블 없음" 스펙과 배치되어 제거. 멀티인스턴스 공유 스토어는 M6(T-087) 과제.
+- 구현 결정(implement): 소유권/격리는 `user_id`가 있는 이력서·run에만 적용(tolerant). 소유자 없는 seed 이력서(`user_id=null`)는 하위호환으로 차단 안 함 — 기존 M3 seed·테스트 보존. 실 업로드 이력서는 항상 소유자 부여(create userId). `getFeed(userId?)`도 optional 범위(미지정=전역, 기존 feed.spec 보존).
+- 구현 결정(implement): OAuth 전략은 env 미설정 시 placeholder로 구성만 가능(실 로그인 불가) — 무키 E2E/CI는 `/auth/test-session` 우회. app 부팅·테스트가 실 OAuth 크리덴셜 없이 동작.
 
 ## 9. 의존성
 - depends_on: []

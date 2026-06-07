@@ -77,6 +77,22 @@ model Recommendation {
   @@map("recommendations")
 }
 
+// api 소유 — 계정 PII 최소 저장(ADR-105 Amend1 §2): provider·account_id·email·display_name·avatar_url만.
+// OAuth access/refresh token 미영속. 동일 email + 다른 provider = 별 계정(병합 비범위).
+model User {
+  id                  String   @id @default(cuid())
+  provider            String
+  provider_account_id String
+  email               String
+  display_name        String
+  avatar_url          String?
+  created_at          DateTime @default(now())
+  resumes             Resume[]
+
+  @@unique([provider, provider_account_id])
+  @@map("users")
+}
+
 // api 소유 — 실 이력서 업로드 메타(M3: masked·source·upload_format 추가).
 model Resume {
   id            Int          @id @default(autoincrement())
@@ -85,6 +101,9 @@ model Resume {
   source        String       @default("seed")  // seed | upload | paste
   upload_format String       @default("txt")   // txt | md | paste
   created_at    DateTime     @default(now())
+  // user_id nullable — 기존 seed 이력서(user 없음) 하위 호환(T-042)
+  user_id       String?
+  user          User?        @relation(fields: [user_id], references: [id])
   ranking_runs  RankingRun[]
 
   @@map("resumes")
