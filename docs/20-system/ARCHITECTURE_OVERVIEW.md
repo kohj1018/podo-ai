@@ -136,7 +136,7 @@ draft
 | Lint / format | Biome (TS) · ruff (Python) | — |
 | 배포 / 스케줄러 | web: Vercel(사용자 직접). api/worker/crawler: GitHub Actions. cron: GitHub Actions(매일 오전) | 주기 수집·CI/CD 트리거 |
 | 로컬 인프라 | Docker Compose (Postgres+pgvector, LocalStack S3/SQS) | 실물 AWS 이전은 *나중에* (A-INFRA) |
-| 인증 | 미정 | 단일 사용자 MVP라 초기엔 최소 — 미해결 |
+| 인증 | OAuth 소셜 로그인 (GitHub·Google) + httpOnly 쿠키 세션 | ADR-107 확정 — 멀티유저·`user_id` 데이터 격리(M4) |
 | 푸시 알림 채널 | 미정 | MVP 후반 결정 — 미해결 |
 
 ### 7-0. 운영 기술 사실 (실행 명령·포트·env·디렉터리)
@@ -178,7 +178,7 @@ draft
 - **에러 바디:** `{ error: { code: string, message: string } }` 단일 형태. NestJS exception filter로 통일. 시스템 경계(외부 입력)에서만 검증 — 내부 호출엔 두지 않음 (AGENTS.md 단순성).
 - **입력 검증:** NestJS `ValidationPipe` + `class-validator` DTO. 검증 경계는 controller 진입점 한정.
 - **워커 산출물 서빙 (§3-2 계약 핵심):** `ranking_runs.result` 등 JSONB는 **파싱 없이 pass-through**로 응답에 실어 보낸다. NestJS는 그 내부 구조를 알지 못한다 — 응답 DTO는 JSONB를 `unknown`/opaque로 취급.
-- **인증:** 미정(단일 사용자 MVP). 도입 시 ADR. 그 전까진 보호 안 함 — 외부 노출 전 반드시 결정.
+- **인증:** OAuth 소셜 로그인(GitHub·Google) + httpOnly 쿠키 세션 (ADR-107, M4). 보호 라우트는 인증 가드 + `user_id` 범위 인가(본인 데이터만). 테스트/CI는 인증 우회 경로(ADR-107 D5).
 - **페이지네이션:** 피드는 커서 기반 (단일 피드 무한 스크롤 §7-4 가상화와 정합). offset 기반 미사용(증분 수집으로 목록이 변하므로).
 
 <a id="arch-7-3"></a>
@@ -205,7 +205,7 @@ draft
 
 **계약·검증:**
 - 폴리글랏 schema-contract test(pytest, `schema-contract` workflow)가 Worker 의존 컬럼·타입 존재를 PR에서 검증(R6 유일 가드 — §3-2).
-- 인증: *미정*(단일 사용자 MVP). 외부 노출 전 반드시 결정(§7-1 / §10).
+- 인증: **OAuth(GitHub·Google) + httpOnly 쿠키 세션 (ADR-107, M4)** — `user_id` 데이터 격리·횡단 접근 차단. 계정 PII는 ADR-105 Amend1(스코어링 경로 미유입).
 
 <a id="arch-7-4"></a>
 ## 7-4. 프론트 결정
