@@ -1,8 +1,8 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
+import { QueueService } from '../queue/queue.service'
 import { type EvidenceSummary, summarizeEvidence } from './evidence-summary'
 import { ResumeMasker } from './resume-masker.port'
-import { WorkerRunner } from './worker-runner.port'
 
 export interface CreateResumeInput {
   raw: string
@@ -20,7 +20,8 @@ export interface CreateResumeResult {
 
 export interface ScoreResult {
   resume_id: number
-  status: 'scored'
+  job_id: string
+  status: 'queued'
 }
 
 // resumes는 api 소유(§3-2) → write 허용(feed/coverage의 read-only 제약과 별개).
@@ -29,7 +30,7 @@ export class ResumesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly masker: ResumeMasker,
-    private readonly workerRunner: WorkerRunner,
+    private readonly queue: QueueService,
   ) {}
 
   // raw → 마스킹(메모리) → 마스킹본만 영속. raw는 DB·로그·예외 메시지에 절대 남기지 않는다(F-013 §8 NFR).
@@ -61,8 +62,8 @@ export class ResumesService {
     }
   }
 
-  // 업로드 이력서(resume_id) 스코어링 기동 — worker가 그 id로 채점·영속(ranking_runs/recommendations).
-  // M3 로컬: SubprocessWorkerRunner가 `python -m worker --resume-id N`을 완주까지 실행(완료 시 200).
+  // 업로드 이력서(resume_id) 스코어링 기동 — 작업을 SQS에 enqueue하고 즉시 반환(블로킹 X, ADR-106).
+  // worker(T-045)가 큐를 소비해 채점·영속(ranking_runs/recommendations). subprocess spawn 제거(F-017 FAC-6).
   // 소유권 인가(T-042): 이력서에 소유자가 있고 요청자와 다르면 403(타인 이력서 채점 불가).
   async score(resumeId: number, userId?: string): Promise<ScoreResult> {
     const resume = await this.prisma.resume.findUnique({ where: { id: resumeId } })
@@ -78,7 +79,11 @@ export class ResumesService {
         HttpStatus.FORBIDDEN,
       )
     }
-    await this.workerRunner.run(resumeId)
-    return { resume_id: resumeId, status: 'scored' }
+    // 작업 상태 queued 기록(api 단일 writer, ARCH §3-2) → SQS enqueue → 즉시 반환.
+    const job = await this.prisma.scoringJob.create({
+      data: { resume_id: resumeId, status: 'queued' },
+    })
+    await this.queue.enqueue(resumeId, job.id)
+    return { resume_id: resumeId, job_id: job.id, status: 'queued' }
   }
 }

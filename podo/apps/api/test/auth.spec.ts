@@ -6,9 +6,9 @@ import { AuthService } from '../src/auth/auth.service'
 import { SessionGuard } from '../src/auth/session.guard'
 import { FeedService } from '../src/feed/feed.service'
 import { PrismaService } from '../src/prisma/prisma.service'
+import type { QueueService } from '../src/queue/queue.service'
 import { RegexResumeMaskerStub } from '../src/resumes/resume-masker.port'
 import { ResumesService } from '../src/resumes/resumes.service'
-import type { WorkerRunner } from '../src/resumes/worker-runner.port'
 
 const hasDb = Boolean(process.env.DATABASE_URL)
 
@@ -77,7 +77,7 @@ describe('데이터 격리 — 횡단 접근 차단 (AC-2)', () => {
     expect(() => guard.canActivate(ctxWith(false))).toThrow(UnauthorizedException)
   })
 
-  const noopRunner = { run: async () => {} } as unknown as WorkerRunner
+  const noopQueue = { enqueue: async () => {} } as unknown as QueueService
 
   describe.skipIf(!hasDb)('DB 격리', () => {
     let prisma: PrismaService
@@ -179,7 +179,7 @@ describe('데이터 격리 — 횡단 접근 차단 (AC-2)', () => {
     })
 
     it('test_AC_2_cross_user_score_blocked_403', async () => {
-      const service = new ResumesService(prisma, new RegexResumeMaskerStub(), noopRunner)
+      const service = new ResumesService(prisma, new RegexResumeMaskerStub(), noopQueue)
       // A 세션이 B 소유 이력서를 채점 시도 → 403(존재 노출 없이 차단)
       let caught: { getStatus(): number; getResponse(): unknown } | undefined
       try {

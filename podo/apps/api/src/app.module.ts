@@ -4,9 +4,10 @@ import { CoverageModule } from './coverage/coverage.module'
 import { FeedModule } from './feed/feed.module'
 import { HealthController } from './health.controller'
 import { ResumesModule } from './resumes/resumes.module'
+import { ScoringJobsModule } from './scoring-jobs/scoring-jobs.module'
 
 @Module({
-  imports: [AuthModule, FeedModule, CoverageModule, ResumesModule],
+  imports: [AuthModule, FeedModule, CoverageModule, ResumesModule, ScoringJobsModule],
   controllers: [HealthController],
 })
 export class AppModule {}

@@ -95,16 +95,30 @@ model User {
 
 // api 소유 — 실 이력서 업로드 메타(M3: masked·source·upload_format 추가).
 model Resume {
-  id            Int          @id @default(autoincrement())
-  content       String       // 마스킹본 전용 (raw PII 미저장 — M3 안전 불변식)
-  masked        Boolean      @default(false)
-  source        String       @default("seed")  // seed | upload | paste
-  upload_format String       @default("txt")   // txt | md | paste
-  created_at    DateTime     @default(now())
+  id            Int           @id @default(autoincrement())
+  content       String        // 마스킹본 전용 (raw PII 미저장 — M3 안전 불변식)
+  masked        Boolean       @default(false)
+  source        String        @default("seed")  // seed | upload | paste
+  upload_format String        @default("txt")   // txt | md | paste
+  created_at    DateTime      @default(now())
   // user_id nullable — 기존 seed 이력서(user 없음) 하위 호환(T-042)
   user_id       String?
-  user          User?        @relation(fields: [user_id], references: [id])
+  user          User?         @relation(fields: [user_id], references: [id])
   ranking_runs  RankingRun[]
+  scoring_jobs  ScoringJob[]
 
   @@map("resumes")
+}
+
+// api 소유 — 채점 작업 상태 추적(T-044). worker는 직접 write 금지(ARCH §3-2 단일 writer).
+// status: queued → running → done | failed (status consumer가 갱신).
+model ScoringJob {
+  id         String   @id @default(cuid())
+  resume_id  Int
+  status     String   @default("queued") // queued | running | done | failed
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  resume     Resume   @relation(fields: [resume_id], references: [id])
+
+  @@map("scoring_jobs")
 }

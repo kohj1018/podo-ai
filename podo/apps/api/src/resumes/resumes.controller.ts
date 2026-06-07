@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  HttpCode,
   HttpException,
   HttpStatus,
   Param,
@@ -84,9 +85,10 @@ export class ResumesController {
     return { data: result }
   }
 
-  // POST /api/v1/resumes/:id/score — 업로드 이력서를 스코어링 루프에 기동(worker 채점).
+  // POST /api/v1/resumes/:id/score — 채점 작업을 SQS에 enqueue하고 즉시 202 반환(블로킹 X, ADR-106).
   // 소유권 인가는 ResumesService.score(타인 이력서 채점 시 403 — T-042 데이터 격리).
   @Post('api/v1/resumes/:id/score')
+  @HttpCode(HttpStatus.ACCEPTED) // 202 — 작업 수락(비동기 큐 트리거)
   async score(@Param('id') id: string, @Req() req?: AuthedRequest): Promise<{ data: ScoreResult }> {
     const resumeId = Number.parseInt(id, 10)
     if (!Number.isInteger(resumeId) || resumeId <= 0) {

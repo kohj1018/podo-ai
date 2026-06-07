@@ -16,5 +16,21 @@ services:
       timeout: 5s
       retries: 5
 
+  # LocalStack — 로컬에서 AWS SQS 대역(ADR-106 A-INFRA). M6에서 실 AWS SQS로 엔드포인트만 교체.
+  localstack:
+    image: localstack/localstack:3
+    restart: unless-stopped
+    ports:
+      - "4566:4566"
+    environment:
+      SERVICES: sqs
+    volumes:
+      - ./localstack-init:/etc/localstack/init/ready.d
+    healthcheck:
+      test: ["CMD-SHELL", "awslocal sqs list-queues || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
   postgres_data:
