@@ -62,3 +62,8 @@ strict = true
 # coercion/validation을 검증하므로 strict는 마찰만 키운다(테스트 정합성은 pytest 실행으로 보증).
 # 또한 다수 `tests/` 디렉터리의 동일 모듈명 중복(duplicate module)도 회피.
 exclude = ['(^|/)tests/']
+
+# boto3/botocore는 inline type 미제공(py.typed 없음) → stub 부재 import 무시(SQS consumer, T-045).
+[[tool.mypy.overrides]]
+module = ["boto3", "boto3.*", "botocore", "botocore.*"]
+ignore_missing_imports = true

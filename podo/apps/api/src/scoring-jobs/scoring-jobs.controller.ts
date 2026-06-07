@@ -37,10 +37,25 @@ export class ScoringJobsController {
       )
     }
 
+    // done 판정 = worker 산출물(ranking_run) 존재 기반 join (ADR-006 단순성, T-045 §8).
+    // worker는 scoring_jobs에 직접 write 못 함(ARCH §3-2 단일 writer)이므로, 미종료 작업은
+    // 해당 이력서의 ranking_run 존재로 done을 판정한다. (running/failed 상태 큐 신호의 api
+    // 반영은 후속 — worker는 scoring-status-queue로 신호 emit, 본 task는 done join까지.)
+    let status = job.status
+    if (status !== 'done' && status !== 'failed') {
+      const run = await this.prisma.rankingRun.findFirst({
+        where: { resume_id: job.resume_id },
+        select: { id: true },
+      })
+      if (run) {
+        status = 'done'
+      }
+    }
+
     return {
       data: {
         job_id: job.id,
-        status: job.status,
+        status,
         resume_id: job.resume_id,
       },
     }

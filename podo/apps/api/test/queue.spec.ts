@@ -96,6 +96,8 @@ describe('AC-2 scoring jobs polling returns status and blocks cross-user', () =>
             ? { id: 'job-123', resume_id: 1, status: 'queued', resume: { user_id: 'user-1' } }
             : null,
       },
+      // ranking_run 없음 → join 미충족 → queued 유지(아직 미채점)
+      rankingRun: { findFirst: async () => null },
     } as unknown as PrismaService
 
     const controller = new ScoringJobsController(fakePrisma)
@@ -105,6 +107,25 @@ describe('AC-2 scoring jobs polling returns status and blocks cross-user', () =>
     expect(result.data.job_id).toBe('job-123')
     expect(result.data.status).toBe('queued')
     expect(result.data.resume_id).toBe(1)
+  })
+
+  it('test_AC_2_done_via_ranking_run_join', async () => {
+    // 저장 status는 queued이나 worker 산출물(ranking_run) 존재 → join으로 done 판정(T-045)
+    const fakePrisma = {
+      scoringJob: {
+        findUnique: async () => ({
+          id: 'job-123',
+          resume_id: 1,
+          status: 'queued',
+          resume: { user_id: 'user-1' },
+        }),
+      },
+      rankingRun: { findFirst: async () => ({ id: 42 }) },
+    } as unknown as PrismaService
+
+    const controller = new ScoringJobsController(fakePrisma)
+    const result = await controller.getJob('job-123', { user: { id: 'user-1' } })
+    expect(result.data.status).toBe('done')
   })
 
   it('test_AC_2_cross_user_job_returns_404', async () => {

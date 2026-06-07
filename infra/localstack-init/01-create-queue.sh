@@ -4,5 +4,7 @@
 set -euo pipefail
 
 awslocal sqs create-queue --queue-name scoring-queue
+# 상태 신호 큐(worker→api): running/done/failed 이벤트 (T-045, ADR-106 §3-2 단일 writer).
+awslocal sqs create-queue --queue-name scoring-status-queue
 
-echo "[localstack-init] scoring-queue created"
+echo "[localstack-init] scoring-queue + scoring-status-queue created"

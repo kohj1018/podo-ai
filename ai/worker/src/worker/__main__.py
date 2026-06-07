@@ -6,8 +6,10 @@ seed 이력서는 config.load_seed_resume()로 주입(SPEC §9-4, 실 PII 비범
 
 from __future__ import annotations
 
+import json
 import os
 import sys
+import time
 from typing import Any, Callable
 
 import psycopg
@@ -16,6 +18,9 @@ from core import db
 from core.models import Resume
 from worker import config, persistence
 from worker.pipeline import run_scoring
+
+# in-process 재시도 한도 — 초과 시 status=failed (무한 재시도 종료, T-045 AC-4).
+MAX_RETRIES = 3
 
 
 def _ensure_seed_resume(
@@ -86,16 +91,132 @@ def _parse_resume_id() -> int | None:
     return int(env) if env else None
 
 
-def main() -> None:
-    """`python -m worker [--resume-id N]` — DB 연결 → run → commit → run_id 출력."""
-    resume_id = _parse_resume_id()
+# ---------------------------------------------------------------------------
+# SQS consumer (ADR-106) — subprocess 일회성 실행을 큐 소비 상시 서비스로 전환 (T-045)
+# ---------------------------------------------------------------------------
+
+
+def _emit_status(
+    sqs: Any, status_queue_url: str | None, job_id: str, status: str
+) -> None:
+    """worker→api 작업 상태 이벤트(running/done/failed)를 상태 큐에 전송한다.
+
+    scoring_jobs는 api 단일 writer(ARCH §3-2)라 worker는 직접 write하지 않고
+    큐로 신호만 보낸다. status_queue_url이 없으면 no-op(상태 신호 비활성 — 로컬 디버그).
+    """
+    if not status_queue_url:
+        return
+    sqs.send_message(
+        QueueUrl=status_queue_url,
+        MessageBody=json.dumps({"job_id": job_id, "status": status}),
+    )
+
+
+def process_message(
+    conn: psycopg.Connection[tuple[Any, ...]],
+    payload: dict[str, Any],
+    sqs: Any,
+    status_queue_url: str | None,
+    *,
+    max_retries: int = MAX_RETRIES,
+    structured_call_fn: Callable[..., Any] | None = None,
+    listwise_call_fn: Callable[..., str] | None = None,
+    pairwise_call_fn: Callable[..., str] | None = None,
+    sleep_fn: Callable[[float], None] = time.sleep,
+) -> str:
+    """메시지 1건 처리: running 신호 → run_scoring+persist → done 신호.
+
+    예외 시 rollback 후 backoff 재시도. 한도(max_retries) 초과 시 failed 신호 + 종료.
+    결정론·캐시 키·held는 run()/persist_run 불변(SPEC SSOT). 반환: 최종 status.
+    """
+    resume_id = int(payload["resume_id"])
+    job_id = str(payload["job_id"])
+    _emit_status(sqs, status_queue_url, job_id, "running")
+
+    attempt = 0
+    while True:
+        try:
+            run(
+                conn,
+                resume_id=resume_id,
+                structured_call_fn=structured_call_fn,
+                listwise_call_fn=listwise_call_fn,
+                pairwise_call_fn=pairwise_call_fn,
+            )
+            conn.commit()
+            _emit_status(sqs, status_queue_url, job_id, "done")
+            return "done"
+        except Exception:
+            conn.rollback()
+            attempt += 1
+            if attempt >= max_retries:
+                _emit_status(sqs, status_queue_url, job_id, "failed")
+                return "failed"
+            sleep_fn(min(2.0**attempt, 10.0))  # 지수 backoff(상한 10s)
+
+
+def consume_once(
+    conn: psycopg.Connection[tuple[Any, ...]],
+    sqs: Any,
+    queue_url: str,
+    status_queue_url: str | None,
+    *,
+    wait_seconds: int = 20,
+    process_kwargs: dict[str, Any] | None = None,
+) -> int:
+    """큐 메시지 수신(long-poll)→처리→삭제. 처리한 메시지 수 반환(루프/테스트)."""
+    resp = sqs.receive_message(
+        QueueUrl=queue_url, WaitTimeSeconds=wait_seconds, MaxNumberOfMessages=1
+    )
+    msgs = resp.get("Messages", [])
+    for msg in msgs:
+        payload = json.loads(msg["Body"])  # { resume_id, job_id }
+        process_message(conn, payload, sqs, status_queue_url, **(process_kwargs or {}))
+        # 멱등 처리 후 삭제(중복 수신해도 복합 unique upsert로 1행, GS-1-through-queue).
+        sqs.delete_message(QueueUrl=queue_url, ReceiptHandle=msg["ReceiptHandle"])
+    return len(msgs)
+
+
+def _make_sqs_client() -> Any:
+    import boto3
+
+    endpoint = os.environ.get("SQS_ENDPOINT_URL")
+    return boto3.client(
+        "sqs",
+        region_name=os.environ.get("AWS_REGION", "us-east-1"),
+        **({"endpoint_url": endpoint} if endpoint else {}),
+    )
+
+
+def consume_loop() -> None:  # pragma: no cover (상시 루프 — E2E가 실증)
+    """SQS long-poll 상시 consumer 루프 — `python -m worker`(인자 없음)의 기본 동작."""
+    queue_url = os.environ["SQS_QUEUE_URL"]
+    status_queue_url = os.environ.get("SQS_STATUS_QUEUE_URL")
+    sqs = _make_sqs_client()
     conn = db.connect()
     try:
-        run_id = run(conn, resume_id=resume_id)
-        conn.commit()
-        print(f"ranking_run persisted: id={run_id}")
+        while True:
+            consume_once(conn, sqs, queue_url, status_queue_url)
     finally:
         conn.close()
+
+
+def main() -> None:
+    """`python -m worker` — SQS consumer 상시 루프(ADR-106).
+
+    전환기 호환: `--resume-id N`이 명시되면 1회 실행(seed/디버그 경로)으로 동작한다.
+    """
+    resume_id = _parse_resume_id()
+    if resume_id is not None:
+        conn = db.connect()
+        try:
+            run_id = run(conn, resume_id=resume_id)
+            conn.commit()
+            print(f"ranking_run persisted: id={run_id}")
+        finally:
+            conn.close()
+        return
+    consume_loop()
 
 
 if __name__ == "__main__":
