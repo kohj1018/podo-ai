@@ -80,7 +80,40 @@ Telemetry — M3 (정식 재grade 2026-06-07 — 졸업 가능 YES)
 - Cross-stabilize 회귀 신호: 1건 명확 — [Dependency](M2→M3 재등장, next/NestJS bump deferred — Fix round 무변경). + [Design-draft] label 약한 잔존(DESIGN status=draft, 단 M3가 §7 인벤토리 능동 갱신). **해소 4종**([Insight-backlog]·[Design-token-drift]·[Surface-backref]·용어 divergence) — patterned doc-drift가 F-012로 끊김(개선 신호).
 ```
 
+### M4 — /stabilize-milestone (2026-06-08)
+- **졸업 가능: YES** — 11/11 task done · 통합 validate exit 0(TS 62 passed[api 25/web 37] + 10 DB-skip / Python 135 passed + 22 DB-skip) · **멀티유저 E2E exit 0**(`pnpm e2e` 본 세션 실측: 2-user OAuth 우회→업로드(resume 26/27)→SQS(LocalStack) 큐 드레인→격리 피드(A scored 4·B scored 6/held 0)→데이터 격리(비인증 401·A→B 403/404)→지원기록 정리→PII scan 0 raw·0 account) · AC 매핑 36/36(100%) · FAC 24/24(100%) · **QA_FINDINGS 코드결함 P0 0** · **데이터 격리 Pass**(§5 #6) · **PII 불변식 유지**(§5 #7 — raw 0 + 계정 PII 0, ADR-105 Amend1) · **UX 완결성**(§5 #8 — 8-상태·a11y·design_tokens·mascot 테스트 + E2E 피드 렌더). graduation §5 필수 8/8 + 선택 GS-1-through-queue(멱등 upsert) 충족. **P0 후속 0.** 잔여(외부검증만): push 시 CI e2e-smoke green 1회.
+- **reviewer(code): P0 0 / P1 3+1(arch) / P2 6** — 핵심 P1 = 상태채널 미완성(REV-M4-003/010, [ADR-candidate]), `process_message` SRP(001), M2 seed shim 잔존(002, REV-M3-007 carryover). **reviewer(design): 메인 세션이 design subagent P1 일부(lottie loop·GreetingCard strip)를 P2 하향**(latent/polish — graduation 비차단; severity 인플레 재확인). FitScoreRing arc(DSN-M4-002)는 DSN-M2-FITRING 재등장이라 P1 유지. qa: [QA_FINDINGS ## M4](QA_FINDINGS.md)(P0 0 / P1 0 / P2 5 — QA-M4-001 메인 하향). **수렴(신뢰도↑):** SQS_QUEUE_URL guard = QA-M4-003 + REV-M4-005 독립 발견 · 상태채널 = qa(QA-M4-001 failed 가시화) + reviewer(REV-M4-003/010) 수렴.
+- **Dependency hygiene:** `pip-audit`(uv export→PyPI 41pkg 필터, 로컬 editable 제외) → **No known vulnerabilities found** ✅. `pnpm audit --prod`(podo/) → **22건 (high 8 / moderate 12 / low 2)** — `next`(<15.5.16, cache-poisoning) + `@nestjs/*`(qs via express). **M2→M3→M4 3회 재등장**(deferred bump) → 아래 §2 P1. 6개월 unused deps 해당없음.
+- **Deterministic preflight:** ADR-ref 전부 resolve(**ADR-106·ADR-107 신규 존재** · ADR-105#adr-105-amend-1 anchor 실재 · ARCH #arch-7-1/7-3/7-4 anchor 실재 · ADR-101/103/104 인용 유효). FAC↔AC unmapped 0(F-016~019 = 24/24). raw-hex: 컴포넌트 .tsx 0(grep 0건) · globals.css 23건은 `:root` 토큰 instantiation 층(5-2 제외 동형). markdown-link-check 미설치 → Doc-link 외부검사 **skip**. ARCH §7-x `### Don'ts` 부재 → 5-4 grep skip(문서화된 milestone-level gap — 소유권/단일writer/opaque 경계는 per-task validate + reviewer가 커버). 컴포넌트 인벤토리 drift(5-3 휴리스틱): JobCardActions·LoginButtons·LogoutButton·FeedView 등 DESIGN §7 미등재 — §7 JobCard가 "actions" 포괄 + auth/orchestrator는 feed-companion scope 밖 → 아래 §3 P2(저신뢰).
+- **DISCOVERY↔Charter staleness:** mtime drift 없음(Charter 19:17:21 > DISCOVERY 19:17:15 — Charter가 더 최신). Insight backlog **0 open**(I-1 done · I-2/I-3 planned+linked, M4 F-018 CoveragePanel이 I-3 반영) → 미반영 인사이트 신호 0. 잔여: DISCOVERY/Charter/DESIGN `## 0. Status`=draft(M1~M3 동일 권고, 비차단) → 아래 §3 P2.
+
+```
+Telemetry — M4 (졸업 가능 YES)
+- Tasks: 11 / 11 (100%)
+- AC↔테스트 매핑: 36 / 36 (100%)
+- FAC coverage: 24 / 24 (100%)
+- Evidence Bundle 신뢰도: High 11 / Medium 0 / Low 0
+- Validate exit code: 0 (TS 62 passed[api 25/web 37] + 10 DB-skip / Python 135 passed + 22 DB-skip) · E2E exit 0 (`pnpm e2e` 본 세션 실측)
+- Findings: P0 0 / P1 4 / P2 ~18
+- Cross-stabilize 회귀 신호: 3종 — [Dependency](M2→M3→M4 3회, next/NestJS bump deferred) · [Design] FitScoreRing arc(DSN-M2-FITRING→DSN-M4-002 재등장, M3 미터치) · [Design-draft]/[Doc-status-draft](M1~M4 DESIGN/DISCOVERY/Charter status=draft). **개선 신호**: 데이터 격리·PII·큐 멱등 done-line을 T-052 자동 E2E 게이트가 흡수(report-only가 못 닫던 부분 — M2/M3 동형 3회째). subagent budget-exhaustion 미재발(qa/reviewer 전원 finding 정상 출력).
+```
+
 ## 1. 우선순위
+
+### M4
+1. (P0 후속) **없음** — graduation §5 필수 8/8 충족, 졸업 가능 YES. **잔여(외부검증만): push 시 CI e2e-smoke green 1회.**
+2. (P1) **[Arch-iface-7-3] 상태채널 설계 ADR 후보** (REV-M4-003/010) — worker가 `scoring-status-queue`로 running/done/failed emit하나 *소비자 부재* → `scoring_jobs.status`는 'queued'/(done=ranking_run join) 외엔 stale. T-044 §8("status 큐 미도입")↔T-045 §8("status 큐 emit 채택, consumer는 후속")이 *내부 모순*. **architect 호출 권장**: status 채널 결정(api polling/join vs api SQS consumer vs worker 직접 write §3-2 예외) ADR화 또는 T-044/T-045 §8 reconcile + ARCH §7-3 note. M6 DLQ·failed 가시화와 동반.
+3. (P1) **[Dependency]** — `next`≥15.5.16 + NestJS bump 후 재audit(pnpm high 8). **M2→M3→M4 3회 재등장** — 별도 bump task로 닫을 것 권장. pip-audit clean.
+4. (P1) **[Design] FitScoreRing arc** (DSN-M4-002) — DESIGN §7-2 "arc=fenced gradient" ↔ 구현은 div 전체 gradient fill + paper 숫자(대비 수동검증 의존). **DSN-M2-FITRING 재등장**(M3 미터치 carryover). T-047 §8이 YAGNI로 의도 보류 → SVG arc 재작성 또는 DESIGN §7-2를 "원형 채움"으로 명문화 + AA 대비 확인.
+5. (P1, 실질↓) **[Design-draft]** — DESIGN.md status=draft + UI 신호(M4=대규모 UI) → ADR-027#amend-3 신호. M1~M3 반복 권고 미적용. status=accepted 승격 또는 draft 컨벤션 명문화(`/bootstrap-design` 재실행 불필요 — 문서 충실).
+6. (P2) reviewer 리팩토링(REV-M4-001~009) + design 폴리시(DSN-M4-001/003/004/005) + qa P2(QA-M4-001~005) + seed shim 제거(REV-M4-002/REV-M3-007) + DISCOVERY/Charter/DESIGN status=draft — 전부 비차단.
+
+> **repair-workitem 적용 (2026-06-08)** — 메인 세션이 stabilize-M4 finding을 비판적 재점검 후 *명확한 결함*만 직접 수정(코드 4건, `pnpm validate` + `pnpm e2e` exit 0 재확인, 회귀 0):
+> - ✅ **REV-M4-005/QA-M4-003**: queue.service가 `SQS_QUEUE_URL` 부재 시 생성자에서 throw(fail-fast) — 주석↔코드 불일치 해소.
+> - ✅ **REV-M4-006**: feed.service가 applications `CLEARED_ACTIONS`를 단일 출처로 import — feed/meta 제외 규칙 드리프트 방지.
+> - ✅ **DSN-M4-001**: PodoLottie `loop={false}` — DESIGN §8-1/§9 무한 루프 금지 정합.
+> - ✅ **DSN-M4-005**: OnboardingGuide·Onboarding center-align 제거 — DESIGN §9 좌측 정렬 정합.
+> - ⏸ **defer(finding 권장대로 — 결함 아님/상위 결정 필요)**: P1 상태채널(REV-M4-003/010 = **architect/ADR 영역**, repair에서 임의 결정 X) · P1 [Dependency](next 14→15 = sync cookies/searchParams 깨는 major migration → 별도 bump task) · P1 FitScoreRing arc(DSN-M4-002 = T-047 §8 YAGNI 의도, SVG arc는 M5 polish) · P1 [Design-draft](M1~M4 draft 컨벤션 일관) · 나머지 P2(의도 동작·전환기 shim·M5 polish). Reject 근거: 각 finding status 줄.
 
 ### M3
 1. (P0) ✅ **CLOSED (Fix round 커밋 `f1f17df` + 정식 재grade 2026-06-07 YES)** — **§5 #3 업로드-경로 E2E 배선 + 웜캐시 재생성** (M3-E2E-001): `scripts/e2e.mjs` 업로드 phase(`POST /api/v1/resumes` → `POST /resumes/:id/score` → feed 적합도 배지 assert) + `scripts/e2e_pii_scan.py`(실 masker end-to-end `resumes.content`+`ranking_runs.result` scan, QA-M3-006 닫음) + 업로드 fixture 웜캐시 재생성(+47). **재grade 세션 `pnpm e2e` exit 0 실측**(upload resume_id=14→mask placeholders=5→score ranking_run id=19→PII scan 0/5→feed scored 6/held 0). graduation §5 필수 7/7 충족 → **졸업 가능 YES**. **잔여(외부검증만): push 시 CI e2e-smoke green 1회.**
@@ -206,7 +239,43 @@ Telemetry — M3 (정식 재grade 2026-06-07 — 졸업 가능 YES)
   - 발견: F-012 FAC-1/T-032 AC-1의 "`grep "합격가능성 밴드"` = 0" 검증이 *grep 명령·치환대상 정의를 적은 spec/FAC/reconcile-meta doc 자체*를 매칭(논리적 self-reference — 검색어를 안 적고 검사 기술 불가). 유효 기준(정책/제품 표면 = DISCOVERY/Charter/DESIGN/F-001)은 0 충족. T-032 report가 stabilize 회수 명시 요청.
   - 권장: F-012 FAC-1·T-032 AC-1 grep 범위를 *제품/정책 표면 한정*(spec-doc 제외)으로 좁히는 plan touch-up. 회귀 가드는 유지하되 self-ref FP 제거.
 
+### M4
+
+> `/stabilize-milestone M4` (2026-06-08, 메인 세션): graduation §5 필수 8/8 충족 → **졸업 가능 YES, P0 후속 0**. 아래는 비차단 P1(다음 라운드/architect 회수). reviewer/qa 전수 finding(ADR-046#d3). **상태채널(REV-M4-003/010)은 architect 호출 권장.**
+
+- **REV-M4-003 / REV-M4-010 [Arch-iface-7-3]** | P1 | [관측됨] [Arch-debt] [ADR-candidate] | linked: T-044,T-045,T-046 | status: open | `ai/worker/src/worker/__main__.py:99-112,147-154` · `scripts/e2e.mjs` · `feed.service.ts:66-68`
+  - 발견: worker `_emit_status`가 `scoring-status-queue`로 running/done/failed 이벤트를 emit하지만 **그 큐를 소비하는 api 측 consumer가 없다**. e2e.mjs는 `SQS_STATUS_QUEUE_URL`을 api env에 주입하나 api는 드레인 안 함. 결과: `scoring_jobs.status`는 enqueue 시 'queued'만 기록 + feed.service가 ranking_run 존재 join으로 'done' override → running/failed가 scoring_jobs에 영영 미반영(failed job은 피드가 영구 scoring 표시).
+  - 근거: T-044 §8("별도 status 큐/consumer 미도입, join 일원화")과 T-045 §8("worker가 status 큐 emit 채택, running/failed의 api 반영은 후속/M6")이 *내부 모순*. emit-without-consumer = 미완성 채널(현재 emit은 실효 없음). happy-path(done=join)는 동작하므로 비차단이나 `scoring_jobs.status`가 부분 dead data. (qa QA-M4-001 failed-가시화 우려와 수렴.)
+  - 권장: **ADR 후보(§4)** — 상태채널 설계 결정(api polling/join vs api SQS consumer vs worker 직접 write §3-2 단일writer 예외) 명문화 + T-044/T-045 §8 reconcile + ARCH §7-3 본문 보강. M6 DLQ·failed 가시화와 동반. **architect 호출 권장**(본 skill은 텍스트 제안만).
+- **[Dependency]** | P1 | [관측됨] | linked: F-005,T-018,M2,M3 | status: open (M2→M3→M4 3회 재등장) | `podo/apps/web/package.json`(next) · `podo/apps/api/package.json`(@nestjs/*)
+  - 발견: `pnpm audit --prod` 22건(high 8/mod 12/low 2). `next`(<15.5.16, cache-poisoning) + `@nestjs/*`(qs via express). M2·M3 [Dependency] P1 미적용 상태로 3회째 재등장(cross-stabilize 회귀).
+  - 권장: `next`≥15.5.16 + NestJS 갱신 후 재audit. pip-audit clean(Python). 별도 bump task(누적 부채 — 우선 회수 권장).
+- **DSN-M4-002 [Design] FitScoreRing arc** | P1 | [관측됨] | linked: T-047,M2 | status: open (DSN-M2-FITRING 재등장) | `podo/apps/web/components/FitScoreRing.tsx:30-35`
+  - 발견: FitScoreRing이 SVG arc(stroke-dasharray)가 아니라 `background: var(--brand-gradient)`를 div 전체 배경으로 fill + 점수 숫자 `var(--paper)`. DESIGN §7-2("arc=brand.gradient fenced")·§2-4("fit 점수 링 arc") divergence + paper 숫자가 gradient midpoint 위 AA 대비 수동검증 의존.
+  - 근거: M2 design subagent가 동일 발견(DSN-M2-FITRING, P1 open) → M3 미터치 → M4 재등장(cross-stabilize). T-047 §8이 "SVG arc 전면 재작성은 YAGNI"로 의도 보류(raw hex 0·fenced는 충족). 기능/접근성 *차단*은 아님(design_tokens·a11y 테스트 green).
+  - 권장: SVG circle track + stroke-dasharray arc로 §7-2 정합, 또는 DESIGN §7-2를 "원형 채움"으로 명문화 + paper 텍스트 대비(≥4.5:1) 확인.
+- **[Design-draft]** | P1 | [관측됨] | linked: docs/20-system/DESIGN.md | status: open (실질↓, M1→M4 재발) | DESIGN.md `## 0. Status`
+  - 발견: DESIGN.md status=draft + M4=대규모 UI 구현 → ADR-027#amend-3 신호. M1~M3 "status 정리" 권고 미적용(반복 회귀).
+  - 권장: status=accepted 승격 또는 프로젝트 draft 컨벤션 명문화. `/bootstrap-design` 재실행 불필요(§2~§9 충실).
+
 ## 3. 권장 리팩토링
+
+### M4 (P2 — reviewer 위임 + design 폴리시 + qa cross-list, 전부 behavior-preserving / 비차단)
+- **REV-M4-001** | P2 | [관측됨] [Clean-Code: Function-size/SRP] | T-045 | `__main__.py:115-155` — `process_message`가 running emit + run/persist + retry/backoff + done/failed emit 4책임 혼재. `_run_with_retry(...)→str` 분리 후보(동작 불변).
+- **REV-M4-002** | P2 | [관측됨] [Clean-Code: Dead-code/shim] | T-042,T-045 | `__main__.py:26-46,83-91,204-219` — `_ensure_seed_resume`·`_parse_resume_id`·`main()` `--resume-id` 분기 = M2 seed 호환 shim. M4 진입은 `consume_loop`이고 e2e는 `--resume-id` 미사용 → dead. **REV-M3-007("M4 제거 후보")·QA-M2-003 carryover.** AGENTS.md "shim 삭제" 정책 → 삭제 또는 `dev-only` 격리(모듈 docstring도 M2 seed 설명 잔존 — 동기 갱신).
+- **REV-M4-004** | P2 | [관측됨] [Clean-Code: Naming] | T-042 | `resumes.service.ts:68` — `score()`가 실제 채점 아닌 SQS enqueue만 → `enqueueScore`/`requestScore` rename(동작 불변).
+- **REV-M4-005 / QA-M4-003** | P2 | [관측됨] [Clean-Code: WHY/guard] | T-044 | `queue.service.ts:19` — `SQS_QUEUE_URL ?? ''` 빈 문자열 부팅, 실패는 enqueue 시점(500). 생성자 guard(`if(!url) throw`)로 startup 검출. **qa·reviewer 수렴.** — ✅ **resolved (repair-workitem 2026-06-08): 생성자 throw 적용.**
+- **REV-M4-006** | P2 | [관측됨] [Clean-Code: Duplication] | T-046 | `feed.service.ts:76-80,132-137` — getFeedMeta·getFeed가 동일 `applicationEvent` 제외 필터 2회(rule-of-3 미달). `CLEARED_ACTIONS`(applications.service.ts:7) import 공유 권장(상수 재사용=추상화 아님). — ✅ **resolved (repair-workitem 2026-06-08): CLEARED_ACTIONS import 공유.**
+- **REV-M4-007** | P2 | [관측됨] [Clean-Code: Function-size/SRP] | T-046 | `feed.service.ts:33-113` — getFeedMeta 80줄·5 쿼리 혼재. private helper 분리 후보(M5 리팩터 carry 현실적).
+- **REV-M4-008** | P2 | [관측됨] [Clean-Code: Naming] | T-045 | `__main__.py:158-177` — `consume_once` 반환 int(0/1) → bool이 "처리했는가" 의미 명확.
+- **REV-M4-009** | P2 | [관측됨] [Clean-Code: WHY/숨은 invariant] | T-042 | `auth.controller.ts:59-78` — test-session이 `body.userId` 미검증(빈/임의 userId 세션 발급). `NODE_ENV=test` 게이트라 영향 제한적이나 WHY 주석("E2E 편의로 임의 userId 허용") 또는 seed 목록 검증 권장.
+- **DSN-M4-001** | P2 (design P1 → 메인 하향, latent) | [관측됨] | T-048 | `PodoLottie.tsx:52` — `<DotLottieReact loop />` 무한 루프(DESIGN §8-1/§9 위반). 단 .lottie 에셋 미제공(poster 경로)이라 현재 비활성 — 실 에셋 추가 시 활성. `loop={false}` 권장. — ✅ **resolved (repair-workitem 2026-06-08): loop={false} 적용.**
+- **DSN-M4-003** | P2 | [관측됨] | T-046 | `GreetingCard.tsx:26` — 배경 단색 `grape-100`, fenced gradient 3번째 사용처(인사 strip 5px accent, DESIGN §2-4) 미구현(허용 gradient 누락). 상단 5px strip 추가 권장(전면 gradient 아님).
+- **DSN-M4-004** | P2 | [관측됨] | T-051 | `JobCardActions.tsx:80-87` — 버튼 `borderRadius:'8px'` ↔ DESIGN §6/§5 radius.lg 16px. 16px 또는 `--radius-lg` 참조.
+- **DSN-M4-005** | P2 | [관측됨] | T-048 | `Onboarding.tsx:38` — dismiss wrapper `textAlign:'center'` ↔ DESIGN §4/§9 center-align 금지. left 정렬 또는 flex row-end. — ✅ **resolved (repair-workitem 2026-06-08): OnboardingGuide·Onboarding center-align 제거(좌측 정렬).**
+- **[Design-inventory-drift]** | P2 | [관측됨, 저신뢰 휴리스틱] | T-043,T-046,T-051 | JobCardActions·LoginButtons·LogoutButton·FeedView가 DESIGN §7 미등재. 단 §7 JobCard가 "actions" 포괄 + auth/orchestrator는 feed-companion DESIGN scope 밖 → 등재 또는 scope-note 권장(인벤토리 drift는 free-form 키워드 매칭 — FP 가능).
+- **[Doc-status-draft]** | P2 | [관측됨] | linked: docs/10-charter,docs/20-system | DISCOVERY/Charter/DESIGN `## 0. Status`=draft 잔존(M1~M3 동일 권고). [Design-draft]와 정합 — label 정리 또는 draft 컨벤션 명문화.
+- qa P2(QA-M4-001 delete-after-failed · QA-M4-002 apply 낙관 롤백 · QA-M4-004 null user_id 소유권 비대칭 · QA-M4-005 unfavorite dead type)는 [QA_FINDINGS ## M4](QA_FINDINGS.md)에 기록.
 
 ### M3 (P2 — reviewer 위임 + design 폴리시 + qa cross-list, 전부 behavior-preserving)
 - **REV-M3-004** | P2 | [관측됨] [Clean-Code: Function-size/SRP] | T-034 | `resumes.controller.ts:32-76` — `create()`가 multipart/paste 2경로 × (포맷·크기·raw 추출) 44줄 혼재. `extractRawFromFile`/`extractRawFromPaste` private 분리 후보(rule-of-3 미달 — 강제 아님).
@@ -274,6 +343,17 @@ Telemetry — M3 (정식 재grade 2026-06-07 — 졸업 가능 YES)
 - [관측됨 · 본 세션 1회 / M2에 이어 재발] **design subagent severity 인플레.** a11y 3건(label/aria-busy/role=region)을 P0로 제기 → 메인 세션 검증 후 *graduation 비차단·로컬 pre-deploy* 근거로 P1 하향. M2 instruction 후보("P0 = 기능/접근성 *차단*만; 미구현 폴리시·상태는 P1 이하")가 미적용 — 재확인.
 - [관측됨 · 본 세션] **"stabilize *phase* 책임" ↔ "stabilize *skill* report-only" 표기 혼동.** M3 task(T-039/T-040 §4)·운영 메모가 "e2e.mjs 업로드 경로 재배선 = stabilize-milestone M3 책임"으로 적었으나, 본 skill은 코드 수정 금지(report-only). M2-E2E-001도 동일(stabilize가 surface → 별도 main-session Fix round가 코드 → 재grade). 후보: task §4(비범위)에 "stabilize *phase*(=surface + 후속 main-session round)" vs "stabilize *skill* 직접 수행(=report only)" 구분 1줄 — 매 milestone E2E-gap에서 반복되는 혼동.
 - [관측됨 · Cross-stabilize 개선 신호] **M1·M2가 반복 권고만 하던 doc-reconcile([Insight-backlog]·[Design-token-drift]·[Surface-backref]·용어 divergence)이 M3에서 F-012(첫 feature 흡수)로 실제 해소.** M2 §4 instruction 후보("직전 stabilize의 P1 doc-reconcile close 여부 graduation 점검")의 *대안 처방*(권고를 다음 milestone의 task로 박기)이 효과적임을 실증 — graduation checklist 확장보다 *plan 회수 강제*가 닫는 데 유효.
+
+### M4 — ADR 후보 + instruction 개선 후보
+**ADR 후보 (M4 중 내려진 결정인데 ADR 부재 / 미완 — process 경계·단일writer 예외는 ADR-006 정책상 ADR 대상):**
+1. **상태채널(`scoring_jobs.status` 갱신) 설계 ADR** (REV-M4-003/010): worker→`scoring-status-queue` emit의 consumer 부재 + T-044/T-045 §8 내부 모순. "api polling(ranking_run join) vs api SQS consumer vs worker 직접 write(§3-2 단일writer 예외)" 중 택1 명문화 + ARCH §7-3 본문 보강 + M6 DLQ·failed 가시화 연계. **architect 검토 권장**(메인 세션 호출, 본 skill은 텍스트 제안만).
+> (ADR-106 워커 트리거 큐·ADR-107 OAuth 멀티유저·ADR-105 Amend1 계정 PII는 M4 진입 전 신설 완료 — 추가 ADR 대상 아님. 레이어 경계(§3-1)는 M4가 *변경 안 함* — 기존 물리 매핑 인스턴스화 + 큐 트리거는 ADR-106이 이미 규율.)
+
+**Instruction 개선 후보 (ADR-022 ratchet evidence label 부착 — *보고만*, AGENTS.md/agent/skill body 자동 수정 X):**
+- [관측됨 · 개선 신호] **subagent budget-exhaustion 미재발.** M4 stabilize에서 qa(32 tool-use)·reviewer-code(16)·reviewer-design(16)이 *전원 finding 블록을 turn 내 정상 출력*(read-budget + "final message MUST be findings" 제약을 위임 프롬프트에 명시한 효과). M2~M3 instruction 후보(stabilize 단계 4·5 위임에 read-budget + output-first self-check 명문화)가 *프롬프트 레벨로 적용되면 작동*함을 3회째 실증 — `qa.md`/`reviewer.md` body에 박기 후보 유효(반복 처방 비용 제거).
+- [관측됨 · M2→M3→M4 재발] **design subagent severity 인플레 지속.** design 위임이 lottie loop·GreetingCard strip을 P1로 제기 → 메인 세션이 latent/polish 근거로 P2 하향. M2 instruction 후보("P0=기능/접근성 *차단*만; 미구현 폴리시·상태는 P1 이하")를 프롬프트에 명시했음에도 P1↔P2 경계 인플레 잔존 → `reviewer.md` design surface에 "polish/aspirational/**latent**=P2" 1줄 추가 후보.
+- [관측됨 · qa P1→P2 1회] qa가 큐 delete-after-failed를 P1로 제기 → 메인이 "M4 DLQ 미도입 = terminate-on-failure 의도(AC-4)"로 P2 하향. qa 위임에 *"마일스톤 비범위(M6 DLQ 등)는 P2 + 근거"* 힌트 추가 후보.
+- [관측됨 · Cross-stabilize] **[Dependency] 3회·FitScoreRing/[Design-draft] 반복** = report-only 권고가 milestone 간 미적용 누적. M3가 실증한 처방(권고를 다음 milestone task로 박기 — F-012 효과)을 [Dependency] bump·DESIGN status·FitScoreRing arc에도 적용 권장(`/plan-workitem` 회수 강제). graduation 비차단이라 누적되나 외부 검증(보안 advisory)이 걸려 있어 우선 회수 권장.
 
 ## 5. Repair decision log
 

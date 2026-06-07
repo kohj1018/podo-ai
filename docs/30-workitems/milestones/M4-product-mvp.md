@@ -78,7 +78,10 @@ M3 §4가 *비범위로 선고지*한 **"공개 배포 + auth + 멀티유저"** 
 - **신규/마감 diff 시드** — cron 실가동은 M6이므로 M4 E2E는 *수동/로컬 크롤 1회*로 `diff_status`를 시드해 UI가 신규/마감을 렌더. 이 경계를 graduation에 명시.
 
 ## 8. 회고 (stabilize 자동 채움)
-- 목표 달성도: <정량/정성 1줄>
-- scope creep 사례: <있으면 1줄, 없으면 "없음">
-- 비목표(charter §5) 위반 사례: <있으면 1줄 — 멀티유저는 ADR-107로 정식 반전했으므로 위반 아님>
-- 핵심 학습 3개 이내
+- 목표 달성도: **YES (졸업, `/stabilize-milestone M4` 2026-06-08).** graduation §5 필수 8/8 충족 — 11/11 task done · validate exit 0(TS 62 passed + 10 DB-skip / Python 135 passed + 22 DB-skip) · 멀티유저 E2E exit 0(2-user OAuth 우회→업로드(resume 26/27)→SQS 큐 드레인→격리 피드 A 4·B 6 scored/held 0→데이터 격리 401·403/404→지원기록 정리→PII 0 raw·0 account) · AC 36/36 · FAC 24/24 · 코드결함 P0 0 · 데이터 격리/PII 불변식/UX 완결성 게이트 통과. 선택 GS-1-through-queue(멱등 upsert)도 충족. 새 스코어링 로직 0(출력계약 동결 유지).
+- scope creep 사례: 없음. 4축(멀티유저·큐·UX·지원기록) + ADR-106/107/105-Amend1이 §3 분해 그대로 실행. 전면 구조 리팩토링 비범위 준수(§2 수술적·필요기반 원칙).
+- 비목표(charter §5) 위반 사례: 없음. 멀티유저는 ADR-107로 Charter §5를 정식 반전(위반 아님). 직군 분리 탭·다채널·벡터·도메인 자동분류는 M5로, 배포·cron 실가동은 M6로 정확히 이연. PDF/docx·raw PII 영속은 비범위 유지.
+- 핵심 학습(≤3):
+  1) **report-only stabilize가 못 닫는 done-line(멀티유저 E2E·데이터 격리·PII)을 T-052가 자동 게이트로 흡수** — M2/M3 E2E 패턴(웜캐시 무키 + 별도 코드 task)이 3회째 성공 정착.
+  2) **상태채널 미완성(worker emit ↔ consumer 부재 + T-044/T-045 §8 내부 모순)** — happy-path는 ranking_run join으로 가려지나 `scoring_jobs.status`가 부분 dead data → M5/M6 ADR + DLQ로 닫을 arch-debt(REV-M4-003/010, architect 회수).
+  3) **cross-stabilize 부채 누적 신호([Dependency] 3회·FitScoreRing/[Design-draft] 반복)** — report-only 권고만으론 안 닫힘. M3가 실증한 "권고→다음 milestone task로 박기"를 dep bump·DESIGN 정합에도 적용해야 끊긴다.

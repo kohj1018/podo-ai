@@ -152,6 +152,45 @@
 - **M2 carryover**: QA-M2-001(pending_job_ids sorted) **해소 확인**(Fix round 2 byte-identical 실측). QA-M2-003(worker가 `resumes`에 seed write — 소유권 편의 예외, "M3 api 이관 시 닫음") **부분 잔존**: M3가 api 업로드 write 경로를 신설했으나 *seed* 이력서는 여전히 worker `_ensure_seed_resume` 주입(keyless E2E 보존용 — REV-M3-007 M4 제거 후보). 완전 닫힘은 M4.
 - GS-1-through-DB: `resume_id`는 캐시 키의 *이력서 정규화본* 축을 채울 뿐(시간·랜덤·env 무혼입) → 결정성 구조 불변(§3-1 규칙 충족). seed 경로(resume_id=None)도 M2와 byte 동일 동작.
 
+## M4
+
+> `/stabilize-milestone M4` (2026-06-08) qa 위임 + 메인 세션 직접 검증(worker consumer 코드 실독) 결과. 대상: T-042~T-052 (OAuth 멀티유저·데이터 격리 / SQS(LocalStack) 큐 트리거 + Python worker 상시 consumer / 동반자 피드 UX 8-상태·근거·모션·a11y / 지원기록). 통합 validate exit 0(TS 62 passed[api 25/web 37] + 10 DB-skip / Python 135 passed + 22 DB-skip) + **`pnpm e2e` exit 0**(2-user OAuth 우회→업로드(resume 26/27)→SQS 큐 드레인→격리 피드 A scored 4·B scored 6/held 0→데이터 격리(401·403/404)→지원기록 정리→PII scan 0 raw·0 account) 위에서 *lint/type/unit이 못 잡는* 데이터 격리·계정 PII 비유입·큐 멱등/실패·세션 보안·UX 상태 정합 점검. **코드결함 P0 0건 → graduation §5 #5(QA_FINDINGS P0) 충족.** finding 전수 기록(ADR-046#d3). **메인 세션이 qa P1 1건(QA-M4-001)을 worker 코드 실독 후 P2 하향**(delete-after-failed는 M4 의도 동작 — AC-4 terminate-on-failure·DLQ는 M6, failed 가시화는 T-045 §8 문서화 이연). 데이터 격리(핵심 안전 게이트)는 qa subagent·E2E assert·메인 세션이 독립 수렴 — 신뢰도↑.
+
+### P0
+없음. (모든 user-facing 쿼리/뮤테이션에 session user_id 스코프 또는 소유권 가드 존재 — feed(`where: resume.user_id`)·resumes/score(403)·scoring-jobs(404)·applications(deleteAction 403, getActions 본인 범위). E2E `assertIsolation`이 비인증 401·A→B 403/404 실증. 계정 PII는 SQS 페이로드 `{resume_id, job_id}`·세션 `{id}`만 — `ranking_runs.result`/`.cache/llm`/로그 유입 0(E2E account-pii-scan 4 literal 0). 크로스유저 유출·데이터 무결성 파괴급 결함 없음.)
+
+### P1
+없음. (qa subagent가 제기한 QA-M4-001은 메인 세션 검증 후 P2 하향 — 아래 근거. 상태채널 arch-debt는 reviewer surface로 [IMPROVEMENT_GUIDE REV-M4-003/010](IMPROVEMENT_GUIDE.md)에 P1 기록.)
+
+### P2
+- **QA-M4-001** | P2 (qa P1 → 메인 하향) | [관측됨] | linked: T-045 | status: open | `ai/worker/src/worker/__main__.py:172-176`
+  - 발견: `consume_once`가 `process_message` 반환값(done/failed)과 무관하게 항상 `delete_message` → 재시도 한도(3회) 초과로 failed된 메시지도 큐에서 제거(DLQ 미이동).
+  - 근거(하향): M4는 DLQ/redrive 미도입(M6 인프라). 메시지를 *남기면* visibility timeout 후 재배달→3회 재시도 무한 반복 = AC-4 "무한 재시도 없이 종료" 위반. 따라서 3회 후 삭제(종료)는 M4 의도 동작. 잔여(failed 상태가 `scoring_jobs.status`에 미반영 → 피드 영구 scoring 표시)는 T-045 §8이 "failed 가시화는 후속/M6"로 문서화 이연 + [REV-M4-003/010] 상태채널 arch-debt와 동일 뿌리.
+  - 결정/권장: M6 DLQ(redrive policy) + 상태채널 consumer 도입 시 닫음. 현 M4 happy-path는 done(ranking_run join)으로 충분.
+- **QA-M4-002** | P2 | [관측됨] | linked: T-051 | status: open | `podo/apps/web/components/JobCardActions.tsx:45-55`
+  - 발견: `apply()`가 record API 호출 전 `onProcessed?.(jobId)`로 낙관적 정리 + `window.open`. 롤백(`onRestore`)은 존재·호출되나 부모가 `onRestore` prop을 안 주면 실패 시 카드가 영구 제거 잔류(서버엔 미기록).
+  - 근거: FeedList/JobCard 결선에서 `onRestore` 전달 확인됨(web 회귀 0). 단 prop 의존이라 미전달 호출지점이 생기면 UI↔서버 불일치.
+  - 결정/권장: `onRestore` 필수 prop 계약화 또는 url 유무에 따른 낙관적 정리 순서 명문화. 낮은 우선순위.
+- **QA-M4-003** | P2 | [관측됨] | linked: T-044 | status: resolved (repair-workitem 2026-06-08 — 생성자 throw 적용) | `podo/apps/api/src/queue/queue.service.ts:19` (reviewer REV-M4-005 수렴)
+  - 발견: `SQS_QUEUE_URL` 미설정 시 `?? ''` 빈 문자열로 부팅 — 주석은 "early detection"이나 실제 실패는 enqueue 시점(500). M6 배포 환경변수 누락을 startup이 아닌 런타임에 노출.
+  - 결정/권장: 생성자 guard(`if(!url) throw`). qa·reviewer 독립 수렴(신뢰도↑).
+- **QA-M4-004** | P2 | [관측됨] | linked: T-042 | status: open | `scoring-jobs.controller.ts` + `resumes.service.ts` score()
+  - 발견: `user_id=null`(seed/레거시) 이력서에 대해 scoring-jobs 폴링은 404(아무도 조회 불가), `score()`는 통과(`if(resume.user_id && ...)`) — 소유권 비대칭.
+  - 근거: T-042 §8 "소유권/격리는 user_id 있는 이력서에만(tolerant), seed(null)는 하위호환 미차단" 의도와 정합하나 폴링 404는 부수효과. 실 업로드는 항상 소유자 부여라 M4 위험 낮음.
+  - 결정/권장: M5 seed 정리(REV-M3-007/REV-M4-002 seed shim 제거)와 함께 닫음.
+- **QA-M4-005** | P2 | [관측됨] | linked: T-050 | status: open | applications dto + `JobCardActions.tsx`
+  - 발견: `ApplicationAction`에 `'unfavorite'` 타입 정의되나 UI 버튼·E2E 커버리지 없음(dead type). favorite 토글 해제 경로 미노출.
+  - 결정/권장: M5 즐겨찾기 페이지에서 구현 또는 타입 제거.
+
+### 관찰 메모
+- 세션 보안: `httpOnly:true` 고정 · `sameSite`/`secure` isProd 분기 · CORS `credentials:true` + 명시 origin(와일드카드 없음) · `/auth/test-session` `NODE_ENV!=='test'` 403 가드 — 전부 확인.
+- 계정 PII 비유입(ADR-105 Amend1): SQS 페이로드·세션 직렬화·strategy validate()에 email/display_name/accessToken 로그 0. E2E account-pii-scan 0.
+- GS-1-through-queue: `persist_run` 복합키 upsert 멱등(중복 SQS 메시지→1 ranking_run) + recommendations DELETE/재삽입. T-045 AC-2가 2회 채점 동일 단언.
+- held 렌더: JobCard held→PendingState(FitScoreRing/PassBand 미렌더, 숫자 점수 0). 가짜 점수 없음.
+- worker retry: `MAX_RETRIES=3` + 지수 backoff 상한 10s, 초과 시 failed 반환 — 무한 루프 없음(AC-4).
+- feed currentRun tie-break: `orderBy [{created_at:desc},{id:desc}]` — QA-M2-006 해소 유지.
+- M3 carryover: QA-M3-006(오라클 갭) resolved 유지. QA-M2-003/REV-M3-007 seed write 편의 예외 = M4도 worker `_ensure_seed_resume` 잔존(큐 경로는 미사용 → dead shim, [REV-M4-002]로 이관).
+
 ## 일반
 
 ### P0
