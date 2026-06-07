@@ -242,6 +242,7 @@ border.width:   "1.5px"   # 친근한 soft-chunky border (hairline 아님)
 
 ### 7-3. Patterns
 - **Feed** — 탭 + 섹션(마감 임박 / 오늘의 추천) + 리스트 가상화(커서 페이지네이션, ARCH §7-1·§7-4).
+- **CoarseSection ("아직 깊이 분석 안 한 공고")** — deep 분석 안 된 공고를 **JobCard에서 FitScoreRing·PassBand(적합도 배지)를 제거한 변형**으로 유사도순 노출(신규 컴포넌트 X). deep 피드와 **별도 섹션·cursor**, **fit 점수/밴드/배지 절대 없음**(임베딩 유사도는 적합도가 아님 — "틀린 점수" thesis 보호, ADR-108 D3). copy: "아직 깊이 안 본 공고예요 — 원하면 분석할게요"(포도). M5 F-021에서 도입.
 - **EmptyState** — "오늘은 신규가 적어요"(podo + 최근 7일 미처리 재노출). 일급.
 - **PendingState (보류)** — 일급. podo(56px) + dashed 카드 + 정직한 메시지 + 원문 링크("틀린 점수보다 정직"). 가짜 점수 금지.
 - **ErrorState** — 수집 실패/커버리지 degraded. 숨기지 않고 노출(Fail #3 차단). podo가 "아침 배달이 늦어요" 톤이되 사실 명확.
@@ -277,6 +278,15 @@ duration.routing:  240ms   # 탭 스위치·페이지 전환
 - **금지:** bounce/elastic/spring-overshoot, confetti, 무한·장식 루프, parallax (§9).
 - **`prefers-reduced-motion: reduce`** (모든 모션 필수 분기): transform/translate/arc-draw 제거, opacity fade(≤120ms)만 또는 무모션. stagger 제거.
 
+### 8-1. Lottie (모션 에셋)
+> 적용은 '도착'의 *의미 전달*에 한정 — arrival(신규 공고 도착)·loading(분석 중)·온보딩 환영. 장식·앰비언트 루프 금지(§9). 출처: [dotLottie-web](https://github.com/LottieFiles/dotlottie-web) · [dotLottie React](https://developers.lottiefiles.com/docs/dotlottie-player/dotlottie-react/) · [Lottie WCAG 가이드](https://developers.lottiefiles.com/docs/resources/wcag/).
+- **라이브러리/포맷:** LottieFiles 공식 플레이어 **`@lottiefiles/dotlottie-react`**(dotLottie-web 래퍼, Rust+WASM/ThorVG) + **`.lottie`(dotLottie v2) 포맷**(json 대비 압축). Next.js App Router에선 **`dynamic(() => …, { ssr: false })` 클라이언트 전용**(브라우저 API 의존). lottie-web/lottie-react 직접 사용 대신 dotLottie 권장.
+- **reduced-motion 필수 분기:** `prefers-reduced-motion: reduce`면 **autoplay 금지 → 정적 프레임/poster 대체**(또는 무렌더). `window.matchMedia('(prefers-reduced-motion: reduce)')` 체크. 의미가 큰 애니메이션만 느리게/단순화. (§8 reduced-motion 규율의 lottie 확장.)
+- **성능 예산:** 에셋 **≤~50KB(.lottie) 권장** · **동시 재생 ≤2개** · 뷰포트 진입 시 lazy load · 무한 루프 금지(의미 있는 1회 위주). renderer 기본 SVG(소형·선명), 복잡 시 canvas.
+- **접근성:** 장식 애니메이션은 `aria-hidden` · 의미 전달 애니메이션은 텍스트 대안 동반 · 애니메이션은 *보조 그래픽*이지 1차 콘텐츠 아님.
+- **금지:** 점수·밴드·근거 등 *판단 데이터*에 lottie 장식(원칙 1) · 전면/배경 앰비언트 lottie · 무한 장식 루프 · 단순 상태전환(hover·press·탭)에 lottie 사용(그건 CSS/§8 토큰).
+- **CSS vs Lottie:** 단순 전환(hover·press·탭·fade·arc draw)은 **CSS/§8 토큰**(F-018 기본 동작). Lottie는 마스코트 표현·복합 일러스트 모션처럼 CSS로 비효율적인 경우만. **lottie 미반영/로드 실패 시 CSS arrival로 graceful fallback**(차단 아님).
+
 <a id="design-9-donts"></a>
 ## 9. Do's and Don'ts
 > explicit prohibition (LLM 정확도 단일 최대 기여). 위반은 리뷰에서 1순위 차단.
@@ -300,6 +310,7 @@ duration.routing:  240ms   # 탭 스위치·페이지 전환
 - icon-tile-above-heading 패턴 반복 지양
 - monospace를 "기술적 느낌" 장식용으로 남용 금지 (코드·식별자·수치에만)
 - bounce/elastic/confetti 모션 금지 (모션은 '도착' 의미 전달 전용)
+- lottie를 판단 데이터·전면 배경·무한 장식·단순 상태전환에 쓰지 않는다 — 의미('도착'·로딩·온보딩) 전용 + reduced-motion 정적 대체(§8-1)
 - sparkline 등 데이터 시각요소를 장식으로 사용 금지
 
 **[podo ai 고유 — thesis 보호]**
