@@ -1,7 +1,7 @@
 # T-076-tier5-finance-sources
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 feature
