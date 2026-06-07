@@ -1,7 +1,7 @@
 # T-073-tier2-foreign-company-sources
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 feature
