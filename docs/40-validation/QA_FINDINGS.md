@@ -113,16 +113,19 @@
 
 ## M3
 
-> `/stabilize-milestone M3` (2026-06-07) qa 위임 + 메인 세션 직접 검증 결과. 대상: T-032~T-041 (doc reconcile + 이력서 업로드 API·스키마·PII 마스킹·스코어링 연결·업로드 UI·PII Safety Pass). 통합 validate exit 0(TS 32 passed / Python 134 passed, 17 DB-gated skip) + `pnpm e2e`(seed 경로) exit 0 위에서 *lint/type/unit이 못 잡는* 마스킹 robustness·cross-stack subprocess 경계·결정성·소유권 정합 점검. **코드결함 P0 0건 → graduation #5(QA_FINDINGS P0) 기준 충족.** (단 §5 #3 업로드-경로 E2E는 미배선 — graduation E2E gate는 [IMPROVEMENT_GUIDE M3-E2E-001](IMPROVEMENT_GUIDE.md) 참조.) finding 전수 기록(ADR-046#d3). **메인 세션이 qa P1 2건을 검증 후 P2 하향**: QA-M3-001(이메일 내 RRN이라는 pathological 입력 필요 + 잔여는 비식별 도메인 파편), QA-M3-002(error.filter가 비-HttpException을 generic 'Internal server error'로 직렬화 → client 미노출 + worker는 *마스킹본*만 읽음). 수렴 신호(신뢰도↑): QA-M3-004(evidence-summary TS↔Python divergence)를 qa·reviewer(REV-M3-003) 독립 발견.
+> **[정식 재grade 2026-06-07]** Fix round(`f1f17df`: e2e.mjs 업로드 경로 재배선 + `e2e_pii_scan.py` + 업로드 fixture 웜캐시) 후 `/stabilize-milestone M3` 재실행 — **졸업 가능 YES**. 본 재grade는 app 코드 무변경(Fix round = E2E 하니스+웜캐시+docs만)이라 qa/reviewer *전수 재위임 없이* 초판 finding을 그대로 유지하고, Fix work에 직결된 단일 finding **QA-M3-006(오라클 갭)을 resolved로 전이**(실 masker→DB end-to-end 실증). 본 세션 실측: validate exit 0(TS 32/Python 134 passed, 17 DB-skip) · `pnpm e2e` exit 0(업로드 resume_id=14→마스킹 placeholders=5→웜캐시 채점→PII scan 0/5 literal→feed scored 6/held 0/toss+daangn). **### P1 잔여 open = 0**(QA-M3-006 closed).
+>
+> `/stabilize-milestone M3` (2026-06-07, 초판) qa 위임 + 메인 세션 직접 검증 결과. 대상: T-032~T-041 (doc reconcile + 이력서 업로드 API·스키마·PII 마스킹·스코어링 연결·업로드 UI·PII Safety Pass). 통합 validate exit 0(TS 32 passed / Python 134 passed, 17 DB-gated skip) + `pnpm e2e`(초판=seed 경로 / 재grade=업로드 경로) exit 0 위에서 *lint/type/unit이 못 잡는* 마스킹 robustness·cross-stack subprocess 경계·결정성·소유권 정합 점검. **코드결함 P0 0건 → graduation #5(QA_FINDINGS P0) 기준 충족.** (단 §5 #3 업로드-경로 E2E는 미배선 — graduation E2E gate는 [IMPROVEMENT_GUIDE M3-E2E-001](IMPROVEMENT_GUIDE.md) 참조.) finding 전수 기록(ADR-046#d3). **메인 세션이 qa P1 2건을 검증 후 P2 하향**: QA-M3-001(이메일 내 RRN이라는 pathological 입력 필요 + 잔여는 비식별 도메인 파편), QA-M3-002(error.filter가 비-HttpException을 generic 'Internal server error'로 직렬화 → client 미노출 + worker는 *마스킹본*만 읽음). 수렴 신호(신뢰도↑): QA-M3-004(evidence-summary TS↔Python divergence)를 qa·reviewer(REV-M3-003) 독립 발견.
 
 ### P0
 없음. (마스킹 하류 6표면 literal scan 0건[T-040, DB 주입 실증] + 캐시 키 결정성 보존[resume_id 추가가 정규화 입력만 확장] + 테이블 소유권 경계 유지[api=resumes write, worker=ranking_runs/recommendations]. 실 PII 누출·데이터 무결성 파괴급 결함 없음.)
 
 ### P1
-- **QA-M3-006** | P1 | [관측됨] | linked: T-040 | status: open | `ai/tests/test_pii_safety.py:50-58`
+- **QA-M3-006** | P1 | [관측됨] | linked: T-040 | status: **resolved (Fix round `f1f17df` + 정식 재grade 2026-06-07)** | `ai/tests/test_pii_safety.py:50-58` → `scripts/e2e_pii_scan.py`
   - 발견: PII Safety Pass(T-040)의 `resumes.content` 표면은 **고정 known-value 오라클**(테스트가 직접 placeholder 치환)로 생성되며, 실 `RegexResumeMasker`(NestJS TS)의 regex 경계 동작을 end-to-end로 검증하지 않는다. 실 masker→DB surface-1 링크는 stabilize E2E(실 업로드)가 authoritative인데, 현 `scripts/e2e.mjs`는 업로드 phase가 미배선(seed 경로로만 채점)이라 그 검증이 *부재*.
   - 근거: 하류 표면(`ranking_runs.result`·`recommendations`·로그·`.cache/llm`·웜캐시)의 raw PII 0은 실증됨(주 누출 표면 안전). 그러나 "NestJS 마스커가 모든 PII 변종을 실제로 잡아 surface-1을 만든다"의 end-to-end 보증은 oracle 치환으로 이연. T-036(마스커 단위) + T-040(하류 표면) + *업로드 E2E*(미완)의 3-way 커버리지 중 마지막 한 변이 비어 있음.
   - 결정/권장: M3-E2E-001(업로드-경로 E2E 배선) 시 e2e.mjs에 실 업로드 POST → `resumes.content` DB scan 단계를 추가해 실 masker end-to-end를 닫는다. graduation §5 #3·#7 직결.
+  - **해소(Fix round + 재grade 실측):** `scripts/e2e.mjs` phase 5가 실 PII fixture를 `POST /api/v1/resumes`로 업로드 → NestJS `RegexResumeMasker`가 실제 마스킹(placeholders=5) → phase 6 `scripts/e2e_pii_scan.py`가 *실 DB*의 `resumes.content`(masker가 만든 surface-1) + `ranking_runs.result`를 읽어 fixture의 알려진 raw PII 5종(이름·email·phone·RRN·개인URL) literal scan = **0건**, `[MASKED_]` 토큰 존재 sanity 통과. 본 재grade 세션 `pnpm e2e` exit 0으로 실 masker→DB end-to-end 변을 실증 — 3-way 커버리지의 마지막 변이 채워짐. (잔여 P2: QA-M3-001 치환 순서 edge-case는 별개로 open.)
 
 ### P2
 - **QA-M3-001** | P2 | [관측됨] | linked: T-036 | status: open | `podo/apps/api/src/resumes/resume-masker.port.ts:42-51`
