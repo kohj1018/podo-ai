@@ -1,0 +1,1 @@
+{"response": "{\"winner\":\"b\",\"confidence\":\"low\",\"reason\":\"Both roles have the same overall core-prerequisite gap count and only weak evidence, but B has slightly more direct stack alignment for a frontend role (React, Next.js, TypeScript) than A does for fullstack delivery. A lacks explicit backend, API, database, and deployment evidence, making it the weaker fit.\"}"}

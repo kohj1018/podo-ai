@@ -1,0 +1,1 @@
+{"response": "{\"winner\":\"a\",\"confidence\":\"medium\",\"reason\":\"Job A has a strong domain alignment and at least some same-stack evidence in React/TypeScript/Node.js, even though core backend/fullstack prerequisites are still largely missing. Job B is only adjacent and lacks explicit Kotlin/Spring and other backend prerequisites, so A is the better fit.\"}"}

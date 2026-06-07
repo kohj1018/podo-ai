@@ -1,0 +1,1 @@
+{"response": "{\"winner\":\"b\",\"confidence\":\"low\",\"reason\":\"Job B has stronger domain alignment (strong frontend) and some direct evidence for React/Next.js and TypeScript, even though several critical requirements remain unproven. Job A is adjacent backend with no direct critical matches and broader core prerequisite gaps, so B is the better fit.\"}"}

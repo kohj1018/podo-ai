@@ -1,0 +1,1 @@
+{"response": "{\"winner\":\"b\",\"confidence\":\"low\",\"reason\":\"Job B has strong domain alignment and at least one weak critical match from the same stack, while Job A is only adjacent with no direct or adjacent critical matches. Both have major prerequisite gaps, but B is the closer fit overall.\"}"}

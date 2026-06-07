@@ -1,15 +1,20 @@
 #!/usr/bin/env node
 /**
- * e2e.mjs — podo-ai fresh-clone E2E 오케스트레이션 (graduation §5 #3).
+ * e2e.mjs — podo-ai fresh-clone E2E 오케스트레이션 (graduation §5 #3, M3 업로드 경로).
  *
- * 단일 명령으로 crawl(fixture) → score(웜캐시) → api 서빙 → feed/coverage 검증을 완주한다.
+ * 단일 명령으로 crawl(fixture) → api 기동 → **이력서 업로드(실 PII fixture → NestJS 마스킹)**
+ * → 스코어 트리거(POST /resumes/:id/score → worker 채점, 웜캐시) → **실 masker end-to-end PII 스캔**
+ * → feed/coverage 검증을 완주한다. M3 done-line(합성 seed→실 업로드 입력 교체)을 자동 게이트로 실증.
  * 무키(OPENAI_API_KEY 없음) 기본 — 커밋된 웜캐시(ai/worker/fixtures/llm_cache)로 외부 호출 0회.
  *
- *   node scripts/e2e.mjs              무키 E2E 검증(기본). 웜캐시 필요.
+ *   node scripts/e2e.mjs              무키 E2E 검증(기본). 업로드 fixture 웜캐시 필요.
  *   node scripts/e2e.mjs --warm       웜캐시 (재)생성 — OPENAI_API_KEY 필요(1회 키 실행).
+ *                                     업로드 fixture(마스킹본)×JD 캐시 키로 재생성 → git add 후 커밋.
  *   node scripts/e2e.mjs --no-compose 외부 제공 DB 사용(CI postgres service). docker compose 생략.
  *   node scripts/e2e.mjs --down       끝나면 docker compose down.
  *
+ * WHY 업로드 경로: M2 seed 경로(`python -m worker` 직접 주입)는 업로드/마스킹을 안 탔다. M3는
+ *   실 업로드(HTTP) → 마스킹(NestJS) → resume_id 채점이 done-line이라 본 스크립트가 그 경로를 구동한다.
  * WHY Node: verify.mjs와 동일 — Windows/macOS/CI 단일 스크립트로 pnpm(TS)+uv(Python) 호출.
  */
 
@@ -52,10 +57,13 @@ const DATABASE_URL =
   process.env.DATABASE_URL ?? 'postgresql://podo:podo@localhost:5432/podo'
 const LLM_CACHE_DIR = resolve(ROOT, 'ai/worker/fixtures/llm_cache')
 const CRAWL_FIXTURE = resolve(ROOT, 'crawler/fixtures/seed_jobs.txt')
+// 업로드 fixture = T-040 PII Safety fixture 재사용(알려진 raw PII + 매칭 가능 evidence) — DRY.
+const PII_FIXTURE = resolve(ROOT, 'ai/tests/fixtures/pii_resume.txt')
 const COMPOSE = ['-f', resolve(ROOT, 'infra/docker-compose.yml')]
 const API_DIR = resolve(ROOT, 'podo/apps/api')
 const FEED_URL = `http://localhost:${API_PORT}/api/v1/feed`
 const COVERAGE_URL = `http://localhost:${API_PORT}/api/v1/coverage`
+const RESUMES_URL = `http://localhost:${API_PORT}/api/v1/resumes`
 
 // ─── 유틸 ───────────────────────────────────────────────────────────────────
 
@@ -165,24 +173,24 @@ async function main() {
   // phase 3: crawl (fixture — 네트워크/키 불요)
   run('uv run python -m crawler', { env: { ...dbEnv, CRAWL_FIXTURE } })
 
-  // phase 4: score (웜캐시 — 무키 기본 / --warm은 실 LLM로 캐시 생성)
-  const scoreEnv = { ...dbEnv, LLM_CACHE_DIR }
-  if (!WARM) {
-    // 무키 검증: 키를 제거해 cache miss가 조용히 통과하지 못하게 한다(genuine keyless).
-    scoreEnv.OPENAI_API_KEY = ''
-  }
-  run('uv run python -m worker', { env: scoreEnv })
-  if (WARM) {
-    log(`웜캐시 생성됨: ${warmCacheEntries()}개 항목 → \`git add ai/worker/fixtures/llm_cache\` 후 커밋`)
-  }
-
-  // phase 5: api 빌드 + 기동
+  // phase 4: api 빌드 + 기동 — 업로드/스코어 트리거를 받으려면 *채점 전*에 기동해야 한다.
+  //   score 트리거 시 api가 worker subprocess(`python -m worker --resume-id`)를 spawn하고
+  //   worker-runner가 `env: process.env`를 상속하므로, LLM_CACHE_DIR·REPO_ROOT·키 모드를 api env로 전달한다.
   run('pnpm --filter @podo/api run build', { env: dbEnv })
+  const apiEnv = {
+    ...dbEnv,
+    LLM_CACHE_DIR, // worker subprocess가 커밋 웜캐시 사용
+    REPO_ROOT: ROOT, // worker subprocess cwd 파생(../../..) 대신 명시 — robust
+    PORT: API_PORT,
+    // 무키 검증: 키를 ''로 강제해 cache miss가 조용히 통과하지 못하게 한다(genuine keyless).
+    // --warm: 실 키 전파 → spawn된 worker가 실 LLM 호출로 캐시 생성.
+    OPENAI_API_KEY: WARM ? (process.env.OPENAI_API_KEY ?? '') : '',
+  }
   log('api 기동(node dist/main.js)')
   apiChild = spawn('node', ['dist/main.js'], {
     cwd: API_DIR,
     stdio: 'inherit',
-    env: { ...process.env, ...dbEnv, PORT: API_PORT },
+    env: { ...process.env, ...apiEnv },
   })
   apiChild.on('exit', (code) => {
     if (code && code !== 0 && !apiChild.killed) fail(`api 프로세스 종료(exit ${code})`)
@@ -196,10 +204,49 @@ async function main() {
     }
   })
 
-  // phase 6: feed/coverage 검증
+  // phase 5: 이력서 업로드(실 PII fixture) → NestJS 마스킹 → 마스킹본 영속 → 스코어 트리거.
+  const fixture = readFileSync(PII_FIXTURE, 'utf8')
+  log('이력서 업로드(POST /api/v1/resumes, paste) — 실 PII fixture → NestJS RegexResumeMasker')
+  const upRes = await fetch(RESUMES_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text: fixture }),
+  })
+  if (!upRes.ok) fail(`업로드 실패: POST /api/v1/resumes → ${upRes.status}`)
+  const uploaded = (await upRes.json()).data
+  const resumeId = uploaded.resume_id
+  const ev = uploaded.evidence_summary ?? {}
+  log(
+    `업로드됨 resume_id=${resumeId} · placeholders=${uploaded.placeholders} · ` +
+      `evidence(skills ${ev.skills}/exp ${ev.experiences})`,
+  )
+
+  log(
+    `스코어 트리거(POST /api/v1/resumes/${resumeId}/score) — worker --resume-id ${resumeId} 채점` +
+      (WARM ? ' (실 LLM, 캐시 생성)' : ' (웜캐시)'),
+  )
+  const scRes = await fetch(`${RESUMES_URL}/${resumeId}/score`, { method: 'POST' })
+  if (!scRes.ok) {
+    fail(
+      `스코어 트리거 실패: POST /api/v1/resumes/${resumeId}/score → ${scRes.status}.\n` +
+        `      무키 채점이 cache miss로 실패했을 수 있다(업로드 fixture 웜캐시 부재).\n` +
+        `      OPENAI_API_KEY 보유 상태로 \`pnpm e2e:warm\`을 1회 돌려 업로드 fixture 웜캐시를\n` +
+        `      생성·커밋(\`git add ai/worker/fixtures/llm_cache\`)한 뒤 \`pnpm e2e\`를 재실행하세요.`,
+    )
+  }
+  if (WARM) {
+    log(`웜캐시 생성됨: ${warmCacheEntries()}개 항목 → \`git add ai/worker/fixtures/llm_cache\` 후 커밋`)
+  }
+
+  // phase 6: PII Safety — 실 masker end-to-end 표면 스캔(QA-M3-006 종결, T-040 오라클과 별개).
+  run('uv run python scripts/e2e_pii_scan.py', {
+    env: { ...dbEnv, E2E_RESUME_ID: String(resumeId) },
+  })
+
+  // phase 7: feed/coverage 검증 — 업로드 이력서 run이 current(최신 ranking_run).
   await assertFeedAndCoverage()
 
-  log('✓ E2E 통과 — crawl(fixture) → score(웜캐시) → feed/coverage 재현 완료')
+  log('✓ E2E 통과 — 업로드(실 PII 마스킹) → score(웜캐시) → PII scan → feed/coverage 재현 완료')
   finishAndExit(0)
 }
 

@@ -1,0 +1,1 @@
+{"response": "{\"matched_evidence_ids\":[],\"match_level\":\"missing\",\"confidence\":\"high\",\"explanation\":\"제공된 증거에는 Redux/Zustand 같은 상태관리 라이브러리 사용이나 복잡한 화면 상태 설계에 대한 직접적 또는 간접적 근거가 없습니다.\"}"}
