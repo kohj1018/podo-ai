@@ -59,7 +59,38 @@ Telemetry — M2
 - 재grade (Fix round 2, 2026-06-06): 졸업 가능 NO→**YES**. graduation §5 6/6 충족(task done·validate exit 0·E2E exit 0·AC 100%·P0 0·GS-1-through-DB byte-identical)
 ```
 
+### M3 — /stabilize-milestone (2026-06-07)
+- **졸업 가능: NO (초판, 단일 차단 §5 #3) → Fix round로 §5 #3 closed, 정식 재grade 대기.** 10/10 task done · 통합 validate exit 0(TS 32 passed / Python 134 passed, 17 DB-gated skip) · AC 매핑 21/21(100%) · FAC 17/17(100%) · **QA_FINDINGS 코드결함 P0 0** · **PII Safety Pass green**(하류 6표면 literal scan 0, DB 주입 실증) · **doc reconcile 핵심표면 완료**(용어 grep DISCOVERY/Charter/DESIGN/F-001 = 0 · Insight I-1 done/I-2·I-3 planned+linked).
+  - **초판 미충족 §5 #3** (stabilize report-only라 차단): `pnpm e2e`가 seed 경로(`uv run python -m worker`)로만 채점 → 업로드→마스킹→`resume_id` 채점→feed 경로 미배선. **→ Fix round(커밋 `f1f17df`)로 회수**: e2e.mjs 업로드 경로 재배선 + `e2e_pii_scan.py`(실 masker end-to-end scan) + 업로드 fixture 웜캐시 재생성(+47). 무키 `pnpm e2e` exit 0 실측(scored 6/held 0). §2 M3-E2E-001 closed 참조.
+- **단일 미충족 = §5 #3:** `scripts/e2e.mjs`가 seed 경로로만 채점(`uv run python -m worker`, phase 4)하고 **업로드→마스킹→`resume_id` 채점→feed 경로를 자동 게이트로 미실증**. 웜캐시(49 entries)도 seed 기반(마스킹 fixture 미반영). M3 done-line의 핵심("업로드 경로가 scoring loop에 연결되는가")이 E2E로 미증명. **M2-E2E-001과 동형**(M2 초판 NO → 별도 Fix round 코드 작업 → 재grade YES). stabilize는 report-only라 e2e 배선·웜캐시 재생성을 *직접 못 함* → 아래 §2 M3-E2E-001(P0 후속, main-session/`/repair-workitem`).
+- **reviewer(code): P1 4 / P2 5** — [Arch-iface-7-3] subprocess 오케스트레이션 ADR 미신설(REV-M3-002), [Arch-iface-7-1] manual validation vs §7-1 컨벤션(REV-M3-001), evidence-summary TS↔Python 이중 파싱(REV-M3-003), controller SRP(REV-M3-004). **reviewer(design): 메인 세션이 design P0 3건(label/aria-busy/role=region 미구현)을 검증 후 P1 하향** — graduation P0 게이트는 QA_FINDINGS 기준이라 무관 + M3=로컬 단일사용자 pre-deploy + F-015 §8 Lighthouse a11y "선택" 표기. 단 셋은 F-015 §8-1 명시 요구이나 *어느 task AC에도 미매핑* → [Spec-gap]. qa: [QA_FINDINGS `## M3`](QA_FINDINGS.md)(P0 0 / P1 1 / P2 5). **수렴(신뢰도↑):** [Arch-iface-7-3]=T-037 report+REV-M3-002 · [Arch-iface-7-1]=T-034 report+REV-M3-001 · evidence-summary divergence=QA-M3-004+REV-M3-003.
+- **Dependency hygiene:** `pip-audit`(uv export→uvx, 로컬 editable 필터) → **No known vulnerabilities found** ✅. `pnpm audit --prod`(podo/) → **22건 (high 8 / moderate 12 / low 2)** — `next`(<15.5.16) + `@nestjs/*`. **M2 [Dependency] 재등장**(deferred "별도 task") → 아래 §2 P1. 6개월 unused deps 해당없음.
+- **Deterministic preflight:** ADR-ref 전부 resolve(**ADR-105 신규 존재 ✅ status=accepted · ARCH §8/§10 backref 실재** — T-036 AC-3 충족). FAC↔AC unmapped 0(17/17). 용어 grep: **DISCOVERY/Charter/DESIGN/F-001 = 0건 ✅**(F-012 reconcile 성공). 잔여: **ARCH §6(glossary)·§7-4 "합격가능성 밴드" 2건**(T-032 scope 밖 — ARCH 미포함) + **DESIGN_RESEARCH 2건**(연구 doc) → 아래 §3 P2. raw-hex: 컴포넌트 .tsx 0(globals.css `:root`만 = 토큰 instantiation 층, 5-2 제외 대상 동형). markdown-link-check 미설치 → Doc-link 외부검사 **skip**. mode-label 불일치 0. ARCH §7-x `### Don'ts` 부재 → 5-4 grep skip(문서화된 gap).
+- **DISCOVERY↔Charter staleness:** signal 1 firing(DISCOVERY mtime 01:58 > Charter 01:50) — **단 F-012가 방금 reconcile 수행 + 용어 grep으로 Charter 본문 clean 확인** → benign edit-ordering(Insight promote가 Charter snapshot 후 DISCOVERY-only 편집, §15는 Charter 미스냅샷). *content drift 아님* → 아래 §3 P2(저신뢰). **Insight backlog 0 open**(I-1 done/I-2·I-3 planned) → 미반영 인사이트 신호 0 — **M1→M2 [Insight-backlog] 재발 해소**. (status 정리: DISCOVERY/Charter `## 0. Status`는 여전히 `draft` — F-012 §4 "status 현행화" scope가 어느 task AC에도 미포함 → §3 P2 minor.)
+- **헤드라인:** M1→M2 patterned doc-drift 4종([Insight-backlog]·[Design-token-drift]·[Surface-backref]·용어 divergence)이 **F-012/T-032/T-033으로 실제 해소**(반복 권고만 하던 부채를 milestone 첫 feature로 흡수한 효과). 잔존 cross-stabilize 회귀는 **[Dependency] 1종**(deferred dep bump)뿐 + [Design-draft] label 약한 잔존.
+
+```
+Telemetry — M3
+- Tasks: 10 / 10 (100%)
+- AC↔테스트 매핑: 21 / 21 (100%)
+- FAC coverage: 17 / 17 (100%)
+- Evidence Bundle 신뢰도: High 5 (T-033·035·038·039·041) / Medium 5 (T-032·034·036·037·040) / Low 0
+- Validate exit code: 0 (TS 32 passed / Python 134 passed, 17 DB-skip) · E2E exit 0 (`pnpm e2e` — **Fix round 후 업로드 경로 재배선**: upload→mask→score→PII scan→feed scored 6/held 0)
+- Findings: P0 1 (M3-E2E-001 = §5 #3 업로드 E2E gap → **Fix round closed, 커밋 f1f17df**; QA_FINDINGS 코드결함 P0 = 0) / P1 7 / P2 ~15
+- Cross-stabilize 회귀 신호: 1건 명확 — [Dependency](M2→M3 재등장, next/NestJS bump deferred). + [Design-draft] label 약한 잔존(DESIGN status=draft, 단 M3가 §7 인벤토리 능동 갱신). **해소 4종**([Insight-backlog]·[Design-token-drift]·[Surface-backref]·용어 divergence) — patterned doc-drift가 F-012로 끊김(개선 신호).
+```
+
 ## 1. 우선순위
+
+### M3
+1. (P0) ✅ **DONE (Fix round, 커밋 `f1f17df`)** — **§5 #3 업로드-경로 E2E 배선 + 웜캐시 재생성** (M3-E2E-001): `scripts/e2e.mjs` 업로드 phase(`POST /api/v1/resumes` → `POST /resumes/:id/score` → feed 적합도 배지 assert) + `scripts/e2e_pii_scan.py`(실 masker end-to-end `resumes.content`+`ranking_runs.result` scan, QA-M3-006 닫음) + 업로드 fixture 웜캐시 재생성(+47). 무키 `pnpm e2e` exit 0 실측(scored 6/held 0). **잔여: `/stabilize-milestone M3` 정식 재grade(NO→YES) + push 시 CI e2e-smoke green.**
+2. (P1) **[Arch-iface-7-3] + ADR-106 후보** — NestJS api가 `uv run python -m worker --resume-id` subprocess를 spawn하는 cross-stack 오케스트레이션이 ARCH §7-3("api는 산출물 서빙·미계산/미트리거")에 미기재. REV-M3-002 + T-037 report 수렴. M4 컨테이너 분리 시 spawn 동작 불가 → ADR로 "M3 로컬 spawn=임시, M4 큐/HTTP 트리거 교체" 명문화 + §7-3 본문 보강. **architect 호출 권장.**
+3. (P1) **[Arch-iface-7-1]** — `resumes.controller.ts` manual 포맷/크기 검증이 ARCH §7-1 "ValidationPipe + class-validator DTO" 컨벤션과 divergence(class-validator 미설치). REV-M3-001 + T-034 report 수렴. §7-1 본문에 "multipart inline guard 예외" 1줄 sync 또는 class-validator 설치.
+4. (P1) **[Design-a11y] + [Spec-gap]** — F-015 §8-1 접근성(파일 input `<label>`·업로드 중 `aria-busy`·preview `role=region`)이 미구현·미테스트(DSN-M3-001/002/003, 메인 세션 P0→P1 하향). 셋 다 *어느 task AC에도 미매핑* → `/plan-workitem F-015`로 a11y task 추가 회수.
+5. (P1) **[Dependency]** — `next`≥15.5.16 + NestJS bump 후 재audit(pnpm high 8건). M2 재등장 — 별도 bump task. pip-audit clean.
+6. (P1) **evidence-summary TS↔Python 동기 위험** — preview 카운트(TS)와 채점 evidence(Python)가 독립 2구현 → 정규식 drift 시 UX 불일치(REV-M3-003/QA-M3-004). WHY 주석 + 동기 규율.
+7. (P1) **[Spec-grep-selfref]** — T-032 AC-1/F-012 FAC-1의 `grep "합격가능성 밴드"` 검증이 *grep 명령·FAC 정의를 적은 spec-doc 자체*를 매칭(논리적 self-reference). T-032 report가 stabilize 회수 요청 → grep 범위를 spec-doc 제외로 좁히는 plan touch-up.
+8. (P2) reviewer 리팩토링(REV-M3-004~009) + design 폴리시(DSN-M3-004~008) + ARCH §6/§7-4·DESIGN_RESEARCH 용어 잔여 + DISCOVERY/Charter status=draft — 전부 비차단.
 
 ### M2
 1. (P0) **E2E fresh-clone 재현성 확보** — `enableCors()` 커밋 + 무키 score 경로(`.cache/llm` 커밋 or 합성 fixture) + 단일 crawl→score→feed 오케스트레이션 명령/runbook(README 갱신). graduation §5 #3 직결.
@@ -145,7 +176,54 @@ Telemetry — M2
   - 발견: DESIGN.md `status=draft` + M2는 실제 UI 구현(T-028/029) → ADR-027#amend-3 신호. M1이 "status 라벨 정리" 권고했으나 미적용(Cross-stabilize 회귀 신호).
   - 권장: DESIGN.md status를 accepted로 승격(또는 프로젝트 draft 컨벤션 명문화). `/bootstrap-design` 재실행은 불필요(문서 충실).
 
+### M3
+
+> **Fix round 2026-06-07** (메인 세션, stabilize 회수 + 커밋 `f1f17df`): **M3-E2E-001 closed (demonstrated)** — `scripts/e2e.mjs`를 업로드 경로로 재배선(api 채점-전 기동 → `POST /resumes`(실 PII fixture→NestJS 마스킹) → `POST /resumes/:id/score`(worker `--resume-id`, 웜캐시) → PII scan → feed assert) + `scripts/e2e_pii_scan.py`(실 masker end-to-end resumes.content+ranking_runs.result 스캔, QA-M3-006 종결) + 업로드 fixture 웜캐시 재생성(+47 엔트리, 사용자 키 1회). **실측**: 무키 `pnpm e2e` exit 0 — upload→마스킹(resume_id, placeholders=5)→score(웜캐시 hit, 무 LLM)→PII scan 0건→feed **scored 6/held 0/toss+daangn**. graduation §5 #3·#7 자동 게이트 충족. **잔여(외부검증)**: push 시 CI e2e-smoke green + `/stabilize-milestone M3` 정식 재grade(NO→YES). 나머지 M3 P1/P2(아래)는 여전히 open.
+
+- **M3-E2E-001** | P0 | [관측됨] | linked: M3,T-037,T-039,T-040 | status: **closed (demonstrated, 커밋 f1f17df / Fix round 2026-06-07)** | `scripts/e2e.mjs` · `scripts/e2e_pii_scan.py` · `ai/worker/fixtures/llm_cache/`
+  - 발견: M3 done-line(§5 #3 "이력서 업로드 → 마스킹 → 파싱 → crawl→score→feed 완주 + 업로드 이력서 기준 적합도 배지 렌더")이 자동 게이트로 **미실증**. `pnpm e2e`는 exit 0이나 phase 4가 `uv run python -m worker`(seed 경로 = `_ensure_seed_resume`)로만 채점 — `POST /api/v1/resumes`(업로드·마스킹)·`POST /resumes/:id/score`(`--resume-id` 채점)·업로드 이력서 feed 렌더를 *전혀 거치지 않는다*. 웜캐시 49개도 seed 기반(마스킹 fixture 이력서 미반영 → 업로드 채점은 cache miss→held가 될 것). 결과: M3 핵심 입력 경로(합성 seed→실 업로드 교체)가 E2E로 미검증.
+  - 결: **PII Safety Pass(§5 #7)도 부분 이연** — T-040은 하류 6표면 안전을 실증하나, 실 NestJS masker→DB `resumes.content` end-to-end(surface-1)는 업로드 E2E 의존(QA-M3-006). 두 게이트가 같은 배선으로 동시에 닫힌다.
+  - 해소(필요 작업 — stabilize report-only 경계 밖, main-session/`/repair-workitem`): (a) 마스킹 fixture 이력서(`crawler/fixtures` 또는 신규) + e2e.mjs phase에 업로드 POST→score(:id)→feed assert(업로드 resume band)+`resumes.content` literal scan, (b) `pnpm e2e:warm`(사용자 OPENAI_API_KEY 1회)로 *마스킹 fixture × JD* 캐시 키 웜캐시 재생성→커밋(`make_key`는 이력서 정규화본 기반이라 seed↔업로드 키 상이), (c) 재배선 후 `/stabilize-milestone M3` 재grade(NO→YES). **M2-E2E-001 closed 패턴 정합.**
+- **REV-M3-002 [Arch-iface-7-3]** | P1 | [관측됨] [ADR-candidate] [Arch-debt] | linked: T-037 | status: open | `podo/apps/api/src/resumes/worker-runner.port.ts` · ARCH §7-3
+  - 발견: NestJS api가 `SubprocessWorkerRunner`로 `uv run python -m worker --resume-id N`를 spawn(동기 트리거)하는 cross-stack 오케스트레이션은 ARCH §7-3("api = user-facing CRUD + Worker 산출물 *서빙*, ranking/score 미계산")의 경계와 새로 어긋난다. T-037 §8이 "architect 권장"으로 이미 플래깅(ADR 미신설). T-037 report도 동일 P1.
+  - 근거: M4 배포(컨테이너 분리) 시 동일 프로세스 `spawn`은 동작 불가 — process-boundary 소유권 미문서화 시 M4 설계 충돌. 단 port(`WorkerRunner`) 추상화는 깔끔(테스트 fake 주입 가능).
+  - 권장: **ADR-106(가칭) 신설** — "M3 로컬 단일프로세스 spawn=임시 결정, M4 큐(pg-boss/BullMQ) 또는 HTTP 트리거 교체 예정" + ARCH §7-3 본문에 "M3 예외: subprocess 트리거(로컬 한정)" 1줄. **architect 호출 권장**(메인 세션, 본 skill은 텍스트 제안만).
+- **REV-M3-001 [Arch-iface-7-1]** | P1 | [관측됨] [ADR-candidate] | linked: T-034 | status: open | `podo/apps/api/src/resumes/resumes.controller.ts` · ARCH §7-1:179
+  - 발견: 컨트롤러가 파일 확장자·크기·byteLength를 inline으로 직접 검증(`UploadedResumeFile` 인터페이스 자작). ARCH §7-1 "입력 검증: NestJS ValidationPipe + class-validator DTO" 컨벤션과 divergence. T-034 report도 동일 P1(class-validator 미설치 + 네트워크 차단 → manual fallback). 관측 동작은 정확(201/413/415 envelope).
+  - 권장: §7-1 본문에 "multipart 파일 검증은 controller inline guard 허용(예외 — `@types/multer`/class-validator 의존 회피, WHY)" 1줄 sync, 또는 class-validator 설치 후 정석. **stabilize는 ARCH 수정 권한 없음 → 텍스트 제안만**(write 금지 영역).
+- **REV-M3-003 [Cross-lang-dup]** | P1 | [관측됨] [Clean-Code: Duplication] | linked: T-034,T-037 | status: open | `podo/apps/api/src/resumes/evidence-summary.ts` ↔ `ai/worker/src/worker/parse_resume.py`
+  - 발견: skills/experience 헤딩·불릿 파싱이 TS(업로드 즉시 preview 카운트)·Python(채점 evidence) 2스택에 독립 존재. 주석은 "동치"만 적고 *변경 시 양쪽 동기*·*왜 분리했나*가 없음. 정규식 drift 시 preview "스킬 N개" ≠ 채점 evidence(QA-M3-004와 수렴, UX 불일치).
+  - 근거: 각 1회 사용(rule-of-3 미달 → 통합 강제 아님, 스택 경계 crossing cost > 중복 유지 cost). 단 무음 divergence 위험.
+  - 권장: evidence-summary.ts 상단에 "parse_resume.py 상수와 동치 유지 필수(변경 시 동시 수정), 단일화는 M4+ 범위" WHY 주석.
+- **[Design-a11y] DSN-M3-001/002/003 [Spec-gap]** | P1 | [관측됨] | linked: T-038,F-015 | status: open | `ResumeUpload.tsx:127,152` · `MaskingPreview.tsx:29`
+  - 발견: F-015 §8-1 명시 접근성 3종 미구현 — 파일 `<input>`에 `<label>`/`id` 없음(DSN-M3-001), 업로드 중 `aria-busy` 없음(DSN-M3-002), MaskingPreview에 `role="region"`/aria-label 없음(DSN-M3-003). design subagent가 P0로 제기 → **메인 세션 검증 후 P1 하향**(graduation P0=QA_FINDINGS 기준 무관 + M3 로컬 단일사용자 pre-deploy + F-015 §8 Lighthouse "선택").
+  - 근거: F-015 §8-1이 셋을 명문화했으나 T-038/T-041 *어느 AC에도 미매핑* → spec-coverage gap(ADR-037). 기능은 동작(렌더·업로드·채점) — a11y 일급화만 누락.
+  - 권장: `/plan-workitem F-015`로 a11y task(label/aria-busy/role + 단위 단언) 추가. 1~3줄 수정 규모.
+- **[Dependency]** | P1 | [관측됨] | linked: F-005,T-018,M2 | status: open (M2→M3 재등장) | `podo/apps/web/package.json`(next) · `podo/apps/api/package.json`(@nestjs/*)
+  - 발견: `pnpm audit --prod` 22건(high 8/mod 12/low 2). `next`(<15.5.16, cache-poisoning 등) + `@nestjs/common`·`@nestjs/core`. M2 [Dependency] P1이 미적용 상태로 재등장(cross-stabilize 회귀 신호).
+  - 권장: `next`≥15.5.16 + NestJS 갱신 후 재audit. pip-audit는 clean(Python). 별도 bump task.
+- **[Spec-grep-selfref]** | P1 | [관측됨] | linked: T-032,F-012 | status: open | `docs/30-workitems/features/F-012` · `T-032` AC-1
+  - 발견: F-012 FAC-1/T-032 AC-1의 "`grep "합격가능성 밴드"` = 0" 검증이 *grep 명령·치환대상 정의를 적은 spec/FAC/reconcile-meta doc 자체*를 매칭(논리적 self-reference — 검색어를 안 적고 검사 기술 불가). 유효 기준(정책/제품 표면 = DISCOVERY/Charter/DESIGN/F-001)은 0 충족. T-032 report가 stabilize 회수 명시 요청.
+  - 권장: F-012 FAC-1·T-032 AC-1 grep 범위를 *제품/정책 표면 한정*(spec-doc 제외)으로 좁히는 plan touch-up. 회귀 가드는 유지하되 self-ref FP 제거.
+
 ## 3. 권장 리팩토링
+
+### M3 (P2 — reviewer 위임 + design 폴리시 + qa cross-list, 전부 behavior-preserving)
+- **REV-M3-004** | P2 | [관측됨] [Clean-Code: Function-size/SRP] | T-034 | `resumes.controller.ts:32-76` — `create()`가 multipart/paste 2경로 × (포맷·크기·raw 추출) 44줄 혼재. `extractRawFromFile`/`extractRawFromPaste` private 분리 후보(rule-of-3 미달 — 강제 아님).
+- **REV-M3-005** | P2 | [관측됨] [Clean-Code: Naming] | T-034 | `resumes.controller.ts:16` — `UploadedResumeFile`이 실제로는 multer `File` 최소 서브셋. `MinimalMulterFile`/`RawUploadedFile`로 리네임(의도 명확화) 또는 `@types/multer` 정석 타입.
+- **REV-M3-006** | P2 | [관측됨] [Clean-Code: Comment-WHY] | T-037 | `persistence.py:74-78` `load_resume` — domains frontend/backend 하드코딩 WHY는 있으나 "타 도메인 이력서 fit_level 편향" downstream 효과 미기재. 1줄 추가(OBS-M3-2와 수렴).
+- **REV-M3-007** | P2 | [가설] [Clean-Code: Dead-code 예고] | T-037 | `__main__.py:21-41` `_ensure_seed_resume` — M2 무키 E2E 보존용(현재 dead 아님). M4 seed 경로 제거 시 삭제 후보 — "M4 제거 후보" 주석으로 추적(QA-M2-003 잔존·OBS-M3-2 정합).
+- **REV-M3-008** | P2 | [관측됨] [Arch-debt] | T-037 | `resumes.controller.ts` `score()` — 비정수 id의 parseInt 실패가 404 `RESUME_NOT_FOUND` 반환(의미상 400 BAD_REQUEST). `INVALID_RESUME_ID`(400)로 1줄 교체 권장.
+- **REV-M3-009** | P2 | [관측됨] [Clean-Code: Comment-WHY] | T-034 | `resumes.controller.ts:53` — `file.size > MAX || file.buffer.length > MAX` 이중 크기검사 WHY 부재(multer `size` 미집계 방어 추정) → 1줄 주석.
+- **DSN-M3-004** | P2 | [가설] | T-038 | `MaskingPreview.tsx:30` — evidence 요약 본문이 `var(--faint)`. DESIGN §2-1이 faint를 "장식·<4.5 contrast, body 금지"로 두면 정보성 본문에 부적합 → `var(--muted)` 권장(DESIGN §2-1 대비 규칙 확인 후).
+- **DSN-M3-005** | P2 | [관측됨] | T-041 | `ResumeUpload.tsx:159` — error toast "업로드 실패. 다시 시도해보세요." ↔ F-015 §8-1 copy "업로드에 실패했어요. 다시 시도해주세요."(podo 톤). 문구 동기.
+- **DSN-M3-006** | P2 | [관측됨] | T-041 | `ResumeUpload.tsx:75` — 무입력 시 `if(!hasInput) return` 조용한 early-return. textarea placeholder는 있으나 F-015 §8-1 empty 흐름("이력서를 업로드하거나…" podo 안내)은 미구현. empty 안내 노드 추가 권장.
+- **DSN-M3-007** | P2 | [관측됨] | T-038,T-041 | `ResumeUpload.tsx:138,158` — error/danger 색에 `var(--band-1-ink)`(적합도 밴드 신호 토큰) 재사용 → 토큰 의미 레이어 혼용. globals.css에 `--color-danger: var(--band-1-fill)` semantic 명명 후 참조 권장(렌더는 무결).
+- **DSN-M3-008** | P2 | [가설] | T-041 | `ResumeUpload.tsx:169-184` — skeleton div가 `.shimmer` 클래스만(inline 배경 없음). T-041이 inline 제거로 gradient 노출했다 기록 — 실 브라우저 시각 확인 권장(jsdom 미평가).
+- qa P2(QA-M3-001 마스킹 순서·QA-M3-002 stdio:'inherit'·QA-M3-003 module /g regex·QA-M3-005 int(argv))는 [QA_FINDINGS `## M3`](QA_FINDINGS.md)에 기록.
+- **[Term-residual]** | P2 | [관측됨] | linked: T-032 | `docs/20-system/ARCHITECTURE_OVERVIEW.md:103,221`·`DESIGN_RESEARCH.md:14,33` — ARCH §6 glossary·§7-4 + DESIGN_RESEARCH에 "합격가능성 밴드" 잔존(T-032 scope=DISCOVERY/Charter/DESIGN/F-001이라 ARCH·연구doc 미포함). 정책/제품 표면은 0. ARCH는 "적합도 5단계"로 동기 권장(연구doc은 과거표현 허용).
+- **[DISCOVERY-Charter-mtime]** | P2 | [관측됨, 저신뢰] | linked: docs/10-charter | mtime signal 1(DISCOVERY 01:58 > Charter 01:50) firing이나 F-012가 방금 reconcile + Charter 용어 grep 0 → benign edit-ordering(§15 Insight promote는 Charter 미스냅샷). content drift 아님 — Charter snapshot이 최신 DISCOVERY 반영했는지 1회 확인 권장.
+- **[Doc-status-draft]** | P2 | [관측됨] | linked: F-012 | DISCOVERY/Charter/DESIGN `## 0. Status`=draft 잔존(F-012 §4 "status 현행화" scope가 T-032 AC에 미포함). [Design-draft]와 정합 — label 정리 또는 draft 컨벤션 명문화(M1·M2도 동일 권고).
 
 ### M2 (P2 — reviewer 위임 + design 폴리시, 전부 behavior-preserving)
 - **REV-M2-001** | P2 | [관측됨] [Clean-Code: Naming] | T-022 | `persistence.py:21-23` — `SCORING_MODE`(고정) vs `DEFAULT_RANKING_MODE`(디폴트) 역할 차이가 이름에 안 드러남. `_FIXED_SCORING_MODE` 또는 주석으로 "변경불가 고정값" 명시.
@@ -185,6 +263,17 @@ Telemetry — M2
 - [관측됨 · 본 세션 reviewer 1회 + M1 qa 2회] **subagent budget-exhaustion 재발이 reviewer로 확산.** 첫 reviewer(code) 위임이 24 tool-use를 탐색에 소진하고 `"Now let me check…"` process line으로 종료 — finding 블록 미출력. 재spawn 시 *"≤6 reads · first message=findings · F-011은 이미 검증됨(재확인 금지)"* 제약으로 6 tool-use에 정상 출력. 후보: stabilize 단계 4·5 위임 프롬프트(또는 `qa.md`/`reviewer.md`)에 **명시적 read-budget + "final message MUST be findings" self-check**를 박기(M1은 qa만, M2는 reviewer까지 → 공통화). SendMessage 부재로 paused subagent 재개 불가 → 위임 *self-contained + output-first* 디폴트 재확인.
 - [관측됨 · 본 세션 1회] **design subagent severity 인플레.** design surface 위임이 P0 2건(FitScoreRing·CoveragePanel)을 제기했으나 메인 세션 검증 결과 둘 다 *기능/그래듀에이션 비차단* → P1 하향. design 위임은 DESIGN의 *aspirational* 8-state 매트릭스를 *위반*으로 과보고하는 경향. 후보: design 위임 프롬프트에 **"P0 = 기능/접근성 *차단*만; 미구현 폴리시·상태는 P1 이하"** severity 기준 명시.
 - [관측됨 · Cross-stabilize] **마일스톤 간 doc-reconcile 누락 패턴.** M1이 권고한 DESIGN status 정리·Insight promote·용어 reconcile가 M2까지 미적용([Design-draft]·[Discovery-insight] 재등장 = 회귀 신호 2건). 후보: graduation checklist에 *"직전 stabilize의 P1 doc-reconcile 항목 close 여부"* 점검 1줄 추가 검토(ADR-014 graduation contract 확장 후보).
+
+### M3 — ADR 후보 + instruction 개선 후보
+**ADR 후보 (M3 중 내려진 결정인데 ADR 부재 — cross-stack process 경계는 ADR-006 정책상 ADR 대상):**
+1. **ADR-106(가칭) — NestJS→Python worker 트리거(subprocess) 경계** (REV-M3-002 / T-037 §8·report): api가 `uv run python -m worker --resume-id`를 spawn하는 cross-stack 오케스트레이션이 ARCH §7-3("api 미계산/미트리거")와 새로 어긋남. "M3 로컬 단일프로세스 spawn=임시, M4 큐(pg-boss/BullMQ) 또는 HTTP 트리거로 교체, process-boundary 소유권" 명문화 필요. **architect 검토 권장**(메인 세션 호출, 본 skill은 텍스트 제안만).
+> (ADR-105 PII 마스킹 정책은 M3에서 *신설 완료* — accepted, ARCH §8/§10 backref 존재. 추가 ADR 대상 아님.)
+
+**Instruction 개선 후보 (ADR-022 ratchet evidence label 부착 — *보고만*, AGENTS.md/agent/skill body 자동 수정 X):**
+- [관측됨 · 본 세션 reviewer 1회 / M1·M2 누적 3회차] **subagent budget-exhaustion 재발.** 첫 reviewer(code) 위임이 20 tool-use를 탐색에 소진하고 `"Now let me check…"` process line으로 종료(finding 미출력). 재spawn 시 *"≤6 reads · FIRST message=findings · 기지사실 명시(재확인 금지)"* 제약으로 6 tool-use에 정상 출력 — M2 처방 그대로 재현 성공. **M2 instruction 후보(stabilize 단계 4·5 위임에 read-budget + "final message MUST be findings" self-check 명문화)가 여전히 미적용 → 우선 회수 권장.** SendMessage가 본 하니스 deferred-tool 목록에 *부재* → paused subagent 재개 불가(M1/M2 메모 정합) → 위임 self-contained + output-first 디폴트 필수.
+- [관측됨 · 본 세션 1회 / M2에 이어 재발] **design subagent severity 인플레.** a11y 3건(label/aria-busy/role=region)을 P0로 제기 → 메인 세션 검증 후 *graduation 비차단·로컬 pre-deploy* 근거로 P1 하향. M2 instruction 후보("P0 = 기능/접근성 *차단*만; 미구현 폴리시·상태는 P1 이하")가 미적용 — 재확인.
+- [관측됨 · 본 세션] **"stabilize *phase* 책임" ↔ "stabilize *skill* report-only" 표기 혼동.** M3 task(T-039/T-040 §4)·운영 메모가 "e2e.mjs 업로드 경로 재배선 = stabilize-milestone M3 책임"으로 적었으나, 본 skill은 코드 수정 금지(report-only). M2-E2E-001도 동일(stabilize가 surface → 별도 main-session Fix round가 코드 → 재grade). 후보: task §4(비범위)에 "stabilize *phase*(=surface + 후속 main-session round)" vs "stabilize *skill* 직접 수행(=report only)" 구분 1줄 — 매 milestone E2E-gap에서 반복되는 혼동.
+- [관측됨 · Cross-stabilize 개선 신호] **M1·M2가 반복 권고만 하던 doc-reconcile([Insight-backlog]·[Design-token-drift]·[Surface-backref]·용어 divergence)이 M3에서 F-012(첫 feature 흡수)로 실제 해소.** M2 §4 instruction 후보("직전 stabilize의 P1 doc-reconcile close 여부 graduation 점검")의 *대안 처방*(권고를 다음 milestone의 task로 박기)이 효과적임을 실증 — graduation checklist 확장보다 *plan 회수 강제*가 닫는 데 유효.
 
 ## 5. Repair decision log
 

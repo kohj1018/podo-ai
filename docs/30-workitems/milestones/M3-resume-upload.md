@@ -65,4 +65,16 @@ M2 §4가 *비범위로 선고지*한 **"UI 이력서 업로드 + 실 PII 영속
 - **용어 reconcile 최종 표기** — **"적합도 5단계"로 통일**(DISCOVERY "합격가능성 밴드"는 폐기/과거표현으로). F-012에서 사용자 최종 확정 — UI·문서 일괄 영향.
 
 ## 8. 회고 (stabilize 자동 채움)
-> `/stabilize-milestone M3`가 채운다. (status(## 0) 전이는 본 skill 책임 아님 — ADR-014.)
+> `/stabilize-milestone M3` (2026-06-07)가 채움. (status(## 0) 전이는 본 skill 책임 아님 — ADR-014. **졸업 가능 = NO(초판)**, 단일 차단 §5 #3.)
+> **[Fix round 2026-06-07, 커밋 `f1f17df`]** 단일 차단 §5 #3 **closed** — `scripts/e2e.mjs`를 업로드 경로(업로드→마스킹→`resume_id` 채점→feed)로 재배선 + `e2e_pii_scan.py`(실 masker end-to-end PII scan) + 업로드 fixture 웜캐시 재생성. 무키 `pnpm e2e` exit 0 실측(scored 6/held 0, PII 0건). **정식 재grade(`/stabilize-milestone M3`) 대기 — graduation §5 7/7 충족 예상.**
+
+**목표 달성도:** 검증된 알고리즘 본체(SPEC SSOT 불변, 새 스코어링 로직 0) 위에서 *입력 소스를 합성 seed→실 업로드 이력서로 교체*하는 경로를 구축했다 — F-013(NestJS 업로드 API + `resumes` 스키마 확장 + schema-contract), F-014(rule-based 마스킹 + ADR-105 정책 + parse_resume 연결), F-015(업로드 UI + 마스킹 preview + 분석시작→feed), F-012(M1→M2 누적 doc 부채 회수). 10/10 task done · 통합 validate exit 0 · AC 21/21·FAC 17/17(100%) · **PII Safety Pass green**(하류 6표면 literal scan 0, 웜캐시 무오염) · 용어 reconcile 핵심표면 0. **단 §5 #3 미충족으로 졸업 미달**: done-line의 UI 종단(업로드→마스킹→`resume_id` 채점→feed 적합도 배지)이 `scripts/e2e.mjs`에 미배선(phase 4가 seed 경로로만 채점) → M3 핵심("업로드 경로가 scoring loop에 연결되는가")이 자동 게이트로 미실증. 해소=업로드 E2E 배선 + 마스킹 fixture 웜캐시 재생성 후 재grade(M2-E2E-001 동형).
+
+**scope creep:** 거의 없음. write_set 이탈은 전부 문서화·정당(globals.css 토큰 enabling[T-038/T-041]·worker-runner.port/module DI 배선[T-037]·evidence-summary 헬퍼 분리[T-034]). T-036 구현 중 builder의 `class-validator`/`class-transformer` 추가(미사용)는 메인 세션이 `git checkout`으로 즉시 시정(YAGNI/ADR-006). 마스킹은 순수 regex로 신규 런타임 의존성 0.
+
+**비목표 위반:** 없음. PDF/docx 추출·auth·멀티유저·공개 배포·raw PII 영속·암호화·새 스코어링 로직·캐시 키 재설계·다채널 풀커버리지 전부 비범위 유지. **안전 불변식 준수**: `resumes`에 raw 원문 컬럼 미도입(`content`=마스킹본 전용), raw PII가 DB·result·recommendations·로그·LLM cache·웜캐시 어디에도 미잔류(T-040 실증).
+
+**핵심 학습 (≤3):**
+1. **report-only stabilize가 못 닫는 E2E 배선** — M2와 동형. 업로드 done-line의 자동 게이트화는 *코드 작업*(e2e.mjs 재배선 + 마스킹 fixture 웜캐시 재생성, 사용자 키 1회 필요)이라 stabilize skill 경계 밖 → 별도 main-session Fix round/`/repair-workitem` 후 재grade가 정규 패턴. task §4의 "stabilize 책임" 표기는 *phase*(surface+후속 round)와 *skill*(report-only)을 혼동시킴.
+2. **polyglot 마스킹 게이트의 oracle 이연** — T-040은 *하류 표면*(주 누출면) 안전을 실증하나 실 TS masker→DB surface-1 링크는 known-value 오라클로 치환 → 실 masker end-to-end는 업로드 E2E가 *완성*한다(QA-M3-006). 안전 게이트와 done-line E2E가 같은 배선으로 동시에 닫힌다.
+3. **F-012가 patterned doc-drift를 실제로 끊음** — M1·M2가 반복 *권고만* 하던 doc reconcile(용어 divergence·Insight promote·token SSOT·ADR-104 backref)을 milestone 첫 feature로 흡수하니 cross-stabilize 회귀 신호 4종이 해소(잔존 회귀는 deferred [Dependency] 1종). *권고는 다음 milestone의 task로 박아야 닫힌다*는 실증 — graduation checklist 확장보다 plan 회수 강제가 유효.

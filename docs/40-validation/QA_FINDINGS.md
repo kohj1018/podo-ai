@@ -111,6 +111,44 @@
 - crawler `__main__.py`: `now` 1회 생성 후 두 채널 공유 — 설계 의도(결정성), defect 아님(`last_success_at` MAX 파생은 정상).
 - **M1 carryover**: QA-M1-001(GS2_MIN_SAMPLE 비강제)은 `gates.py:101`에 `total < GS2_MIN_SAMPLE` 강제 추가됨 → **likely 해소**. QA-M1-002(`_is_grounded` 토큰 휴리스틱)은 여전히 존재 → open 유지(M2 eval 비범위).
 
+## M3
+
+> `/stabilize-milestone M3` (2026-06-07) qa 위임 + 메인 세션 직접 검증 결과. 대상: T-032~T-041 (doc reconcile + 이력서 업로드 API·스키마·PII 마스킹·스코어링 연결·업로드 UI·PII Safety Pass). 통합 validate exit 0(TS 32 passed / Python 134 passed, 17 DB-gated skip) + `pnpm e2e`(seed 경로) exit 0 위에서 *lint/type/unit이 못 잡는* 마스킹 robustness·cross-stack subprocess 경계·결정성·소유권 정합 점검. **코드결함 P0 0건 → graduation #5(QA_FINDINGS P0) 기준 충족.** (단 §5 #3 업로드-경로 E2E는 미배선 — graduation E2E gate는 [IMPROVEMENT_GUIDE M3-E2E-001](IMPROVEMENT_GUIDE.md) 참조.) finding 전수 기록(ADR-046#d3). **메인 세션이 qa P1 2건을 검증 후 P2 하향**: QA-M3-001(이메일 내 RRN이라는 pathological 입력 필요 + 잔여는 비식별 도메인 파편), QA-M3-002(error.filter가 비-HttpException을 generic 'Internal server error'로 직렬화 → client 미노출 + worker는 *마스킹본*만 읽음). 수렴 신호(신뢰도↑): QA-M3-004(evidence-summary TS↔Python divergence)를 qa·reviewer(REV-M3-003) 독립 발견.
+
+### P0
+없음. (마스킹 하류 6표면 literal scan 0건[T-040, DB 주입 실증] + 캐시 키 결정성 보존[resume_id 추가가 정규화 입력만 확장] + 테이블 소유권 경계 유지[api=resumes write, worker=ranking_runs/recommendations]. 실 PII 누출·데이터 무결성 파괴급 결함 없음.)
+
+### P1
+- **QA-M3-006** | P1 | [관측됨] | linked: T-040 | status: open | `ai/tests/test_pii_safety.py:50-58`
+  - 발견: PII Safety Pass(T-040)의 `resumes.content` 표면은 **고정 known-value 오라클**(테스트가 직접 placeholder 치환)로 생성되며, 실 `RegexResumeMasker`(NestJS TS)의 regex 경계 동작을 end-to-end로 검증하지 않는다. 실 masker→DB surface-1 링크는 stabilize E2E(실 업로드)가 authoritative인데, 현 `scripts/e2e.mjs`는 업로드 phase가 미배선(seed 경로로만 채점)이라 그 검증이 *부재*.
+  - 근거: 하류 표면(`ranking_runs.result`·`recommendations`·로그·`.cache/llm`·웜캐시)의 raw PII 0은 실증됨(주 누출 표면 안전). 그러나 "NestJS 마스커가 모든 PII 변종을 실제로 잡아 surface-1을 만든다"의 end-to-end 보증은 oracle 치환으로 이연. T-036(마스커 단위) + T-040(하류 표면) + *업로드 E2E*(미완)의 3-way 커버리지 중 마지막 한 변이 비어 있음.
+  - 결정/권장: M3-E2E-001(업로드-경로 E2E 배선) 시 e2e.mjs에 실 업로드 POST → `resumes.content` DB scan 단계를 추가해 실 masker end-to-end를 닫는다. graduation §5 #3·#7 직결.
+
+### P2
+- **QA-M3-001** | P2 | [관측됨] | linked: T-036 | status: open | `podo/apps/api/src/resumes/resume-masker.port.ts:42-51`
+  - 발견: 치환 순서가 RRN(1)→EMAIL(2)이라, 이메일 local-part에 raw 주민번호가 박힌 pathological 입력(`user900101-1234567@example.com`)에서 RRN이 먼저 `[MASKED_RRN]`로 치환되면 EMAIL_RE의 local-part 클래스(`[A-Za-z0-9._%+-]`)가 `]`를 불허해 매칭 실패 → `@example.com` 도메인 파편 평문 잔류.
+  - 근거/완화: RRN 자체는 마스킹됨(직접 식별자 제거). 잔류는 비식별 도메인 파편이고, 이메일에 13자리 RRN을 local-part로 넣는 조합은 극히 희귀. over-masking(RRN regex가 일반 13자리 매칭)은 안전 방향.
+  - 결정/권장: 치환 순서를 EMAIL→RRN→PHONE으로 교환(이메일 통째 토큰화 후 잔여에서 RRN). 낮은 우선순위.
+- **QA-M3-002** | P2 | [관측됨] | linked: T-037 | status: open | `podo/apps/api/src/resumes/worker-runner.port.ts:22`
+  - 발견: `SubprocessWorkerRunner`가 `stdio: 'inherit'`로 기동 → worker stdout/stderr가 api 프로세스 stdio로 직접 흐른다. Python traceback에 resume 스니펫이 실릴 경우 로그 유출 경로(단 worker는 *마스킹본*만 읽으므로 raw PII 아님). client 응답은 error.filter가 generic 'Internal server error'로 보호(노출 안 됨 — qa 초판 P1의 client-envelope 우려는 무효).
+  - 결정/권장: `stdio: ['pipe','pipe','pipe']`로 stderr 수집 후 `console.error`만. 로그 위생 — masked-only라 P2.
+- **QA-M3-003** | P2 | [관측됨] | linked: T-036 | status: open | `podo/apps/api/src/resumes/resume-masker.port.ts:19-31`
+  - 발견: `/g` 플래그 정규식이 모듈 레벨 상수로 선언·`mask()`마다 재사용. 현재 `String.replace(regex, fn)`은 lastIndex를 reset하므로 안전하나, 미래에 `exec` 루프로 리팩터링되면 모듈 공유 `lastIndex`가 stateful 버그가 된다. (동형 잠재: `MaskingPreview.tsx:23` `PLACEHOLDER_RE.test()` — 현 alternation 구조에선 정상.)
+  - 결정/권장: 방어적으로 `mask()` 내부에서 regex 재생성 또는 주석으로 "replace-only 가정" 명문화. accept-with-note.
+- **QA-M3-004** | P2 | [가설] | linked: T-034,T-037 | status: open | `podo/apps/api/src/resumes/evidence-summary.ts` ↔ `ai/worker/src/worker/parse_resume.py` (reviewer REV-M3-003 cross-list)
+  - 발견: 업로드 즉시 preview용 evidence 카운트(TS `evidence-summary.ts`)와 스코어러의 skills evidence(Python `parse_resume`)가 **독립 2구현**. 섹션 헤딩/불릿 인식 정규식이 미묘히 달라(예: Python은 불릿 라인도 섹션 경계로 인식, TS는 `#` 헤딩만) preview "스킬 N개"와 실제 채점 evidence 수가 어긋날 수 있음(데이터 무결성 아님, UX 불일치).
+  - 결정/권장: 두 정규식 동치화 또는 evidence-summary.ts에 "parse_resume.py와 동기 필수" WHY 주석. (REV-M3-003 권장과 수렴.)
+- **QA-M3-005** | P2 | [관측됨] | linked: T-037 | status: open | `ai/worker/src/worker/__main__.py` `_parse_resume_id`
+  - 발견: `--resume-id`/`RESUME_ID` 값을 `int()`로 try/except 없이 파싱 → 비정수 입력 시 traceback + 비정상 종료. 정상 경로는 안전(controller가 `Number.parseInt`+양수 검증 후 전달).
+  - 결정/권장: `ValueError` 처리 + `sys.exit(2)` + 도움말. 직접 CLI 오용 방어용 — 낮은 우선순위.
+
+### 관찰 메모
+- **OBS-M3-1** `worker-runner.port.ts:18` — `REPO_ROOT` 미설정 시 `process.cwd()/../../..` 가정. e2e.mjs가 올바른 cwd 보장이라 현재 무해하나, M4 컨테이너 분리/dist 번들 실행 시 경로 오산 가능 → 배포 전 `REPO_ROOT` env 필수 문서화.
+- **OBS-M3-2** `persistence.py load_resume` — 업로드 이력서 domains를 config 기본(frontend/backend)으로 고정(자동 분류 비범위, T-037 §8). 타 도메인 이력서는 fit_level 편향 가능 — M4 자동 분류 시 회귀 메모(REV-M3-006과 수렴).
+- **OBS-M3-3** `resumes.controller.ts` — 확장자 검증이 `originalname`(클라이언트 제공) 기반 → `evil.pdf`→`evil.txt` rename 우회 가능. 바이너리→utf8 디코드 시 `�` 혼입(데이터 품질 저하, PII 위험 아님). M4 MIME 검증 고려.
+- **M2 carryover**: QA-M2-001(pending_job_ids sorted) **해소 확인**(Fix round 2 byte-identical 실측). QA-M2-003(worker가 `resumes`에 seed write — 소유권 편의 예외, "M3 api 이관 시 닫음") **부분 잔존**: M3가 api 업로드 write 경로를 신설했으나 *seed* 이력서는 여전히 worker `_ensure_seed_resume` 주입(keyless E2E 보존용 — REV-M3-007 M4 제거 후보). 완전 닫힘은 M4.
+- GS-1-through-DB: `resume_id`는 캐시 키의 *이력서 정규화본* 축을 채울 뿐(시간·랜덤·env 무혼입) → 결정성 구조 불변(§3-1 규칙 충족). seed 경로(resume_id=None)도 M2와 byte 동일 동작.
+
 ## 일반
 
 ### P0
