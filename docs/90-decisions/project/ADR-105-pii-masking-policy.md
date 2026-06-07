@@ -54,7 +54,22 @@ M3 범위는 직접 식별자(1~5번)만 다룬다.
 - **포트 추상화 (T-034 설계)**: 런타임 위치 변경에 대비한 port(인터페이스)가 이미 존재 — 구현 교체 비용 최소.
 - **M3 안전 불변식**: raw PII → 외부 LLM 전송 경로 금지는 출시 전 비가역적 결정.
 
+<a id="adr-105-amend-1"></a>
+## Amendment 1 — 계정 PII (OAuth 멀티유저, M4)
+
+**배경:** [관측됨] M4가 OAuth 멀티유저(ADR-107)를 도입하면서 *계정* PII(이메일·표시이름·provider account id·아바타 URL)가 시스템에 유입된다. 본 amendment가 이력서 PII(원 결정)와 계정 PII의 취급을 구분한다.
+
+**결정 (충돌 없는 확장):**
+1. **계정 식별자는 마스킹 대상이 아니다** — 식별이 *목적*이라 이력서 PII(스코어링에 부수적으로 유입되는 민감정보)와 본질이 다르다.
+2. **`users`에 최소 식별자만 저장** — provider · provider account id · 이메일 · 표시이름 · 아바타 URL. **OAuth access/refresh 토큰은 영속하지 않는다**(로그인 시점에만 사용).
+3. **계정 PII는 스코어링 경로에 절대 유입 금지** — prompt·외부 LLM·`.cache/llm`·`ranking_runs.result`·`recommendations`·애플리케이션 로그 어디에도 계정 식별자가 흐르지 않는다. M3 안전 불변식(이력서 raw PII 미유출)을 *계정 PII로 확장*한다.
+4. 이력서 `content`는 기존 결정대로 마스킹본만 저장(원 결정 1~5번 불변).
+
+**§6 정정 (간접 재식별 시점):** 원 §6은 간접 재식별 방어를 "M4 연기"로 두었으나, M4는 *로컬 멀티유저*(공개 미배포)이고 간접 재식별 리스크는 *공개 노출*에서 발현한다 → **간접 재식별 방어 시점을 M6(공개 배포)로 정정**한다(직접 식별자 마스킹은 M3부터 유효).
+
 ## 관련 문서
+- [ADR-107](ADR-107-oauth-multiuser.md) — OAuth 멀티유저 (Amendment 1 동인)
+- [F-016](../../30-workitems/features/F-016-oauth-multiuser.md) — 계정 PII 적용 feature
 - [T-036](../../30-workitems/tasks/T-036-pii-masking-module.md) — 본 ADR을 구현하는 task
 - [T-040](../../30-workitems/tasks/T-040-pii-safety-pass.md) — 전 표면 PII literal scan (Safety Pass)
 - [F-014](../../30-workitems/features/F-014-resume-parse-pii.md) — 이력서 파싱·PII feature
