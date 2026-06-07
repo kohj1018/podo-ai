@@ -15,7 +15,7 @@ M4가 "핵심 워크플로우가 도는 멀티유저 MVP"를 완성하면, M5는
 > **Charter §5 "다채널 풀커버리지 비목표" 범위 갱신 (별도 ADR 불필요).** Charter §5는 "다채널 풀커버리지(7개+ 전부)"를 *비목표*(F2 커버리지 명시로 대체)로 박았다. M5는 그 *숫자 상한*만 올린다 — **Charter §5 scope-note 반영이 M5 task 생성 *전* 필수 선행(blocking gate)**: 상위(Charter) 승인 없이 하위 task 착수 금지(AGENTS.md). scope-note = 공식 페이지 한정·티어드·소스별 게이트. *Charter 편집은 repair-plan 범위 밖 → 메인세션 별도 처리.* 별도 ADR은 불필요: 검증된 A-1 크롤링 재사용·가역적·"공식만"은 기존 ToS 입장의 연장이라 비가역 트레이드오프 없음(사용자 판단 2026-06-07). 각 신규 소스는 A-1형 검증(차단/구조변경/캡차) 게이트를 통과해야 커버리지 패널에 "수집 중"으로 승격.
 
 ## 2. 범위 (잠정)
-- **커버리지 확대** — 네카라쿠배(자체 페이지) + 외국계(MS·Google·Moloco·Sendbird 등) + 스타트업 공식 채용. **ATS 어댑터 전략** 우선: Greenhouse/Lever/Workday/Ashby 등 표준 ATS를 *회사별*이 아니라 *ATS별 어댑터*로 묶어 커버리지를 곱셈으로 확장(공수 절감). 티어드(대기업→외국계→스타트업), 소스별 A-1형 게이트 + 커버리지 패널 연동.
+- **커버리지 확대 (target universe ↔ graduation line 분리 — 사용자 결정 2026-06-08)** — *Target universe*(웹검색 실측 픽스, ~85개사 — 회사 목록은 per-tier task T-072~076에 명시): **Tier1 네카라쿠배+계열사(최우선) / Tier2 외국계 한국 / Tier3 Series C+·유니콘 스타트업 / Tier4 국내 대기업+IT계열사 / Tier5 금융권+IT자회사** — 자체 공식사이트 한정(애그리게이터 영구 제외). **discovery 선행(T-070)** → 어댑터 2 family: (A) ATS(실측 우선순위 **그리팅·Workday > Lever·Ashby**, Greenhouse=T-062 기반, 한국 위탁SaaS recruiter.co.kr/incruit/careerlink 후보) + (B) 자체사이트 bespoke(`BaseCustomAdapter`, Tier1 우선). **location 1급화**(외국계 한국만). **⚠️ Tier4/5 대부분 login-gated** → 목록 공개분만 수집, 로그인 목록은 `login-required`로 투명 노출. *"최대한 많이"는 universe, 졸업선은 §5.*
 - **알고리즘/데이터 보강 (코드 감사 직결 — 출력 계약 §M4 동결 안에서)**:
   - **벡터 사전필터 실구현 (핵심 비용 레버)** — pgvector(현재 extension만 설치, 컬럼·코드 0). **`job_embeddings`(vector) 테이블에 JD 임베딩 1회 영속·재사용** → resume↔JD 유사도 + 도메인 + 스킬 *합집합*으로 후보 K개 선별 → 매칭·검증·랭킹을 K개에만. 현재 listwise는 *공고 전체를 한 프롬프트*에 넣어 JD 수에 비용 폭증 → N→K로 전환. **구조화 JD(requirements)는 이미 디스크 캐시(JD-only 키)로 재사용되므로 DB 테이블로 영속하지 않는다**(비용 레버 아님 — YAGNI).
   - **증분/세트 분리 채점** — 공고 1개 추가 시 그 JD만 deep(결정적 fit_level), LLM listwise·pairwise는 top 후보 변동 시에만(`job_set_hash` 전체 재계산 회피).
@@ -30,16 +30,24 @@ M4가 "핵심 워크플로우가 도는 멀티유저 MVP"를 완성하면, M5는
 - **F-022 (resume-domain-classification)** — 업로드 이력서 도메인 자동분류(하드코딩 교체) + 직군 분리 탭 활성.
 - **F-023 (expanded-fit-validation)** — 확대 입력 GS-1/GS-2 재측정 + 비용 전후 회귀 + A-3 τ 실데이터 1회.
 
-## 3-1. 실행 wave (task `depends_on` 파생 — repair-plan round 3 재산출, 2026-06-07)
-> task `## 9 depends_on`이 SSOT, 본 wave는 파생 스냅샷. 같은 wave 내 병렬 가능. (round3 의존성 변경 — T-067 depends_on에 T-065 추가[둘 다 `feed.controller` 편집 → 순차] 반영.)
-- **Wave 1**(병렬): `T-062`(ATS 어댑터 인프라) · `T-064`(job_embeddings 테이블·임베딩 worker) · `T-066`(이력서 도메인 분류기 + resume_domains 계약) — 선행 없음.
-- **Wave 2**(병렬): `T-063`(소스 레지스트리·커버리지 패널, `[T-062]`) · `T-065`(후보선별 + coarse/deep 분리 + feed.controller, `[T-064, T-066]`).
-- **Wave 3**(병렬): `T-067`(도메인 탭 활성화, `[T-066, T-065]` — T-065의 feed.controller 변경 뒤 순차) · `T-068`(확대 표본 GS-1/GS-2 재검증, `[T-064, T-065, T-066]`).
-- **Wave 4**: `T-069`(비용 회귀 + A-3 τ 실측, `[T-065, T-068]`).
+## 3-1. 실행 wave (task `depends_on` 파생 — 커버리지 확대 반영 재산출, 2026-06-08)
+> task `## 9 depends_on`이 SSOT, 본 wave는 파생 스냅샷. **두 트랙이 대체로 독립 병렬**: (A) 커버리지, (B) 알고리즘.
 >
-> 임계 경로: T-064/T-066 → T-065 → T-068 → T-069 (4 wave). **round2 대비 변화**: T-067이 Wave2→Wave3(T-065와 `feed.controller` 동시 편집 충돌 해소). T-068은 T-063(소스 확대) 비의존(큐레이션 수기 fixture 독립).
+> **(A) 커버리지 트랙**
+> - **Wave A1**(병렬): `T-062`(ATS 인프라 + location 1급) · `T-070`(discovery → registry_seed) — 선행 없음.
+> - **Wave A2**(병렬): `T-071`(ATS family 그리팅·Workday·Lever·Ashby, `[T-062, T-070]`) · `T-072`(Tier1 커스텀+BaseCustomAdapter, `[T-062, T-070]`).
+> - **Wave A3**(병렬): `T-073`(Tier2 외국계)·`T-074`(Tier3 스타트업)·`T-075`(Tier4 대기업) — `[T-070, T-071, T-072]`(T-075=`[T-070, T-072]`).
+> - **Wave A4**: `T-076`(Tier5 금융권, `[T-070, T-072, T-075]` — recruiter.co.kr 어댑터 재사용).
+> - **Wave A5**: `T-063`(레지스트리 등록·상태·커버리지 패널, `[T-070~072, T-073~076]`).
 >
-> **공유 표면 주의 (repair-plan 2026-06-08)**: `ai/tests/test_schema_contract.py`는 T-064·T-066(+T-063·T-065 신규 테이블)이 모두 assert를 추가하고, `podo/apps/api/prisma/migrations/`도 다수 task가 새 폴더를 만든다. *migration 폴더는 task별 분리라 파일 충돌 없음*이나 `test_schema_contract.py`는 공유 파일이다 → 병렬 구현 시 그 파일 편집은 순차로. **`depends_on`은 불변(논리 의존 없음) — wave 토폴로지 유지**(파일 공유는 구현 순서 주의이지 의존성 아님).
+> **(B) 알고리즘 트랙**
+> - **Wave B1**(병렬): `T-064`(job/resume embeddings) · `T-066`(도메인 분류기 + resume_domains).
+> - **Wave B2**: `T-065`(후보선별 coarse/deep + feed.controller, `[T-064, T-066]`).
+> - **Wave B3**(병렬): `T-067`(도메인 탭, `[T-066, T-065]`) · `T-068`(확대표본 GS-1/2 재검증, `[T-064, T-065, T-066]`).
+> - **Wave B4**: `T-069`(비용회귀 + A-3 τ, `[T-065, T-068]`).
+>
+> 임계 경로: 커버리지 `T-070 → T-071/T-072 → T-073/074/075 → T-076 → T-063` · 알고리즘 `T-064·T-066 → T-065 → T-068 → T-069`. 두 트랙은 대체로 독립(커버리지=입력 JD 확대, 알고리즘=처리). T-068은 큐레이션 fixture라 커버리지 비의존. 진행 순서(사용자): **T-070 discovery → ATS family(T-071) → Tier1 커스텀(T-072) → Tier2~5(T-073~076) → 레지스트리/패널(T-063) → 알고리즘 연결.**
+> **공유 표면 주의**: `ai/tests/test_schema_contract.py`·`prisma/migrations/`는 다수 task가 추가(폴더 분리라 충돌 0, schema-contract.py만 공유 → 순차 편집). `depends_on` 불변.
 
 ## 4. 제외되는 기능 (잠정)
 - 공개 배포(AWS/Vercel)·알림·cron 실가동 — M6.
@@ -50,7 +58,11 @@ M4가 "핵심 워크플로우가 도는 멀티유저 MVP"를 완성하면, M5는
 ## 5. 완료 기준 (graduation checklist, 잠정)
 - [ ] 모든 task status: done
 - [ ] 통합 validate Pass + schema-contract green(신규 임베딩/정규화 JD 테이블 포함)
-- [ ] **확대 커버리지 E2E** — **ATS 어댑터 ≥1종 + 공식 소스 ≥3개**(검증 가능 최소치, plan에서 상향 가능)에서 공고 수집 → 채점 → 피드 렌더, 소스별 커버리지 게이트 통과.
+- [ ] **커버리지 graduation line** (target universe(~85개사) ≠ 졸업선 — "최대한 많이"는 universe이지 졸업 조건 아님):
+  - [ ] T-070 discovery가 *전 5-tier target*의 공식 URL·method·location·**view-vs-apply 로그인**·status를 레지스트리에 기록(미수집도 상태로).
+  - [ ] **수집 가능분 최대한 수집**: ATS(그리팅·Workday·Greenhouse·Lever·Ashby) ats-ready + Tier2 외국계(location=KR) + Tier3 스타트업 + **Tier1 본사 커스텀** + Tier4/5 중 *목록 공개* 소스.
+  - [ ] Tier4/5 login-gated(목록 로그인)·no-korea·unsupported는 status로 **커버리지 패널에 투명 노출**(거짓 완전성 0, Fail #3) — 미수집도 정직하게.
+  - [ ] 수집 → 채점 → 피드 렌더 E2E(무키, fixture 임베딩 seed).
 - [ ] **게이트 보존(확대 입력)** — GS-1 캐시 hit 변동 0 + GS-2 hallucinated requirement ≤2%가 *확대된 JD/이력서 표본*에서 유지.
 - [ ] **비용 측정** — 보강 전/후 채점 LLM 비용(토큰/호출 수) 비교로 절감 실증.
 - [ ] AC 100% / P0 0.
@@ -69,7 +81,7 @@ M4가 "핵심 워크플로우가 도는 멀티유저 MVP"를 완성하면, M5는
 - ✅ **도메인 분류**: 결정적 규칙(LLM·클러스터링 아님) + **기존 `ROLE_FAMILY_TO_DOMAINS` 토큰 재사용**(새 어휘 X). SKILL_DOMAIN_RULES 확정(다의어·kotlin 제외). (T-066)
 - ✅ **후보선별**: 하이브리드 합집합(벡터 ∪ 도메인 ∪ **raw_text 스킬키워드** — `tech_stack` 컬럼 없음 확정), **K_v=50 / K_max=80**(F-023 후 30/50 검토). (T-065)
 - ✅ **구조화 JD JSONB**: M5 미신설(raw_text로 시작) — 디스크 캐시는 SSOT로 취급 안 함, recall 부족 시 F-023 후 재검토. (ADR-108 D1)
-- ✅ **커버리지 1차 티어**: ATS 어댑터 **Greenhouse → Lever → Ashby 우선, Workday 후순위**. 한국 공식 채용 페이지는 source별 유지보수 비용 보고 제한적 추가. (T-062/T-063)
+- ✅ **커버리지 1차 티어**: ATS 어댑터 우선순위 **그리팅·Workday > Lever·Ashby**(Greenhouse=T-062, T-070 실측 반영). 5-tier universe(~85개사) — 회사 목록은 Tier별 task T-072~076. (T-062/T-063)
 - ✅ **A-3 τ**: 우선 **내부 golden-pair/persona eval 확장**으로 진행, 사람 평가자는 후속 검증 게이트(τ<0.6 No-go 대응은 그 시점). (T-068/T-069)
 - ✅ **상태채널(M4 잔여 REV-M4-003/010)**: M5 비범위 — **M6 DLQ/운영안정화와 묶음**. M5는 비용구조·후보선별 정확도 집중.
 - ⏸ **모델 티어링**(저가/고가 분리): F-023 GS-2(근거 사실성 ≤2%) 측정 후 적용(ADR-108 D7). HNSW `m`/`ef_construction`은 pgvector 기본값 시작.

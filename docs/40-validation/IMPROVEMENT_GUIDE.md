@@ -552,3 +552,20 @@ Telemetry — M4 (졸업 가능 YES)
   - 발견/결정: verifier가 AC 전체 미커버 → T-063(web coverage_panel)·T-065(web coarse_section)·T-066(schema-contract+api) 추가로 AC↔verifier 일치.
 - **M5-repair-25** | P1 | [관측됨] | linked: T-063 | status: applied | decision: Adopt
   - 발견/결정: `source_crawl_status` 소유권 "DB(또는 worker 소유)" 모호 → crawler(Collector) 소유 + api read-only 고정(ARCH §3-2 write-owner).
+
+> **repair-plan M5 round 5 (2026-06-08)** — `/validate-plan M5`(default) 1파일. 5-tier 커버리지 확장(T-070~076) 후 SSOT 불일치 정정. P0 1 + P1 6 영속(P2 1 미영속·적용). depends_on 불변(write_set만 보강 — registry_seed 단일 writer화).
+
+- **M5-repair-26** | P0 | [관측됨] | linked: F-020,T-070 | status: applied | decision: Adopt
+  - 발견/결정: F-020 FAC-1·T-070(목적/§5/AC-1/test)이 Tier1~3만 요구 → 5-tier 전체 + Tier4/5 view-vs-apply 로그인 판정까지 포함하도록 확장.
+- **M5-repair-27** | P1 | [관측됨] | linked: M5,F-020,T-071 | status: applied | decision: Adopt
+  - 발견/결정: ATS 우선순위 문서마다 상이 → **그리팅·Workday > Lever·Ashby(Greenhouse=T-062)**로 단일화(M5 §2/§7·F-020 §4/§7/§12) + T-071 AC-1/test에 greeting/workday 포함.
+- **M5-repair-28** | P1 | [관측됨] | linked: T-071~T-076 | status: rejected | decision: Reject-conflict
+  - 발견/결정: per-tier task 분할 권고 미적용 — 사용자가 per-tier 구조 명시(tier2~5 task화 지시). 회사 다수는 registry_seed config(어댑터 아님), custom 어댑터는 tier당 소수 + §8에 클러스터 분할 여지 명시 → plan이 더 정합.
+- **M5-repair-29** | P1 | [관측됨] | linked: T-073,T-074,T-075,T-076 | status: applied | decision: Adopt-modified
+  - 발견/결정: Wave A3 병렬 task들이 `registry_seed.py` 공동 write → 충돌. **registry_seed를 T-070 단일 writer로** 고정, T-073~076은 read-only(write_set 제거). depends_on 불변.
+- **M5-repair-30** | P1 | [관측됨] | linked: T-064,T-066 | status: rejected | decision: Reject-conflict
+  - 발견/결정: Wave B1 schema-contract 공유 — M5 §3-1 공유표면 note + solo-sequential 구현으로 이미 처리(M5-repair-22 동일 판단). 논리 의존 없어 depends_on 불변(인위적 dep 회피).
+- **M5-repair-31** | P1 | [관측됨] | linked: T-063 | status: applied | decision: Adopt
+  - 발견/결정: T-063 §3/AC가 `status=failing`(구) 사용 + §1 FAC 참조 stale → taxonomy(blocked/captcha/login-required/no-korea-jobs/unsupported) 통일 + FAC 참조를 F-020 FAC-2/4로 정정.
+- **M5-repair-32** | P1 | [관측됨] | linked: F-021 | status: applied | decision: Adopt
+  - 발견/결정: F-021 §2/§5/§12가 JSONB "plan 재검토"로 열려 M5 §7과 불일치 → **M5 미신설(raw_text), F-023 후 재검토**로 고정 + resume 임베딩 영속·tech_stack 컬럼 부재 정정.

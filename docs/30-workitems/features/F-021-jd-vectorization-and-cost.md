@@ -10,7 +10,7 @@ technical-enabler
 
 ## 2. 기술적 근거 (Technical rationale)
 **무엇을:** 현 채점은 (코드 감사) 공고 N개에 대해 매칭(step4)+검증(step5)을 **2N회 LLM 호출**하고 listwise 프롬프트에 N개를 다 넣는다 → F-020으로 JD가 수백 개가 되면 비용·지연이 N에 비례해 폭증한다. 본 feature는 **벡터+하이브리드 후보 선별로 "깊게 볼" JD를 K개로 한정**해 비용을 N이 아니라 K에 비례시킨다.
-**비용 레버에 필요한 최소만 도입:** JD 임베딩 영속 + 후보 사전필터(K-batch) + coarse/deep 분리 + (측정 후) 모델 티어링. **구조화 JD 정규화 테이블(`job_requirements`)은 만들지 않되**(YAGNI), 구조화 JD를 JSONB로 영속할지는 plan에서 재검토한다(ADR-108 D1 — 디스크 캐시는 SSOT 아님 + D2 스킬/`tech_stack` 매칭이 선별 시점에 구조화 JD를 요구할 수 있음). **per-JD 단건 증분은 M5 필수 아님 — 후속**(ADR-108 D5).
+**비용 레버에 필요한 최소만 도입:** JD 임베딩 영속 + 후보 사전필터(K-batch) + coarse/deep 분리 + (측정 후) 모델 티어링. **구조화 JD 정규화 테이블(`job_requirements`)은 만들지 않고**(YAGNI), 구조화 JD JSONB 영속도 **M5 미신설(raw_text 키워드 기반 — 현 schema에 `tech_stack` 컬럼 없음 확정), F-023 후 재검토**(ADR-108 D1 — 디스크 캐시는 SSOT 아님). **per-JD 단건 증분은 M5 필수 아님 — 후속**(ADR-108 D5).
 **서비스하는 가정:** A-12(결정성 비용 보존)·GS-1. 상위: [ADR-108](../../90-decisions/project/ADR-108-scoring-candidate-prefilter.md)(스코어링 비용 구조 — 벡터+하이브리드 후보 사전필터).
 
 ## 1. 요약
@@ -31,7 +31,7 @@ JD를 1회 임베딩해 **`job_embeddings`(vector)** 에 영속(재사용)하고
 
 ## 4. 범위
 - **`job_embeddings` 테이블**(worker 소유, ARCH §3-2): job_posting_id FK + vector 컬럼(DDL=Prisma raw SQL + HNSW 인덱스, DML=Python 검색) + embedding_version. JD별 1회 임베딩·재사용.
-- resume 임베딩(채점 시 1회 + 캐시; resumes vector 컬럼 영속은 선택).
+- **resume 임베딩 영속**(`resume_embeddings` — masked content + version 키, 재사용; OpenAI 임베딩 호출 비결정성 차단 → GS-1, T-064 확정).
 - **후보 선별(하이브리드 합집합)**: 벡터 top-K_v ∪ 도메인/role_family 매칭 ∪ 스킬/키워드 매칭 → 상한 K_max cap, 결정적 tie-break(유사도 desc, job_id asc).
 - **매칭~랭킹을 후보 K개에만 한정** (기존 `run_scoring`을 후보 집합으로 호출 — 파이프라인 본체 불변, 입력 공고집합만 K로 축소). **= M5 필수 비용 레버.**
 - **coarse/deep 분리**: deep만 `recommendations`(fit_level). **coarse 후보는 worker가 (채점 시 이미 계산한 유사도로) worker-소유 projection에 materialize**(job_id + 유사도 rank, **fit_level 없음**) → **api는 read-only 서빙**. vector 검색 DML은 worker 소속이라(ARCH §3-2/§7-3) **api/feed가 직접 vector 쿼리 수행 금지** — "피드 시 즉석 쿼리" 아님. coarse는 deep과 **별도 cursor·무배지**. ⚠ *ADR-108 D3의 "피드 시 즉석 쿼리" 문구도 worker-materialize로 정합 필요(repair-plan 범위 밖 — 메인세션 별도).*
@@ -41,7 +41,7 @@ JD를 1회 임베딩해 **`job_embeddings`(vector)** 에 영속(재사용)하고
 - 피드 coarse 섹션 UI = **기존 JobCard를 FitScoreRing/PassBand(적합도 배지) 없이 재사용**(신규 컴포넌트 X) + 유사도순 목록 (DESIGN §7-3 CoarseSection 반영됨).
 
 ## 5. 비범위
-- **구조화 JD 정규화 테이블(`job_requirements`)** — 미신설(YAGNI). 단 JSONB 영속 여부는 plan에서 재검토(ADR-108 D1 — 디스크 캐시는 SSOT 아님).
+- **구조화 JD 정규화 테이블(`job_requirements`)** — 미신설(YAGNI). JSONB 영속도 **M5 미신설(raw_text 기반), F-023 후 재검토**(ADR-108 D1 — 디스크 캐시는 SSOT 아님).
 - **per-JD 단건 증분 deep scoring** — M5 필수 아님. 목표 구조이되 F-023 이후 후속 최적화(ADR-108 D5). M5 필수는 K-batch.
 - **임베딩 유사도/후보선별 점수를 적합도 5단계로 표시** — 금지(Guardrail 1). fit_level은 deep 통과 공고에만.
 - 출력 계약(fit_level·evidence·recommendations·result shape) 변경 — M4 동결.
@@ -105,6 +105,6 @@ JD를 1회 임베딩해 **`job_embeddings`(vector)** 에 영속(재사용)하고
 ## 12. 열린 질문 (확정값 — plan에서 미세조정)
 - **임베딩 대상**: JD = 정규화 텍스트(title+role_family+requirements/skills 요약), resume = evidence 요약. (raw 전체보다 boilerplate 적어 매칭 품질↑.) 모델·차원·HNSW 파라미터는 plan에서 핀.
 - **K**: recall 우선 — 초기 **K_v≈50 / K_max≈80**으로 넓게 시작 → F-023 recall·비용 측정 후 축소(예: 30/50). 누락 위험 먼저 보고 줄임.
-- **저장**: `job_embeddings`(JD 임베딩). resume 임베딩은 캐시(영속 선택). **구조화 JD JSONB 영속 여부**(선별 시점 `tech_stack` 필요 vs raw_text 키워드로 충분)는 plan에서 결정(ADR-108 D1).
+- **저장**: `job_embeddings`(JD) + **`resume_embeddings`(resume 임베딩 영속 확정 — GS-1, T-064)**. **구조화 JD JSONB는 M5 미신설**(raw_text 키워드 — `tech_stack` 컬럼 없음 확정), F-023 후 재검토(ADR-108 D1).
 - **재랭킹 트리거**: M5 필수=resume 채점 시 K 후보 deep batch 1회 / resume 교체=전체. per-JD 증분은 후속(ADR-108 D5).
 - 모델 티어링은 F-023에서 GS-2 미하락 확인 *후* 적용.
