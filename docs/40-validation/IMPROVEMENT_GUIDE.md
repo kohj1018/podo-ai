@@ -319,3 +319,143 @@ Telemetry — M3 (정식 재grade 2026-06-07 — 졸업 가능 YES)
 - **M3-repair-1** | P0 | [관측됨] | linked: F-015,T-034,T-038 | status: applied | decision: Adopt
   - 발견 (cross-LLM review default): F-015:FAC-1 preview/evidence 요약 렌더에 필요한 데이터를 backend AC가 생산 안 함 — T-034 응답(`{resume_id,masked,placeholders}`)·F-013 NFR(content 미포함)이 T-038의 masked_preview/evidence 가정과 어긋남(builder가 mock/UI만 green 낼 위험).
   - 결정: Adopt — T-034 응답·AC-1에 `masked_preview`(마스킹본) + 결정적 `evidence_summary`(스킬·경력 수, `extract_skills_evidence` 비-LLM 부분 TS 이식) 추가. T-038 §8 인터페이스 갭 경고 해소(확정 계약 소비).
+
+### M4
+
+> `/repair-plan M4` (2026-06-07) — cross-LLM `/validate-plan`(reviewer-tag: default, M4 milestone + F-016~F-019, tasks 제외) 회수. 판정 ALL_GOOD. P0 0 + P1 3 영속(P2 0). 의존성 변경 없음.
+
+- **M4-repair-1** | P1 | [관측됨] | linked: F-017 | status: applied | decision: Adopt-modified
+  - 발견 (cross-LLM review default): 작업 상태 저장이 `scoring_jobs` 테이블(api) vs SQS로 열려 있고 api가 `queued` 기록 후 worker가 `running/done` 갱신 — DB 테이블이면 ARCH §3-2 "단일 writer" 위반.
+  - 결정: Adopt-modified — 상태 테이블 **api 단일 소유**(폴링 대상), worker는 자기 테이블(`ranking_runs`)만 write·완료는 큐/산출물로 api에 전달(shared-write 금지). F-017 §1·§4·§12 반영.
+- **M4-repair-2** | P1 | [관측됨] | linked: F-017 | status: applied | decision: Adopt
+  - 발견: `held`가 job-level인지 recommendation-level인지 흔들림(상태머신 `done|held`를 작업 상태처럼 제시).
+  - 결정: Adopt — **작업 상태 = `queued/running/done/failed`**, 개별 공고 `scored/held`는 `recommendations` 레벨로 분리. F-017 §1·§4·FAC-2 반영.
+- **M4-repair-3** | P1 | [관측됨] | linked: F-018 | status: applied | decision: Adopt-modified
+  - 발견: lottie가 F-018 범위에 들어왔으나 DESIGN.md §7/§8에 lottie 규칙 부재(문서 먼저 위반).
+  - 결정: Adopt-modified — lottie 유지하되 **DESIGN.md lottie 규칙 추가를 UI task 선행 필수**(repair-plan 범위 밖)로 명시 + 미반영 시 CSS 모션 대체. F-018 §10·§12 반영.
+
+### M5
+
+> `/repair-plan M5` (2026-06-07) — cross-LLM `/validate-plan`(reviewer-tag: default, M5 milestone + F-020~F-023, tasks 제외) 회수. 판정 NEEDS_CHANGES. P0 2 + P1 3 영속(P2 0). 의존성 변경 없음. **비-workitem(Charter §5·ADR-108 D3·DESIGN §7) 편집은 repair-plan 범위 밖 → owed.**
+
+- **M5-repair-1** | P0 | [관측됨] | linked: M5,F-020 | status: applied | decision: Adopt-modified
+  - 발견 (cross-LLM review default): Charter §5 "다채널 비목표"를 반전하는 M5/F-020이 상위 승인(Charter scope-note)을 "나중"으로 미뤄 하위가 먼저 생김.
+  - 결정: Adopt-modified — Charter §5 scope-note를 **M5 task 생성 전 필수 선행(blocking gate)**으로 격상(M5 §1·F-020 §0). Charter 편집 자체는 범위 밖 → 메인세션 owed.
+- **M5-repair-2** | P0 | [관측됨] | linked: F-021 | status: applied | decision: Adopt-modified
+  - 발견: coarse "피드 시 pgvector 즉석 쿼리"가 ARCH §3-2/§7-3(vector DML=Worker, api는 서빙만) 경계 위반.
+  - 결정: Adopt-modified — coarse를 **worker-소유 projection에 materialize·api read-only**로 고침(F-021 §4). ADR-108 D3 "즉석 쿼리" 문구 정합은 범위 밖 → owed.
+- **M5-repair-3** | P1 | [관측됨] | linked: M5,F-020 | status: applied | decision: Adopt
+  - 발견: `N개 소스`·`목표 티어`가 미정이라 graduation 다의적.
+  - 결정: Adopt — **ATS 어댑터 ≥1종 + 공식 소스 ≥3개** 검증 가능 최소치(F-020 FAC-1·M5 §5).
+- **M5-repair-4** | P1 | [관측됨] | linked: F-021 | status: applied | decision: Adopt
+  - 발견: per-JD 증분이 §3 Alternate path엔 즉시 deep, FAC-6엔 "다음 run"으로 흔들림.
+  - 결정: Adopt — M5 필수=K-batch로 통일, per-JD 증분은 후속(F-021 §3 정합, ADR-108 D5).
+- **M5-repair-5** | P1 | [관측됨] | linked: F-021 | status: applied | decision: Adopt-modified
+  - 발견: coarse 섹션 UI가 DESIGN §7 인벤토리에 없음.
+  - 결정: Adopt-modified — coarse = **기존 JobCard를 적합도 배지 없이 재사용**(신규 컴포넌트 X)로 명시(F-021 §4). DESIGN §7 변형 추가는 owed.
+
+### M6
+
+> `/repair-plan M6` (2026-06-07) — cross-LLM `/validate-plan`(reviewer-tag: default, M6 milestone + F-024~F-027, tasks 제외) 회수. 판정 ALL_GOOD. P0 0 + P1 3 영속 + P2 2(doc-link/section-order, cap 보호로 §5 미영속·문서에 직접 적용). **의존성 변경(M6-repair-1) → wave 재산출 필요.**
+
+- **M6-repair-1** | P1 | [관측됨] | linked: F-025,F-027 | status: applied | decision: Adopt
+  - 발견 (cross-LLM review default): F-025↔F-027 선후관계 순환(둘 다 상대를 선행으로 둠).
+  - 결정: Adopt — **단일 worker 배포(F-025) → 공유 캐시·다중화(F-027)** 일방향으로 끊음. F-025 §4·§10·F-027 §10 반영(**의존성 변경**).
+- **M6-repair-2** | P1 | [관측됨] | linked: M6,F-024,F-027 | status: applied | decision: Adopt-modified
+  - 발견: S3 실물 이전 소유자 불명확(M6/F-027은 S3 암시, F-024 FAC엔 없음).
+  - 결정: Adopt-modified — 공유 캐시 **Postgres로 핀**(ARCH §7-3), **S3 미사용**(바이너리 저장 없음) 명시. M6 §2·F-024 §5·F-027 §1/§4 반영.
+- **M6-repair-3** | P1 | [관측됨] | linked: F-025 | status: applied | decision: Adopt
+  - 발견: crawler 실행면이 ARCH §7-3/ADR-101(GHA cron)와 다르게 "AWS 호스팅"으로 읽힘.
+  - 결정: Adopt — **crawler=GitHub Actions cron, api/worker=AWS 호스팅**으로 분리(F-025 §1·§4).
+
+> **repair-plan M4 round 2 (2026-06-07)** — cross-LLM `/validate-plan`(default, M4 + F-016~019 + **tasks T-042~052**) 회수. P0 4 + P1 5 영속(P2 1 doc-link=cap 보호 미영속·iface 줄 직접 적용). 의존성 변경 없음.
+
+- **M4-repair-4** | P0 | [관측됨] | linked: F-016,T-042 | status: applied | decision: Adopt
+  - 발견/결정: FAC-1 OAuth callback(users upsert+세션) 경로가 AC에 미매핑(T-042:AC-1=우회세션만) → T-042 **AC-5**(mock profile→`findOrCreateUser` upsert) 추가, FAC-1 재매핑.
+- **M4-repair-5** | P0 | [관측됨] | linked: F-017,T-045 | status: applied | decision: Adopt
+  - 발견/결정: FAC-2 worker `failed`(재시도 한도 초과) 미테스트 → T-045 **AC-4** 추가, FAC-2 재매핑.
+- **M4-repair-6** | P0 | [관측됨] | linked: F-018,T-046 | status: applied | decision: Adopt
+  - 발견/결정: FAC-4 empty/error 상태가 AC로 안 닫힘 → T-046 **AC-4**(empty+error) 추가, FAC-4 재매핑.
+- **M4-repair-7** | P0 | [관측됨] | linked: F-019,T-050 | status: applied | decision: Adopt
+  - 발견/결정: FAC-3 "skip→기본 피드 제외" 미명시 → T-050 AC-1을 `applied`/`skipped` 둘 다 제외로 확장.
+- **M4-repair-8** | P1 | [관측됨] | linked: T-044,T-046,T-047,T-050 | status: applied | decision: Adopt-modified
+  - 발견/결정: sizing >1 RGR 지적. **분할 대신 예외 사유** — M2/M3와 동일 vertical-slice granularity(CRUD/UI feature task=1 RGR), 사용자 anti-과분해. (예외 사유 본 log에 기록.)
+- **M4-repair-9** | P1 | [관측됨] | linked: T-042,T-046~049,T-051,T-052 | status: applied | decision: Adopt
+  - 발견/결정: 경로 불일치 정정 — web `src/components`→`components`, `schema_contract_test.py`→`test_schema_contract.py`, bare `--filter web`→`@podo/web`. *T-042는 이미 `@podo/api`였음(리뷰어 부분 FP).*
+- **M4-repair-10** | P1 | [관측됨] | linked: T-047 | status: applied | decision: Adopt
+  - 발견/결정: T-047 메모의 fenced gradient 위치(피드/카드 배경) ≠ DESIGN §2-4(로고·fit링·인사strip) → 정정(전면/카드 배경 gradient 금지).
+- **M4-repair-11** | P1 | [관측됨] | linked: T-052 | status: applied | decision: Adopt
+  - 발견/결정: T-052 §6-2 opt-out 형식(사유+Follow-up task 분리) 정정.
+
+> **repair-plan M5 round 2 (2026-06-07)** — cross-LLM `/validate-plan`(default, M5 + F-020~023 + tasks T-062~069). P0 3 + P1 4 영속(P2 1 미영속). 의존성 변경 없음.
+
+- **M5-repair-6** | P0 | [관측됨] | linked: T-063,T-065,T-067 | status: applied | decision: Adopt
+  - 발견/결정: API task가 `src/routes/*.ts`+`/api/`(NestJS 아님) → 기존 NestJS module/controller/service + `/api/v1/`(ARCH §7-1, 실 repo `feed/`·`coverage/`)로 정정.
+- **M5-repair-7** | P0 | [관측됨] | linked: F-022,T-066,T-067 | status: applied | decision: Adopt-modified
+  - 발견/결정: T-067 confidence UI AC가 DB/API 계약 없이 worker `DomainResult.confidence`에만 의존 → T-066에 **worker-소유 `resume_domains` 영속(DDL=Prisma/DML=Python) + api read-only 서빙 AC-5** 추가, T-067은 그 계약 소비로 명시.
+- **M5-repair-8** | P0 | [관측됨] | linked: F-022,T-068 | status: applied | decision: Adopt
+  - 발견/결정: FAC-2 "분류→fit/랭킹 *실제 변경*" 미검증(분류 output/accuracy만) → T-068 **AC-4**(backend vs data 분류가 domain_alignment→fit/랭킹 바꿈) 추가, FAC-2 재매핑.
+- **M5-repair-9** | P1 | [관측됨] | linked: T-062~069 | status: applied | decision: Adopt
+  - 발견/결정: 경로 정정 — `crawler/`→`crawler/src/crawler/`, `ai/worker/*.py`→`ai/worker/src/worker/`, `podo/prisma`→`podo/apps/api/prisma`, `tests/crawler|api|web`→실경로, bare filter→`@podo/*`. (잔여 path 정규화는 validate-workitem이 실 repo 대비 검증.)
+- **M5-repair-10** | P1 | [관측됨] | linked: T-062,T-063,T-065 | status: applied | decision: Adopt-modified
+  - 발견/결정: sizing — 분할 대신 예외 사유(vertical-slice 선례, M4-repair-8 동일 근거).
+- **M5-repair-11** | P1 | [관측됨] | linked: T-068 | status: applied | decision: Adopt-modified
+  - 발견/결정: T-068↔F-020 의존: 확대 표본은 `ai/eval/fixtures/m5_expanded/` **큐레이션 수기 fixture(독립)** → depends_on 유지 + 주석으로 T-063 불요 명시.
+- **M5-repair-12** | P1 | [관측됨] | linked: T-063 | status: applied | decision: Adopt
+  - 발견/결정: T-063 §3-item6의 dangling `AC-4` 참조 → 애그리게이터 가드는 **T-062:AC-3**가 F-020 FAC-4 커버로 정정(별도 AC 불요).
+
+> **repair-plan M6 round 2 (2026-06-07)** — cross-LLM `/validate-plan`(default, M6 + F-024~027 + tasks T-082~089). P0 0 + P1 4 영속(P2 3 미영속·prisma 경로/opt-out 직접 적용). **의존성 변경(M6-repair-13/14) → wave 재산출 필요.**
+
+- **M6-repair-13** | P1 | [관측됨] | linked: T-084,T-086 | status: applied | decision: Adopt
+  - 발견/결정: e2e-smoke 소유권 순환(deploy가 smoke green 요구↔smoke가 deploy URL 요구) → **T-084=deploy + pre-deploy schema-contract gate(URL 불요), e2e-smoke=T-086 소유**로 분리. T-084 AC-3·§4-1·§9 정정.
+- **M6-repair-14** | P1 | [관측됨] | linked: T-088 | status: applied | decision: Adopt
+  - 발견/결정: T-088 depends_on `[T-082,T-085]`(T-085=crawl cron 무관) → `[T-082,T-084]`(단일 worker 배포 선행).
+- **M6-repair-15** | P1 | [관측됨] | linked: M6,T-082,T-083,T-084 | status: applied | decision: Adopt-modified
+  - 발견/결정: IaC/호스팅 미정인데 task가 Terraform/ECS 전제 → **M6 §7에 Terraform+ECS/Fargate 기본 핀**(변경 시 AWS 호스팅 ADR + task §3/verifier 갱신).
+- **M6-repair-16** | P1 | [관측됨] | linked: T-089 | status: applied | decision: Adopt-modified
+  - 발견/결정: T-089 sizing(PII·dep·header 다관심) → 분할 대신 예외 사유(보안 baseline 단일 task) + opt-out 형식 정정.
+
+> **repair-plan M4/M5/M6 round 3 (2026-06-07)** — cross-LLM `/validate-plan`(default; *실제 repo 파일까지 회수* — prisma schema·controller·cache.py·models.py). P0 4 + P1 16 영속(P2 3 미영속·직접 적용). **의존성 변경(M5-repair-16) → M5 wave 재산출.** 리뷰어 정확도 높음(repo 타입/경로 실측).
+
+- **M4-repair-17** | P0 | [관측됨] | linked: T-042 | status: applied | decision: Adopt
+  - 발견/결정: test-session이 AC=POST ↔ 구현=GET body 충돌(GET body는 ARCH §7-1 위반) → `POST /auth/test-session`으로 통일.
+- **M4-repair-18** | P1 | [관측됨] | linked: T-042,044,045,046,047,050 | status: applied | decision: Adopt-modified
+  - 발견/결정: sizing 재지적 → round2 M4-repair-8과 동일 결정 유지(vertical-slice=1 RGR, M2/M3 선례, 분할 X).
+- **M4-repair-19** | P1 | [관측됨] | linked: T-044,T-045 | status: applied | decision: Adopt-modified
+  - 발견/결정: 단일-writer 하 `running`/`failed` 갱신 경로 불명확 → **worker→`scoring-status-queue` 이벤트 emit → api status consumer가 `scoring_jobs` 갱신**(api 단일 writer)으로 일원화. T-044/T-045 반영.
+- **M4-repair-20** | P1 | [관측됨] | linked: T-048,T-050,T-051 | status: applied | decision: Adopt
+  - 발견/결정: §4-1↔write_set 불일치 → 테스트 파일·dotLottie package/lockfile(T-048)·migration/test/schema-contract(T-050)·spec(T-051) write_set 보강.
+- **M4-repair-21** | P1 | [관측됨] | linked: T-048 | status: applied | decision: Adopt
+  - 발견/결정: AC-2 "정적 프레임(또는 무렌더)" 모호 → **정적 첫 프레임(poster) 렌더**로 고정(마스코트 보임).
+
+- **M5-repair-13** | P0 | [관측됨] | linked: T-063,T-065,T-067 | status: applied | decision: Adopt
+  - 발견/결정: unversioned `/api/coverage`·`/api/feed` 잔여 → 전부 `/api/v1/...`(ARCH §7-1·기존 controller) 정렬.
+- **M5-repair-14** | P0 | [관측됨] | linked: T-064,T-065,T-066 | status: applied | decision: Adopt
+  - 발견/결정: `job_embeddings.job_posting_id TEXT` ↔ 실제 `JobPosting.id Int` 타입 불일치(migration 실패) → **INTEGER**로 정정 + coarse_candidates(job_posting_id INT·user_id TEXT)·resume_domains(resume_id INT) FK 타입 명시.
+- **M5-repair-15** | P1 | [관측됨] | linked: T-062,063,065,066,068,069 | status: applied | decision: Adopt-modified
+  - 발견/결정: sizing → vertical-slice 예외 사유(분할 X, 선례 일관).
+- **M5-repair-16** | P1 | [관측됨] | linked: T-065,T-066,T-067 | status: applied | decision: Adopt
+  - 발견/결정: T-066 write_set이 Prisma/API/schema-contract 누락 + T-065/T-067 모두 feed.controller 편집(병렬 충돌) → T-066 write_set 보강 + **T-067 depends_on에 T-065 추가(순차)**. *(의존성 변경 → M5 wave 재산출.)*
+- **M5-repair-17** | P1 | [관측됨] | linked: T-066 | status: applied | decision: Adopt
+  - 발견/결정: T-066 AC-5(resume_domains 영속·서빙)가 `## 3 구현 항목`에 단계 없음 → §3 item 5(migration+upsert+api+schema-contract) 추가.
+- **M5-repair-18** | P1 | [관측됨] | linked: T-065 | status: applied | decision: Adopt-modified
+  - 발견/결정: 스킬 매칭이 없는 `job_postings.tech_stack` 컬럼 가정 → **raw_text 키워드 기반**(구조화 JD JSONB는 ADR-108 D1 후속, M5 미도입).
+- **M5-repair-19** | P1 | [관측됨] | linked: T-063 | status: applied | decision: Adopt
+  - 발견/결정: AC-3(CoveragePanel UI)이 api test로 매핑 → web 컴포넌트 test(`coverage_panel.spec.tsx`)로 정정.
+- **M5-repair-20** | P1 | [관측됨] | linked: T-065 | status: applied | decision: Adopt-modified
+  - 발견/결정: CoarseSection 신설이 DESIGN §7-3(JobCard variant 재사용)과 충돌 우려 → **섹션 wrapper**(JobCard no-badge variant 렌더, 새 카드 X)로 명시.
+
+- **M6-repair-17** | P0 | [관측됨] | linked: F-025 | status: applied | decision: Adopt
+  - 발견/결정: FAC-1 "배포 전 e2e-smoke green"이 round2 split(post-deploy smoke)과 불일치 → "schema-contract pre-deploy gate + e2e-smoke post-deploy"로 정정, 매핑 T-084:AC-1·T-086:AC-1.
+- **M6-repair-18** | P1 | [관측됨] | linked: T-084,T-086 | status: applied | decision: Adopt
+  - 발견/결정: T-086 §3-5가 deploy-*.yml에 `needs:[…,e2e-smoke]` 추가 지시(순환 재발) → 제거. T-086은 post-deploy e2e-smoke만 소유.
+- **M6-repair-19** | P1 | [관측됨] | linked: T-085 | status: applied | decision: Adopt
+  - 발견/결정: crawler cron이 `OPENAI_API_KEY` 포함 → crawler=Collector(LLM 미호출, ARCH §3-2) → **DATABASE_URL만**으로 좁힘.
+- **M6-repair-20** | P1 | [관측됨] | linked: T-085 | status: applied | decision: Adopt
+  - 발견/결정: prisma 경로 오류 + 새 last_crawl 컬럼 대신 **기존 `crawl_runs`(M2) 재사용**(migration 불요) + coverage API write_set 보강.
+- **M6-repair-21** | P1 | [관측됨] | linked: T-088 | status: applied | decision: Adopt
+  - 발견/결정: cache 경로 `ai/worker/cache.py` → 실제 `ai/worker/src/worker/cache.py`로 정정(orphan 파일 방지).
+- **M6-repair-22** | P1 | [관측됨] | linked: T-086 | status: applied | decision: Adopt-modified
+  - 발견/결정: Playwright 신규 도입(deps/config 누락) → **기존 `scripts/e2e.mjs`를 `E2E_BASE_URL`로 재사용**(T-052/M2 패턴, 신규 dep 0).
+- **M6-repair-23** | P1 | [관측됨] | linked: M6,T-082,T-083 | status: applied | decision: Adopt
+  - 발견/결정: IaC 도구 "열린 질문"이 verifier(terraform)와 모순 → **Terraform 확정**(M6 §7 정합) task 본문 반영.
