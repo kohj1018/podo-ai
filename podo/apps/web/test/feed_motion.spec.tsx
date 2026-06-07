@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ArrivalList } from '../components/ArrivalList'
 import { Onboarding } from '../components/Onboarding'
@@ -58,8 +58,8 @@ describe('PodoLottie reduced-motion / fallback (AC-2)', () => {
     render(<PodoLottie src="podo.lottie" />)
     const el = screen.getByTestId('podo-lottie')
     expect(el.getAttribute('data-static')).toBe('true')
-    expect(el.getAttribute('aria-hidden')).toBe('true')
-    expect(el.textContent).toContain('🍇') // 마스코트는 보임
+    // 정적 포스터 = 마스코트 PNG(무렌더 아님 — 마스코트는 보임)
+    expect(within(el).getByTestId('podo-mascot')).toBeTruthy()
 
     cleanup()
     vi.unstubAllGlobals()

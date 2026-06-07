@@ -81,12 +81,17 @@ export function ResumeUpload({ onNavigateFeed }: { onNavigateFeed?: (path: strin
       if (file) {
         const form = new FormData()
         form.append('file', file)
-        res = await fetch(`${API_BASE}/api/v1/resumes`, { method: 'POST', body: form })
+        res = await fetch(`${API_BASE}/api/v1/resumes`, {
+          method: 'POST',
+          body: form,
+          credentials: 'include', // 세션 쿠키 전송(소유자 user_id 결선 + SessionGuard)
+        })
       } else {
         res = await fetch(`${API_BASE}/api/v1/resumes`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ text: pasteText }),
+          credentials: 'include',
         })
       }
 
@@ -113,7 +118,10 @@ export function ResumeUpload({ onNavigateFeed }: { onNavigateFeed?: (path: strin
   async function handleStartAnalysis() {
     if (!preview) return
     const { resumeId } = preview
-    await fetch(`${API_BASE}/api/v1/resumes/${resumeId}/score`, { method: 'POST' })
+    await fetch(`${API_BASE}/api/v1/resumes/${resumeId}/score`, {
+      method: 'POST',
+      credentials: 'include',
+    })
     localStorage.setItem('podo_active_resume_id', String(resumeId))
     // 실앱 기본 navigation: feed(/)로 이동(채점 후 fresh load). 테스트는 onNavigateFeed 주입으로 override.
     // useRouter 대신 window.location — top-level hook이 없어 router context 없는 다른 spec을 깨지 않음.

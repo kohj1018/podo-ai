@@ -28,7 +28,7 @@ export function CoveragePanel() {
 
   useEffect(() => {
     let alive = true
-    fetch(`${API_BASE}/api/v1/coverage`)
+    fetch(`${API_BASE}/api/v1/coverage`, { credentials: 'include' })
       .then((r) => {
         if (!r.ok) throw new Error(`coverage ${r.status}`)
         return r.json()
@@ -49,7 +49,7 @@ export function CoveragePanel() {
       <section
         data-testid="coverage-panel"
         data-state="error"
-        className="mx-auto max-w-2xl rounded-xl border p-3 text-sm"
+        className="mx-auto max-w-[430px] rounded-xl border p-3 text-sm"
         style={{ color: 'var(--band-1-ink)', borderColor: 'var(--band-1-ink)' }}
       >
         ⚠ 수집 현황을 불러오지 못했습니다
@@ -62,7 +62,7 @@ export function CoveragePanel() {
       <section
         data-testid="coverage-panel"
         data-state="loading"
-        className="mx-auto max-w-2xl p-3 text-sm"
+        className="mx-auto max-w-[430px] p-3 text-sm"
       >
         수집 현황 불러오는 중…
       </section>
@@ -76,7 +76,7 @@ export function CoveragePanel() {
         data-testid="coverage-panel"
         data-state="degraded"
         role="alert"
-        className="mx-auto max-w-2xl rounded-xl border p-3 text-sm"
+        className="mx-auto max-w-[430px] rounded-xl border p-3 text-sm"
         style={{ color: 'var(--band-1-ink)', borderColor: 'var(--band-1-ink)' }}
       >
         <h2 className="font-medium">수집 실패</h2>
@@ -97,7 +97,7 @@ export function CoveragePanel() {
       data-testid="coverage-panel"
       data-state="ready"
       aria-label="수집 현황"
-      className="mx-auto max-w-2xl rounded-xl border p-3 text-sm"
+      className="mx-auto max-w-[430px] rounded-xl border p-3 text-sm"
       style={{
         backgroundColor: 'var(--coverage-on-bg)',
         borderColor: 'var(--coverage-on-border)',

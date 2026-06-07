@@ -35,7 +35,7 @@ export function Onboarding() {
   return (
     <div data-testid="onboarding">
       <OnboardingGuide />
-      <div style={{ maxWidth: '430px', margin: '0 auto', padding: '0 16px', textAlign: 'center' }}>
+      <div style={{ maxWidth: '430px', margin: '0 auto', padding: '0 16px' }}>
         <button
           type="button"
           data-testid="onboarding-dismiss"

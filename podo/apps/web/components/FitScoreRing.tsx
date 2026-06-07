@@ -22,6 +22,7 @@ export function FitScoreRing({
       </div>
     )
   }
+  // fenced 그라데이션 링(§2-4 fit 링 — 도넛: 바깥 gradient + 안쪽 surface). 숫자는 ink/surface로 AA 대비.
   return (
     <div
       data-testid="fitring"
@@ -29,9 +30,14 @@ export function FitScoreRing({
       className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full"
       style={{ background: 'var(--brand-gradient)' }}
     >
-      <span className="text-lg font-bold" style={{ color: 'var(--paper)' }}>
-        {level ?? '—'}
-      </span>
+      <div
+        className="flex items-center justify-center rounded-full"
+        style={{ width: '38px', height: '38px', background: 'var(--surface)' }}
+      >
+        <span className="text-lg font-bold" style={{ color: 'var(--ink)' }}>
+          {level ?? '—'}
+        </span>
+      </div>
     </div>
   )
 }

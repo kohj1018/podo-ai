@@ -18,7 +18,7 @@ export function LogoutButton() {
         background: 'transparent',
         color: 'var(--muted)',
         border: '1px solid var(--line-strong)',
-        borderRadius: '6px',
+        borderRadius: '12px',
         padding: '6px 12px',
         cursor: 'pointer',
       }}

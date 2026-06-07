@@ -1,4 +1,6 @@
 import { Injectable } from '@nestjs/common'
+// 처리완료 정리 규칙의 단일 출처(applications 도메인 소유) — feed/meta가 동일 action을 제외(드리프트 방지).
+import { CLEARED_ACTIONS } from '../applications/applications.service'
 // NestJS DI: value import 필수(import type은 emitDecoratorMetadata에서 erase → DI 실패).
 import { PrismaService } from '../prisma/prisma.service'
 
@@ -74,7 +76,7 @@ export class FeedService {
 
     // 처리완료(applied/skipped) 제외 — getFeed와 동일 규칙.
     const processed = await this.prisma.applicationEvent.findMany({
-      where: { user_id: userId, action: { in: ['applied', 'skipped'] } },
+      where: { user_id: userId, action: { in: CLEARED_ACTIONS } },
       select: { job_posting_id: true },
     })
     const excluded = new Set(processed.map((p) => p.job_posting_id))
@@ -131,7 +133,7 @@ export class FeedService {
     let excludedJobIds: number[] = []
     if (userId) {
       const processed = await this.prisma.applicationEvent.findMany({
-        where: { user_id: userId, action: { in: ['applied', 'skipped'] } },
+        where: { user_id: userId, action: { in: CLEARED_ACTIONS } },
         select: { job_posting_id: true },
       })
       excludedJobIds = processed.map((p) => p.job_posting_id)

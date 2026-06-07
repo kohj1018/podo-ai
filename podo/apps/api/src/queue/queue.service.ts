@@ -15,8 +15,12 @@ export class QueueService {
       region: process.env.AWS_REGION ?? 'us-east-1',
       ...(endpoint ? { endpoint } : {}),
     })
-    // SQS_QUEUE_URL 미설정 시 startup에서 명시적 실패를 유도(환경변수 누락 early detection).
-    this.queueUrl = process.env.SQS_QUEUE_URL ?? ''
+    // SQS_QUEUE_URL 미설정 = 구성 오류 → startup에서 즉시 실패(런타임 enqueue 500 회피, QA-M4-003).
+    const queueUrl = process.env.SQS_QUEUE_URL
+    if (!queueUrl) {
+      throw new Error('SQS_QUEUE_URL 환경변수가 설정되지 않았습니다 (큐 트리거 구성 오류).')
+    }
+    this.queueUrl = queueUrl
   }
 
   async enqueue(resumeId: number, jobId: string): Promise<void> {

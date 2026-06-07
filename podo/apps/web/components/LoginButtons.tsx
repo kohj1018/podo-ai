@@ -38,7 +38,7 @@ export function LoginButtons({ error }: { error?: string }) {
           padding: '12px',
           background: 'var(--grape-600)',
           color: 'var(--surface)',
-          borderRadius: '8px',
+          borderRadius: '16px',
           border: 'none',
           cursor: loading ? 'wait' : 'pointer',
         }}
@@ -56,7 +56,7 @@ export function LoginButtons({ error }: { error?: string }) {
           padding: '12px',
           background: 'var(--surface)',
           color: 'var(--ink)',
-          borderRadius: '8px',
+          borderRadius: '16px',
           border: '1px solid var(--line-strong)',
           cursor: loading ? 'wait' : 'pointer',
         }}

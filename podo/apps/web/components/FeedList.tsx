@@ -29,7 +29,10 @@ export function FeedList() {
     setLoading(true)
     setError(false)
     try {
-      const res = await fetch(`${API_BASE}/api/v1/feed?cursor=${cursorRef.current}`)
+      // credentials:'include' — 보호 라우트(SessionGuard) 쿠키 전송(교차출처 :3000→:3001).
+      const res = await fetch(`${API_BASE}/api/v1/feed?cursor=${cursorRef.current}`, {
+        credentials: 'include',
+      })
       if (!res.ok) throw new Error(`feed ${res.status}`)
       const page = (await res.json()) as FeedPage
       setItems((prev) => {
@@ -53,7 +56,7 @@ export function FeedList() {
   }, [loadMore])
 
   return (
-    <main className="mx-auto max-w-2xl p-4">
+    <main style={{ maxWidth: '430px', margin: '0 auto', padding: '4px 16px 72px' }}>
       {/* 신규 공고 arrival 모션(stagger) + reduced-motion 분기는 ArrivalList가 담당(T-048). */}
       <ArrivalList
         items={items}

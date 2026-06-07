@@ -79,7 +79,7 @@ export function JobCardActions({
 
   const btn = {
     padding: '6px 12px',
-    borderRadius: '8px',
+    borderRadius: '12px',
     border: '1px solid var(--line-strong)',
     background: 'var(--surface)',
     color: 'var(--ink)',

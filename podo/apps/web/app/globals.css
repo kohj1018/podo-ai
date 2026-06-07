@@ -7,6 +7,9 @@
   --ink: #2b2433;
   --paper: #fffbf6;
   --surface: #ffffff;
+  /* elevation (DESIGN §7-4 elevation.card) — 시그니처 부드러운 그림자 */
+  --shadow-card: 0 6px 20px rgba(139, 61, 212, 0.08), 0 1px 3px rgba(43, 36, 51, 0.06);
+  --shadow-soft: 0 2px 10px rgba(43, 36, 51, 0.05);
   /* grape (brand) — DESIGN §2-1 */
   --grape-600: #8b3dd4;
   --grape-700: #6f2bc0;
@@ -33,6 +36,18 @@
   --line: #f6e4ec;
   --line-strong: #edd0dc;
   --muted: #6c6475;
+}
+
+/* §5 기반 타이포·표면 — Pretendard 단일 family(§3, layout에서 CDN 로드) + 따뜻한 paper 배경.
+   본문 14px·줄높이 1.6·좌측 정렬(§9). 컬러는 토큰만. */
+body {
+  font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: var(--paper);
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 /* skeleton shimmer (DESIGN §7-4: surface 위 line→line-strong / §8 모션) */

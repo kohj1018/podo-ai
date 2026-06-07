@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { FeedList } from './FeedList'
 import { GreetingCard } from './GreetingCard'
 import { Onboarding } from './Onboarding'
+import { PodoMascot } from './PodoMascot'
 
 interface FeedMeta {
   has_resume: boolean
@@ -77,9 +78,7 @@ export function FeedView() {
           color: 'var(--band-1-ink)',
         }}
       >
-        <p aria-hidden="true" style={{ fontSize: '32px', margin: 0 }}>
-          🍇
-        </p>
+        <PodoMascot size={52} />
         <p style={{ fontWeight: 600 }}>아침 배달이 늦어요. 잠시 후 다시 시도해주세요.</p>
         <button
           type="button"
@@ -149,9 +148,7 @@ export function FeedView() {
           data-testid="feed-all-processed"
           style={{ maxWidth: '430px', margin: '0 auto', padding: '24px 16px', color: 'var(--ink)' }}
         >
-          <p aria-hidden="true" style={{ fontSize: '32px', margin: 0 }}>
-            🍇
-          </p>
+          <PodoMascot size={52} />
           <p style={{ fontWeight: 600 }}>오늘 처리할 공고를 다 봤어요</p>
         </section>
       )
@@ -161,9 +158,7 @@ export function FeedView() {
         data-testid="feed-empty-state"
         style={{ maxWidth: '430px', margin: '0 auto', padding: '24px 16px', color: 'var(--ink)' }}
       >
-        <p aria-hidden="true" style={{ fontSize: '32px', margin: 0 }}>
-          🍇
-        </p>
+        <PodoMascot size={52} />
         <p style={{ fontWeight: 600 }}>오늘은 신규가 적어요</p>
         <p style={{ color: 'var(--muted)' }}>최근 7일 미처리 공고를 다시 볼 수 있어요.</p>
       </section>

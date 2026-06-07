@@ -53,8 +53,15 @@ export function JobCard({
     <article
       data-testid="job-card"
       aria-label={`${posting.company} ${posting.title}`}
-      className="flex items-start gap-4 rounded-2xl border p-4"
-      style={{ color: 'var(--ink)' }}
+      className="flex items-start gap-4"
+      style={{
+        color: 'var(--ink)',
+        background: 'var(--surface)',
+        border: '1px solid var(--line)',
+        borderRadius: '24px',
+        padding: '18px',
+        boxShadow: 'var(--shadow-card)',
+      }}
     >
       {held ? null : <FitScoreRing level={fit_level} />}
 

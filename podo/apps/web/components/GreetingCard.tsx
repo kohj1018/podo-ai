@@ -16,26 +16,30 @@ export function GreetingCard({
       data-testid="greeting-card"
       aria-label="오늘의 요약"
       style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '12px',
         maxWidth: '430px',
         margin: '0 auto',
-        padding: '16px',
-        borderRadius: '16px',
-        background: 'var(--grape-100)',
+        borderRadius: '24px',
+        overflow: 'hidden',
+        background: 'var(--surface)',
         color: 'var(--ink)',
+        boxShadow: 'var(--shadow-card)',
       }}
     >
-      {/* 포도 마스코트 — PodoLottie(src 없으면 정적 포스터, lottie 에셋은 후속). 장식(aria-hidden). */}
-      <PodoLottie size={48} />
-      <div>
-        <p style={{ fontWeight: 600, margin: 0 }}>포도가 오늘의 자리를 골라왔어요!</p>
-        <p style={{ margin: '4px 0 0', color: 'var(--muted)' }}>
-          <span data-testid="new-count">신규 {newCount}건</span>
-          {' · '}
-          <span data-testid="expiring-count">마감 임박 {expiringCount}건</span>
-        </p>
+      {/* fenced 그라데이션 인사 strip(§2-4 허용 3곳 중 1곳). */}
+      <div aria-hidden="true" style={{ height: '5px', background: 'var(--brand-gradient)' }} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '16px 18px' }}>
+        {/* 포도 마스코트 — PodoLottie(정적 포스터=마스코트 PNG, lottie 에셋은 후속). */}
+        <PodoLottie size={52} />
+        <div>
+          <p style={{ fontWeight: 700, margin: 0, fontSize: '18px' }}>
+            포도가 오늘의 자리를 골라왔어요!
+          </p>
+          <p style={{ margin: '4px 0 0', color: 'var(--muted)', fontSize: '13px' }}>
+            <span data-testid="new-count">신규 {newCount}건</span>
+            {' · '}
+            <span data-testid="expiring-count">마감 임박 {expiringCount}건</span>
+          </p>
+        </div>
       </div>
     </section>
   )

@@ -14,17 +14,47 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   const loggedIn = cookies().has('connect.sid')
   return (
     <html lang="ko">
+      <head>
+        {/* Pretendard 단일 family(DESIGN §3) — CDN variable 폰트. */}
+        <link
+          rel="stylesheet"
+          href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css"
+        />
+      </head>
       <body>
         {loggedIn && (
           <header
             style={{
               display: 'flex',
-              justifyContent: 'flex-end',
-              padding: '12px 24px',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '14px 16px',
               maxWidth: '430px',
               margin: '0 auto',
             }}
           >
+            <span style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700 }}>
+              <img
+                src="/podo-mascot.png"
+                alt=""
+                width={24}
+                height={24}
+                style={{ display: 'block' }}
+              />
+              <span>
+                포도{' '}
+                <span
+                  style={{
+                    background: 'var(--brand-gradient)',
+                    WebkitBackgroundClip: 'text',
+                    backgroundClip: 'text',
+                    color: 'transparent',
+                  }}
+                >
+                  ai
+                </span>
+              </span>
+            </span>
             <LogoutButton />
           </header>
         )}
