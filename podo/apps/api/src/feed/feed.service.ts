@@ -16,9 +16,101 @@ export interface FeedPage {
   nextCursor: number | null
 }
 
+// 피드 셸 메타 — 8-상태 분기(F-018)용. items와 분리(getFeed는 커서 페이지네이션, meta는 1회).
+export interface FeedMeta {
+  has_resume: boolean
+  scoring_status: 'queued' | 'running' | 'done' | 'failed' | null
+  diff_summary: { new_count: number; expiring_count: number }
+  total_pending_count: number // 현재 run의 held(보류) 공고 수
+  visible_count: number // 처리완료 정리 후 피드에 보이는 공고 수(ready/empty/all-processed 판별)
+}
+
 @Injectable()
 export class FeedService {
   constructor(private readonly prisma: PrismaService) {}
+
+  // 피드 진입 8-상태 분기 메타(F-018, T-046). 사용자 활성 이력서·채점 상태·신규/마감 diff·보류 수.
+  async getFeedMeta(userId?: string): Promise<FeedMeta> {
+    const empty: FeedMeta = {
+      has_resume: false,
+      scoring_status: null,
+      diff_summary: { new_count: 0, expiring_count: 0 },
+      total_pending_count: 0,
+      visible_count: 0,
+    }
+    if (!userId) {
+      return empty
+    }
+
+    const resume = await this.prisma.resume.findFirst({
+      where: { user_id: userId },
+      select: { id: true },
+    })
+    if (!resume) {
+      return empty
+    }
+
+    // 최신 scoring_job 상태 + ranking_run join 기반 done 판정(T-045 §8).
+    const job = await this.prisma.scoringJob.findFirst({
+      where: { resume: { user_id: userId } },
+      orderBy: { created_at: 'desc' },
+      select: { status: true },
+    })
+    const run = await this.prisma.rankingRun.findFirst({
+      where: { resume: { user_id: userId } },
+      orderBy: [{ created_at: 'desc' }, { id: 'desc' }],
+      select: { id: true },
+    })
+    // scoring_jobs.status는 DB scalar(string) — 계약 union으로 좁힘(값은 queued/running/done/failed).
+    let scoring_status: FeedMeta['scoring_status'] =
+      (job?.status as FeedMeta['scoring_status']) ?? null
+    if (run) {
+      scoring_status = 'done'
+    }
+
+    if (!run) {
+      return { ...empty, has_resume: true, scoring_status }
+    }
+
+    // 처리완료(applied/skipped) 제외 — getFeed와 동일 규칙.
+    const processed = await this.prisma.applicationEvent.findMany({
+      where: { user_id: userId, action: { in: ['applied', 'skipped'] } },
+      select: { job_posting_id: true },
+    })
+    const excluded = new Set(processed.map((p) => p.job_posting_id))
+
+    const recs = await this.prisma.recommendation.findMany({
+      where: { run_id: run.id },
+      select: { status: true, job_posting: { select: { diff_status: true, id: true } } },
+    })
+
+    let new_count = 0
+    let expiring_count = 0
+    let total_pending_count = 0
+    let visible_count = 0
+    for (const r of recs) {
+      if (excluded.has(r.job_posting.id)) {
+        continue
+      }
+      visible_count++
+      if (r.status === 'held') {
+        total_pending_count++
+      }
+      if (r.job_posting.diff_status === 'new') {
+        new_count++
+      } else if (r.job_posting.diff_status === 'expiring') {
+        expiring_count++
+      }
+    }
+
+    return {
+      has_resume: true,
+      scoring_status,
+      diff_summary: { new_count, expiring_count },
+      total_pending_count,
+      visible_count,
+    }
+  }
 
   // worker 산출 recommendations를 current run 한정 + rank_position 커서로 서빙(read-only).
   // userId 주어지면 그 사용자 이력서의 run으로 범위 격리(멀티유저, T-042). 미지정 시 전역(하위호환).

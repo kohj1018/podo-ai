@@ -1,7 +1,7 @@
 # T-046-greeting-card-feed-states
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 feature
@@ -44,12 +44,16 @@ feature
 - JobCard 세부(배지·근거 펼침 — T-047). · lottie 모션(T-048). · 접근성 심화 단언(T-049). · 지원/스킵 버튼(T-050/T-051). · 커서 페이지네이션·가상화.
 
 ## 4-1. 변경 예정 파일/경로
-- `podo/apps/api/src/feed/feed.service.ts` — diff_summary·scoring_status 응답 추가
+- `podo/apps/api/src/feed/feed.service.ts` — getFeedMeta(scoring_status·diff_summary·total_pending_count·visible_count·has_resume)
+- `podo/apps/api/src/feed/feed.controller.ts` — GET /api/v1/feed/meta
+- `podo/apps/api/src/coverage/coverage.service.ts` — Coverage.degraded 추가
 - `podo/apps/web/components/GreetingCard.tsx` (신규)
-- `podo/apps/web/components/CoveragePanel.tsx` (신규 또는 수정)
-- `podo/apps/web/app/page.tsx` — 8-상태 분기
+- `podo/apps/web/components/OnboardingGuide.tsx` (신규)
+- `podo/apps/web/components/FeedView.tsx` (신규 — 8-상태 오케스트레이터)
+- `podo/apps/web/components/CoveragePanel.tsx` — degraded → danger + role=alert
+- `podo/apps/web/app/page.tsx` — CoveragePanel + FeedView
 - `podo/apps/web/test/feed_states.spec.tsx` (신규)
-- `docs/20-system/DESIGN.md` §7 — 신규 컴포넌트 등록
+- `docs/20-system/DESIGN.md` §7 — OnboardingGuide 등록
 
 ## 5. 완료 조건
 피드 진입 시 8-상태(loading/error/empty/pending/no-resume/scoring/ready/all-processed)가 각각 올바르게 렌더되고, GreetingCard가 신규/마감 카운트를 표시한다. CoveragePanel이 상시 노출되며 수집 실패 시 danger를 표시한다.
@@ -79,6 +83,10 @@ feature
 - "신규/마감 diff" 데이터: crawler가 set하는 `diff_status` 컬럼 읽기. M4 E2E는 수동/로컬 크롤 1회로 diff_status 시드(cron 실가동은 M6).
 - 8-상태 분기는 클라이언트 상태(scoring_status·데이터 존재 여부)로 결정. 서버 컴포넌트 shell + client island 패턴.
 - CoveragePanel: coverage API(M2 F-010)의 `degraded` 필드 읽어 danger 표시. 항상 노출(숨김 금지 — Fail #3).
+- 구현 결정(implement) — **별도 meta 엔드포인트**: scoring_status·diff_summary는 getFeed(커서 페이지네이션) 응답이 아니라 `GET /api/v1/feed/meta`(1회)로 분리 — getFeed 시그니처/기존 api feed.spec 불변(저위험). FeedView가 meta로 8-상태 결정, ready/pending에서 기존 FeedList(items)에 위임(중복 없음).
+- 구현 결정(implement) — **상태 컴포넌트 inline + GreetingCard/OnboardingGuide 컴포넌트화**: ErrorState/EmptyState/AllProcessed/Scoring은 FeedView 내 inline 분기(testid/role/문구). 신규 design 컴포넌트 = GreetingCard·OnboardingGuide·FeedView. DESIGN §7에 OnboardingGuide만 신규 등록(GreetingCard·CoveragePanel·EmptyState·PendingState·ErrorState·LoadingState는 기존 등록).
+- 구현 결정(implement) — **role=region은 암묵 role 사용**: biome a11y(useSemanticElements/noRedundantRoles)가 `<section role="region">`를 redundant로 차단 → section+aria-label(암묵 region)로 두고 테스트는 getByRole('region',{name})로 단언. AC "role=region aria 속성" 충족(접근성 트리 기준).
+- 검증(implement): web vitest feed_states 5 pass + 기존 web 회귀 0 · api vitest 35 pass(podo_test) · `pnpm validate` green.
 
 ## 9. 의존성
 - depends_on: [T-042, T-044]

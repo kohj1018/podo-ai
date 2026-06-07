@@ -247,6 +247,7 @@ border.width:   "1.5px"   # 친근한 soft-chunky border (hairline 아님)
 - **PendingState (보류)** — 일급. podo(56px) + dashed 카드 + 정직한 메시지 + 원문 링크("틀린 점수보다 정직"). 가짜 점수 금지.
 - **ErrorState** — 수집 실패/커버리지 degraded. 숨기지 않고 노출(Fail #3 차단). podo가 "아침 배달이 늦어요" 톤이되 사실 명확.
 - **LoadingState** — skeleton 카드(shimmer) + ring indeterminate. *가짜 점수 절대 표시 금지*.
+- **OnboardingGuide** — 첫 진입(이력서 없음) 시 podo가 업로드를 안내하는 빈-피드 인라인 안내(F-018 empty 흐름, T-046). "이력서를 업로드해 포도와 시작해요" + 업로드 링크(/resume). 1회성 코치마크 아님(단순성).
 
 ### 7-4. 상태 매트릭스 (8-상태 강제)
 | 컴포넌트 | default | hover | active/pressed | focus | disabled | loading | error | empty |

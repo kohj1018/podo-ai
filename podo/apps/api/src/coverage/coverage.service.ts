@@ -13,6 +13,7 @@ export interface ChannelCoverage {
 export interface Coverage {
   channels: ChannelCoverage[]
   uncollected: string[]
+  degraded: boolean // 수집 실패/미수집 존재 → "전부 수집" 거짓 인상 차단(Fail #3, T-046 AC-2)
 }
 
 @Injectable()
@@ -48,6 +49,11 @@ export class CoverageService {
       }
     }
 
-    return { channels, uncollected }
+    // degraded = 미수집 채널 존재 또는 최신 run이 success가 아닌 채널 존재(수집 실패 노출).
+    const degraded =
+      uncollected.length > 0 ||
+      channels.some((c) => c.status !== null && c.status !== 'success')
+
+    return { channels, uncollected, degraded }
   }
 }

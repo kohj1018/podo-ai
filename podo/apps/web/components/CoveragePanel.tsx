@@ -11,6 +11,7 @@ interface ChannelCoverage {
 interface Coverage {
   channels: ChannelCoverage[]
   uncollected: string[]
+  degraded?: boolean
 }
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3001'
@@ -64,6 +65,29 @@ export function CoveragePanel() {
         className="mx-auto max-w-2xl p-3 text-sm"
       >
         수집 현황 불러오는 중…
+      </section>
+    )
+  }
+
+  // degraded(수집 실패/미수집) → danger + role=alert. "전부 수집" 거짓 인상 차단(Fail #3, AC-2).
+  if (cov.degraded) {
+    return (
+      <section
+        data-testid="coverage-panel"
+        data-state="degraded"
+        role="alert"
+        className="mx-auto max-w-2xl rounded-xl border p-3 text-sm"
+        style={{ color: 'var(--band-1-ink)', borderColor: 'var(--band-1-ink)' }}
+      >
+        <h2 className="font-medium">수집 실패</h2>
+        <p>일부 공고가 누락될 수 있어요.</p>
+        <ul>
+          {cov.channels.map((c) => (
+            <li key={c.name}>
+              {c.name}: {c.status ?? '미수집'}
+            </li>
+          ))}
+        </ul>
       </section>
     )
   }

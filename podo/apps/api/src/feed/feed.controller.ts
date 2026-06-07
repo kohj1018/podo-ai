@@ -8,7 +8,7 @@ import {
   UseGuards,
 } from '@nestjs/common'
 import { SessionGuard } from '../auth/session.guard'
-import { type FeedPage, FeedService } from './feed.service'
+import { type FeedMeta, type FeedPage, FeedService } from './feed.service'
 
 interface AuthedRequest {
   user?: { id: string }
@@ -27,5 +27,11 @@ export class FeedController {
     @Req() req: AuthedRequest,
   ): Promise<FeedPage> {
     return this.feed.getFeed(cursor, req.user?.id)
+  }
+
+  // GET /api/v1/feed/meta — 피드 진입 8-상태 분기 메타(F-018, T-046). 커서 무관 1회 호출.
+  @Get('api/v1/feed/meta')
+  async getMeta(@Req() req: AuthedRequest): Promise<FeedMeta> {
+    return this.feed.getFeedMeta(req.user?.id)
   }
 }
