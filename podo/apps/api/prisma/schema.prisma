@@ -12,18 +12,19 @@ datasource db {
 
 // crawler 소유 (§3-2) — 수집 공고.
 model JobPosting {
-  id              Int              @id @default(autoincrement())
-  source          String
-  company         String
-  title           String
-  url             String           @unique
-  raw_text        String
-  role_family     String?
-  posted_at       DateTime?
-  closing_at      DateTime?
-  diff_status     String?
-  fetched_at      DateTime         @default(now())
-  recommendations Recommendation[]
+  id                 Int                @id @default(autoincrement())
+  source             String
+  company            String
+  title              String
+  url                String             @unique
+  raw_text           String
+  role_family        String?
+  posted_at          DateTime?
+  closing_at         DateTime?
+  diff_status        String?
+  fetched_at         DateTime           @default(now())
+  recommendations    Recommendation[]
+  application_events ApplicationEvent[]
 
   @@map("job_postings")
 }
@@ -80,14 +81,15 @@ model Recommendation {
 // api 소유 — 계정 PII 최소 저장(ADR-105 Amend1 §2): provider·account_id·email·display_name·avatar_url만.
 // OAuth access/refresh token 미영속. 동일 email + 다른 provider = 별 계정(병합 비범위).
 model User {
-  id                  String   @id @default(cuid())
+  id                  String             @id @default(cuid())
   provider            String
   provider_account_id String
   email               String
   display_name        String
   avatar_url          String?
-  created_at          DateTime @default(now())
+  created_at          DateTime           @default(now())
   resumes             Resume[]
+  application_events  ApplicationEvent[]
 
   @@unique([provider, provider_account_id])
   @@map("users")
@@ -95,15 +97,15 @@ model User {
 
 // api 소유 — 실 이력서 업로드 메타(M3: masked·source·upload_format 추가).
 model Resume {
-  id            Int           @id @default(autoincrement())
-  content       String        // 마스킹본 전용 (raw PII 미저장 — M3 안전 불변식)
-  masked        Boolean       @default(false)
-  source        String        @default("seed")  // seed | upload | paste
-  upload_format String        @default("txt")   // txt | md | paste
-  created_at    DateTime      @default(now())
+  id            Int          @id @default(autoincrement())
+  content       String       // 마스킹본 전용 (raw PII 미저장 — M3 안전 불변식)
+  masked        Boolean      @default(false)
+  source        String       @default("seed")  // seed | upload | paste
+  upload_format String       @default("txt")   // txt | md | paste
+  created_at    DateTime     @default(now())
   // user_id nullable — 기존 seed 이력서(user 없음) 하위 호환(T-042)
   user_id       String?
-  user          User?         @relation(fields: [user_id], references: [id])
+  user          User?        @relation(fields: [user_id], references: [id])
   ranking_runs  RankingRun[]
   scoring_jobs  ScoringJob[]
 
@@ -121,4 +123,21 @@ model ScoringJob {
   resume     Resume   @relation(fields: [resume_id], references: [id])
 
   @@map("scoring_jobs")
+}
+
+// api 소유 — 지원/스킵·즐겨찾기 이벤트 로그(T-050). 이벤트 로그 형식 — GS-3 후속 분석 유리(F-019 §12).
+// action: applied | skipped | favorite | unfavorite | unskip
+// 멱등: 동일 (user_id, job_posting_id)는 upsert로 최신 action 유지.
+model ApplicationEvent {
+  id             Int        @id @default(autoincrement())
+  user_id        String
+  job_posting_id Int
+  action         String     // applied | skipped | favorite | unfavorite | unskip
+  created_at     DateTime   @default(now())
+  user           User       @relation(fields: [user_id], references: [id])
+  job_posting    JobPosting @relation(fields: [job_posting_id], references: [id])
+
+  @@unique([user_id, job_posting_id]) // 멱등 upsert 키 — 동일 user×job 최신 action 1행
+  @@index([user_id, job_posting_id])
+  @@map("application_events")
 }

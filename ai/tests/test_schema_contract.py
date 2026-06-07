@@ -137,3 +137,29 @@ def test_AC_4_users_table_and_user_id_fk_exist() -> None:
     assert any("user" in n for n in fk_names), (
         f"resumes.user_id FK to users 누락 (T-042). found: {fk_names}"
     )
+
+
+def test_AC_4_application_events_table_exists() -> None:
+    """T-050 AC-4 — application_events 테이블 + user_id FK 존재 검증(지원/즐겨찾기 기록)."""
+    ae = _columns("application_events")
+    for col in ("user_id", "job_posting_id", "action", "created_at"):
+        assert col in ae, f"application_events.{col} 누락 (T-050 지원 기록)"
+
+    # 멱등 키 — (user_id, job_posting_id) unique (동일 user×job 최신 action 1행)
+    uniq_ae = db.fetch_all(
+        "SELECT indexdef FROM pg_indexes WHERE tablename = 'application_events' "
+        "AND indexdef LIKE '%UNIQUE%' AND indexdef LIKE '%job_posting_id%'"
+    )
+    assert uniq_ae, (
+        "application_events (user_id, job_posting_id) unique 누락 (T-050 멱등)"
+    )
+
+    # user_id FK — users 테이블 참조(사용자 격리)
+    fk = db.fetch_all(
+        "SELECT constraint_name FROM information_schema.table_constraints "
+        "WHERE table_name = 'application_events' AND constraint_type = 'FOREIGN KEY'"
+    )
+    fk_names = [str(r[0]) for r in fk]
+    assert any("user" in n for n in fk_names), (
+        f"application_events.user_id FK 누락 (T-050). found: {fk_names}"
+    )

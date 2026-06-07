@@ -34,9 +34,24 @@ export class FeedService {
       return { items: [], nextCursor: null }
     }
 
+    // (a-2) 처리완료 정리(F-019): 사용자가 applied/skipped 처리한 공고는 기본 피드에서 제외.
+    // 즐겨찾기·되돌리기(favorite/unfavorite/unskip)는 제외 대상 아님(최신 action 기준 upsert 1행).
+    let excludedJobIds: number[] = []
+    if (userId) {
+      const processed = await this.prisma.applicationEvent.findMany({
+        where: { user_id: userId, action: { in: ['applied', 'skipped'] } },
+        select: { job_posting_id: true },
+      })
+      excludedJobIds = processed.map((p) => p.job_posting_id)
+    }
+
     // (b) current run 한정 + rank_position > cursor 오름차순. held(fit_level null) 포함.
     const recs = await this.prisma.recommendation.findMany({
-      where: { run_id: currentRun.id, rank_position: { gt: cursor } },
+      where: {
+        run_id: currentRun.id,
+        rank_position: { gt: cursor },
+        ...(excludedJobIds.length ? { job_posting_id: { notIn: excludedJobIds } } : {}),
+      },
       orderBy: { rank_position: 'asc' },
       take,
       include: { job_posting: true, run: { select: { result: true } } },

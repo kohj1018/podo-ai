@@ -1,7 +1,7 @@
 # T-050-application-tracking-api
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 feature
@@ -28,10 +28,14 @@ feature
 - UI 액션 버튼·toast — T-051.
 
 ## 4-1. 변경 예정 파일/경로
-- `podo/apps/api/prisma/schema.prisma` + migration (application_events)
-- `podo/apps/api/src/applications/` (module/controller/service/dto)
-- `podo/apps/api/src/feed/` (처리완료 제외 필터)
-- `podo/apps/api/test/applications.spec.ts` (신설)
+- `podo/apps/api/prisma/schema.prisma` — ApplicationEvent 모델 + User/JobPosting 역참조
+- `podo/apps/api/prisma/migrations/20260607133810_add_application_events/migration.sql` (신규)
+- `podo/apps/api/src/applications/applications.service.ts` · `applications.controller.ts` · `applications.module.ts` · `dto/create-application.dto.ts` (신규)
+- `podo/apps/api/src/app.module.ts` — ApplicationsModule 등록
+- `podo/apps/api/src/feed/feed.service.ts` — applied/skipped 공고 피드 제외 필터(즐겨찾기 유지)
+- `podo/apps/api/test/applications.spec.ts` (신규)
+- `ai/tests/test_schema_contract.py` — application_events 테이블·FK 검증(AC-4)
+- `podo/apps/api/vitest.config.ts` — fileParallelism:false (DB 통합 테스트 직렬화 — 아래 메모)
 
 ## 5. 완료 조건
 지원/스킵 공고가 본인 `user_id`로 기록되고 기본 피드에서 정리되며, 즐겨찾기는 보존되고, 타 사용자 기록에 접근 불가하다.
@@ -59,6 +63,9 @@ feature
 ## 8. 메모
 - 이벤트 로그 형식(상태 컬럼 X) — GS-3 후속 분석에 유리(F-019 §12 결정).
 - 재노출 규칙(스킵 며칠 후?)은 단순 시작(즐겨찾기 영구·스킵 unskip으로 복구).
+- 구현 결정(implement): 멱등 = `(user_id, job_posting_id)` 복합 unique upsert(동일 user×job 최신 action 1행). 피드 제외 = 최신 action이 applied/skipped인 공고만(favorite/unfavorite/unskip 비제외). 격리 = deleteAction이 event.user_id≠요청자면 403, getActions는 본인 user_id 범위.
+- 구현 결정(implement) — **vitest fileParallelism:false 추가**: applications.spec가 now()-dated ranking_run을 만들면서, 파일 병렬 실행 시 feed.spec의 *글로벌* getFeed(-1)(no userId)가 그 run을 전역 최신으로 집어 충돌(플레이키). DB 통합 테스트가 단일 Postgres 공유 → 파일 직렬화로 격리(일반적 올바른 처리). feed.spec 로직 불변(글로벌 경로 커버 유지). 본 변경은 T-050 applications.spec 도입이 노출한 잠재 레이스의 근본 수정.
+- 검증(implement): api vitest 35 pass(podo_test, 직렬) · schema-contract 3 pass(AC-4 포함) · `pnpm validate` green.
 
 ## 9. 의존성
 - depends_on: [T-042]
