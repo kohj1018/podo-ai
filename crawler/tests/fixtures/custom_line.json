@@ -1,0 +1,36 @@
+{
+  "data": [
+    {
+      "id": "3001",
+      "title": "Server-Side Engineer",
+      "url": "https://careers.linecorp.com/jobs/3001",
+      "country": "Korea",
+      "location": "Seoul",
+      "jobCategory": "Engineering"
+    },
+    {
+      "id": "3002",
+      "title": "Android Engineer",
+      "url": "https://careers.linecorp.com/jobs/3002",
+      "country": "Korea",
+      "location": "Seoul",
+      "jobCategory": "Engineering"
+    },
+    {
+      "id": "3003",
+      "title": "Backend Engineer",
+      "url": "https://careers.linecorp.com/jobs/3003",
+      "country": "Japan",
+      "location": "Tokyo",
+      "jobCategory": "Engineering"
+    },
+    {
+      "id": "3004",
+      "title": "HR Specialist",
+      "url": "https://careers.linecorp.com/jobs/3004",
+      "country": "Korea",
+      "location": "Seoul",
+      "jobCategory": "HR"
+    }
+  ]
+}

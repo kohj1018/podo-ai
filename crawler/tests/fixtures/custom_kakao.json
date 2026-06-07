@@ -1,0 +1,28 @@
+{
+  "jobList": [
+    {
+      "id": "2001",
+      "title": "Backend Developer",
+      "url": "https://careers.kakao.com/jobs/2001",
+      "part": "개발",
+      "location": "판교",
+      "description": "카카오 서버 개발자를 모집합니다."
+    },
+    {
+      "id": "2002",
+      "title": "iOS Developer",
+      "url": "https://careers.kakao.com/jobs/2002",
+      "part": "개발",
+      "location": "판교",
+      "description": "iOS 앱 개발자를 모집합니다."
+    },
+    {
+      "id": "2003",
+      "title": "UX 디자이너",
+      "url": "https://careers.kakao.com/jobs/2003",
+      "part": "디자인",
+      "location": "판교",
+      "description": "UX 디자이너를 모집합니다."
+    }
+  ]
+}

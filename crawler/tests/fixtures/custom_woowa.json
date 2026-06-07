@@ -1,0 +1,34 @@
+{
+  "data": {
+    "list": [
+      {
+        "id": "4001",
+        "title": "백엔드 엔지니어",
+        "url": "https://career.woowahan.com/jobs/4001",
+        "part": "개발",
+        "location": "서울"
+      },
+      {
+        "id": "4002",
+        "title": "Frontend Engineer",
+        "url": "https://career.woowahan.com/jobs/4002",
+        "part": "개발",
+        "location": "서울"
+      },
+      {
+        "id": "4003",
+        "title": "서버 개발자",
+        "url": "https://career.woowahan.com/jobs/4003",
+        "part": "개발",
+        "location": "서울"
+      },
+      {
+        "id": "4004",
+        "title": "마케팅 매니저",
+        "url": "https://career.woowahan.com/jobs/4004",
+        "part": "마케팅",
+        "location": "서울"
+      }
+    ]
+  }
+}

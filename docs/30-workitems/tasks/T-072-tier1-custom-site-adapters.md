@@ -1,7 +1,7 @@
 # T-072-tier1-custom-site-adapters
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 feature

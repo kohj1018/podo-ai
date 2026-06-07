@@ -1,0 +1,36 @@
+{
+  "result": [
+    {
+      "id": "1001",
+      "title": "Backend Engineer",
+      "url": "https://recruit.navercorp.com/rcrt/view.do?annoId=1001",
+      "jobGroupName": "개발",
+      "employType": "정규직",
+      "workPlace": "성남"
+    },
+    {
+      "id": "1002",
+      "title": "Frontend Engineer",
+      "url": "https://recruit.navercorp.com/rcrt/view.do?annoId=1002",
+      "jobGroupName": "개발",
+      "employType": "정규직",
+      "workPlace": "성남"
+    },
+    {
+      "id": "1003",
+      "title": "Platform Engineer",
+      "url": "https://recruit.navercorp.com/rcrt/view.do?annoId=1003",
+      "jobGroupName": "개발",
+      "employType": "계약직",
+      "workPlace": "성남"
+    },
+    {
+      "id": "1004",
+      "title": "콘텐츠 마케터",
+      "url": "https://recruit.navercorp.com/rcrt/view.do?annoId=1004",
+      "jobGroupName": "마케팅",
+      "employType": "정규직",
+      "workPlace": "성남"
+    }
+  ]
+}
