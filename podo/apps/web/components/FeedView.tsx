@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { FeedList } from './FeedList'
 import { GreetingCard } from './GreetingCard'
-import { OnboardingGuide } from './OnboardingGuide'
+import { Onboarding } from './Onboarding'
 
 interface FeedMeta {
   has_resume: boolean
@@ -99,9 +99,9 @@ export function FeedView() {
     )
   }
 
-  // 5) no-resume → 온보딩
+  // 5) no-resume → 온보딩(1회성 dismiss, OnboardingGuide 내용 재사용)
   if (!meta.has_resume) {
-    return <OnboardingGuide />
+    return <Onboarding />
   }
 
   // error(채점 실패)

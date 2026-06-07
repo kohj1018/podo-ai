@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { ArrivalList } from './ArrivalList'
 import { type FeedItem, JobCard } from './JobCard'
 
 interface FeedPage {
@@ -53,13 +54,12 @@ export function FeedList() {
 
   return (
     <main className="mx-auto max-w-2xl p-4">
-      <ul className="flex flex-col gap-3">
-        {items.map((item) => (
-          <li key={`${item.rank_position}-${item.posting.id}`}>
-            <JobCard item={item} />
-          </li>
-        ))}
-      </ul>
+      {/* 신규 공고 arrival 모션(stagger) + reduced-motion 분기는 ArrivalList가 담당(T-048). */}
+      <ArrivalList
+        items={items}
+        keyOf={(item) => `${item.rank_position}-${item.posting.id}`}
+        renderItem={(item) => <JobCard item={item} />}
+      />
 
       {error ? (
         <div

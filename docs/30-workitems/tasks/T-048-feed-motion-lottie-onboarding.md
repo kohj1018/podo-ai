@@ -1,7 +1,7 @@
 # T-048-feed-motion-lottie-onboarding
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 feature
@@ -29,8 +29,14 @@ feature
 ## 4-1. 변경 예정 파일/경로
 - `podo/apps/web/components/ArrivalList.tsx` (신설)
 - `podo/apps/web/components/PodoLottie.tsx` (신설)
-- `podo/apps/web/components/Onboarding.tsx` (신설)
+- `podo/apps/web/components/Onboarding.tsx` (신설 — OnboardingGuide 내용 재사용 + dismiss)
 - `podo/apps/web/test/feed_motion.spec.tsx` (신설)
+- `podo/apps/web/app/globals.css` — arrival-rise / arrival-fade keyframes
+- `podo/apps/web/components/FeedList.tsx` — 리스트를 ArrivalList로 위임(arrival 모션 라이브 결선)
+- `podo/apps/web/components/GreetingCard.tsx` — 마스코트를 PodoLottie로 교체(정적 poster fallback)
+- `podo/apps/web/components/FeedView.tsx` — no-resume를 Onboarding으로 결선
+- `podo/apps/web/package.json` + `pnpm-lock.yaml` — @lottiefiles/dotlottie-react
+- `docs/20-system/DESIGN.md` §8-1 — ArrivalList·PodoLottie·Onboarding 구현 컴포넌트 등록
 
 ## 5. 완료 조건
 신규 공고가 arrival 모션으로 렌더되고, `prefers-reduced-motion: reduce`에서 모든 모션(arrival·lottie·stagger)이 정적으로 대체되며, 첫 진입 온보딩이 동작한다.
@@ -57,6 +63,11 @@ feature
 ## 8. 메모
 - lottie 라이브러리 = `@lottiefiles/dotlottie-react`(DESIGN §8-1 확정), `.lottie` 포맷, 에셋 ≤~50KB·동시 ≤2.
 - 온보딩 1회성 저장: localStorage(단순) — 멀티디바이스 동기는 비범위.
+- 구현 결정(implement) — **라이브 결선 포함**: §4-1 핵심 3컴포넌트 외에 FeedList(ArrivalList)·GreetingCard(PodoLottie)·FeedView(Onboarding) 결선까지 수행(F-018 UX 1순위 — 미결선 dead 컴포넌트 방지). 기존 web 테스트(feed.spec·feed_states) 회귀 0 확인.
+- 구현 결정(implement) — **reduced-motion = JS matchMedia 분기**(AC-1/AC-2 요구): ArrivalList/PodoLottie가 `window.matchMedia('(prefers-reduced-motion: reduce)')`를 JS로 읽어 분기(테스트가 stub). matchMedia 부재(jsdom 기본) 시 false. arrival은 CSS keyframe(arrival-rise/arrival-fade) + JS가 keyframe 선택.
+- 구현 결정(implement) — **PodoLottie graceful poster**: lottie `.lottie` 에셋 미제공 → src 없음 → 정적 🍇 poster(aria-hidden). dotLottie는 dynamic ssr:false라 poster 경로에선 import 미실행(jsdom 안전). 실 에셋·실 재생은 후속(F-018 §10 graceful).
+- 구현 결정(implement) — **Onboarding은 OnboardingGuide 재사용**: dismiss 전 OnboardingGuide(T-046) 렌더 + 닫기, dismiss 후 최소 링크(이력서 없는 사용자 업로드 경로 보존). OnboardingGuide dead 방지.
+- 검증(implement): web vitest feed_motion 3 pass + 기존 web 30 회귀 0 · web tsc green · `pnpm validate` green.
 
 ## 9. 의존성
 - depends_on: [T-046]

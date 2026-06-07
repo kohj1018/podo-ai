@@ -287,6 +287,7 @@ duration.routing:  240ms   # 탭 스위치·페이지 전환
 - **접근성:** 장식 애니메이션은 `aria-hidden` · 의미 전달 애니메이션은 텍스트 대안 동반 · 애니메이션은 *보조 그래픽*이지 1차 콘텐츠 아님.
 - **금지:** 점수·밴드·근거 등 *판단 데이터*에 lottie 장식(원칙 1) · 전면/배경 앰비언트 lottie · 무한 장식 루프 · 단순 상태전환(hover·press·탭)에 lottie 사용(그건 CSS/§8 토큰).
 - **CSS vs Lottie:** 단순 전환(hover·press·탭·fade·arc draw)은 **CSS/§8 토큰**(F-018 기본 동작). Lottie는 마스코트 표현·복합 일러스트 모션처럼 CSS로 비효율적인 경우만. **lottie 미반영/로드 실패 시 CSS arrival로 graceful fallback**(차단 아님).
+- **구현 컴포넌트(T-048):** **ArrivalList**(신규 공고 arrival CSS 모션 + stagger + JS reduced-motion 분기) · **PodoLottie**(dotLottie dynamic ssr:false + reduced-motion/로드실패 시 정적 🍇 poster, 장식 aria-hidden) · **Onboarding**(첫 진입 1회성 안내, dismiss localStorage — OnboardingGuide 내용 재사용). lottie 에셋(`.lottie`) 미제공 시 PodoLottie는 정적 poster(graceful).
 
 <a id="design-9-donts"></a>
 ## 9. Do's and Don'ts
