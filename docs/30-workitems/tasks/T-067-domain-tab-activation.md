@@ -12,7 +12,7 @@ M4에서 직군 분리 탭을 "자동 분류가 없어서 보류"로 미뤘다(C
 ## 2. 작업 범위
 - 피드 상단 직군 탭 컴포넌트(`DomainTabBar`) 활성화 또는 신설: `[백엔드 | 데이터 | 프론트엔드 | 전체]` (탭 집합은 `Resume.primary_domains` 기준 동적).
 - 탭 전환 → `GET /api/v1/feed?domain=backend` 식의 필터 쿼리 or client-side 필터.
-- 피드 API(`GET /api/feed`) `domain` 필터 파라미터 추가: `recommendations`의 공고를 `job_postings.role_family` 기준 필터.
+- 피드 API(`GET /api/v1/feed`, ARCH §7-1 버전 경로 고정 — 무버전 `/api/feed` 금지) `domain` 필터 파라미터 추가: `recommendations`의 공고를 `job_postings.role_family` 기준 필터.
 - 분류 저신뢰(confidence=low) 시 "직군이 섞여 있어요" 안내 + 양 탭 모두 추천. **confidence·domains는 T-066이 영속한 `resume_domains`를 api가 서빙한 값을 소비**(본 task는 계약 생산 X — T-066 P0 계약 read-only 소비).
 - 한 직군에 공고 없음 → "이 직군은 오늘 공고가 없어요" empty 상태.
 - 탭 키보드 접근성·ARIA(DESIGN §7-1 Tab — role="tablist"·role="tab"·aria-selected).

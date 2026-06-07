@@ -539,3 +539,16 @@ Telemetry — M4 (졸업 가능 YES)
   - 발견/결정: Playwright 신규 도입(deps/config 누락) → **기존 `scripts/e2e.mjs`를 `E2E_BASE_URL`로 재사용**(T-052/M2 패턴, 신규 dep 0).
 - **M6-repair-23** | P1 | [관측됨] | linked: M6,T-082,T-083 | status: applied | decision: Adopt
   - 발견/결정: IaC 도구 "열린 질문"이 verifier(terraform)와 모순 → **Terraform 확정**(M6 §7 정합) task 본문 반영.
+
+> **repair-plan M5 round 4 (2026-06-08)** — `/validate-plan M5`(default; repo 파일 회수) 1 파일 회수. P0 1 + P1 4 영속(P2 1 미영속·직접 적용). **의존성(depends_on) 불변 → wave 토폴로지 유지**(write_set만 보강). sizing 분할 1건 Reject-conflict.
+
+- **M5-repair-21** | P0 | [관측됨] | linked: T-067 | status: applied | decision: Adopt
+  - 발견/결정: §2가 `/api/v1/feed?domain=`과 무버전 `/api/feed` 혼용(ARCH §7-1 위반) → `/api/v1/feed`로 통일.
+- **M5-repair-22** | P1 | [관측됨] | linked: T-065 | status: applied | decision: Adopt-modified
+  - 발견/결정: §9 write_set이 §4-1의 prisma migration 누락 → `prisma/migrations/**` 추가 + wave에 schema-contract 공유표면 주의(depends_on 불변).
+- **M5-repair-23** | P1 | [관측됨] | linked: T-065,T-066 | status: applied | decision: Reject-conflict
+  - 발견/결정: task 분할 권고 미적용 — T-065(N→K 비용전환)·T-066(분류)은 coherent vertical slice. 분할 시 deliverable 단편화 + 전 wave/FAC 재매핑 유발 → 미분할 plan이 더 정합(§3 구현항목이 이미 순차 RGR).
+- **M5-repair-24** | P1 | [관측됨] | linked: T-063,T-065,T-066 | status: applied | decision: Adopt
+  - 발견/결정: verifier가 AC 전체 미커버 → T-063(web coverage_panel)·T-065(web coarse_section)·T-066(schema-contract+api) 추가로 AC↔verifier 일치.
+- **M5-repair-25** | P1 | [관측됨] | linked: T-063 | status: applied | decision: Adopt
+  - 발견/결정: `source_crawl_status` 소유권 "DB(또는 worker 소유)" 모호 → crawler(Collector) 소유 + api read-only 고정(ARCH §3-2 write-owner).

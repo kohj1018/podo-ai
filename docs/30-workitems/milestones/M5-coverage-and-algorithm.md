@@ -38,6 +38,8 @@ M4가 "핵심 워크플로우가 도는 멀티유저 MVP"를 완성하면, M5는
 - **Wave 4**: `T-069`(비용 회귀 + A-3 τ 실측, `[T-065, T-068]`).
 >
 > 임계 경로: T-064/T-066 → T-065 → T-068 → T-069 (4 wave). **round2 대비 변화**: T-067이 Wave2→Wave3(T-065와 `feed.controller` 동시 편집 충돌 해소). T-068은 T-063(소스 확대) 비의존(큐레이션 수기 fixture 독립).
+>
+> **공유 표면 주의 (repair-plan 2026-06-08)**: `ai/tests/test_schema_contract.py`는 T-064·T-066(+T-063·T-065 신규 테이블)이 모두 assert를 추가하고, `podo/apps/api/prisma/migrations/`도 다수 task가 새 폴더를 만든다. *migration 폴더는 task별 분리라 파일 충돌 없음*이나 `test_schema_contract.py`는 공유 파일이다 → 병렬 구현 시 그 파일 편집은 순차로. **`depends_on`은 불변(논리 의존 없음) — wave 토폴로지 유지**(파일 공유는 구현 순서 주의이지 의존성 아님).
 
 ## 4. 제외되는 기능 (잠정)
 - 공개 배포(AWS/Vercel)·알림·cron 실가동 — M6.
@@ -62,12 +64,15 @@ M4가 "핵심 워크플로우가 도는 멀티유저 MVP"를 완성하면, M5는
 - 선행 마일스톤: [M4-product-mvp](M4-product-mvp.md)
 - ADR: [ADR-108](../../90-decisions/project/ADR-108-scoring-candidate-prefilter.md)(스코어링 비용 구조 — 벡터+하이브리드 후보 사전필터, **작성됨**). *커버리지 확대는 별도 ADR 불필요 — Charter §5 scope-note(M5 진입 시).*
 
-## 7. 열린 질문 (잠정)
-- 커버리지 1차 티어 목표 회사·ATS 우선순위는? 소스별 유지보수 부채 상한은?
-- 임베딩 모델·차원·인덱스(HNSW) 파라미터 + 캐시 키에 임베딩 버전 핀 정책(GS-1 정합).
-- 도메인 자동분류를 결정적 규칙 vs LLM vs 임베딩 클러스터링 중 무엇으로?
-- 비용 최적화에서 모델 티어링이 GS-1/GS-2를 흔들지 않는 경계(저가 모델 단계 한정).
-- A-3 τ 실데이터 평가자 확보(창업자 1인 + 현업 1~2인)와 No-go(τ<0.6) 시 대응.
+## 7. 열린 질문 — 결정 확정 (2026-06-08, 사용자 승인)
+- ✅ **임베딩**: `text-embedding-3-small`/1536(공식문서 검증), `OPENAI_API_KEY` 재사용, **JD·resume 양쪽 영속+재사용**(OpenAI 임베딩 호출 비결정 실측 → GS-1은 저장 벡터 재사용으로 보장), 무키 E2E는 fixture 임베딩 seed. `model_id`/`created_at` 동봉(모델 update 감지). (T-064)
+- ✅ **도메인 분류**: 결정적 규칙(LLM·클러스터링 아님) + **기존 `ROLE_FAMILY_TO_DOMAINS` 토큰 재사용**(새 어휘 X). SKILL_DOMAIN_RULES 확정(다의어·kotlin 제외). (T-066)
+- ✅ **후보선별**: 하이브리드 합집합(벡터 ∪ 도메인 ∪ **raw_text 스킬키워드** — `tech_stack` 컬럼 없음 확정), **K_v=50 / K_max=80**(F-023 후 30/50 검토). (T-065)
+- ✅ **구조화 JD JSONB**: M5 미신설(raw_text로 시작) — 디스크 캐시는 SSOT로 취급 안 함, recall 부족 시 F-023 후 재검토. (ADR-108 D1)
+- ✅ **커버리지 1차 티어**: ATS 어댑터 **Greenhouse → Lever → Ashby 우선, Workday 후순위**. 한국 공식 채용 페이지는 source별 유지보수 비용 보고 제한적 추가. (T-062/T-063)
+- ✅ **A-3 τ**: 우선 **내부 golden-pair/persona eval 확장**으로 진행, 사람 평가자는 후속 검증 게이트(τ<0.6 No-go 대응은 그 시점). (T-068/T-069)
+- ✅ **상태채널(M4 잔여 REV-M4-003/010)**: M5 비범위 — **M6 DLQ/운영안정화와 묶음**. M5는 비용구조·후보선별 정확도 집중.
+- ⏸ **모델 티어링**(저가/고가 분리): F-023 GS-2(근거 사실성 ≤2%) 측정 후 적용(ADR-108 D7). HNSW `m`/`ef_construction`은 pgvector 기본값 시작.
 
 ## 8. 회고 (stabilize 자동 채움)
 - 목표 달성도: <정량/정성 1줄>

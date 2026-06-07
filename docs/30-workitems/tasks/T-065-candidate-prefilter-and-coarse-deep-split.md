@@ -26,7 +26,7 @@ T-064가 영속한 `job_embeddings`를 읽어 **하이브리드 합집합(벡터
 1. `podo/apps/api/prisma/migrations/YYYYMMDD_add_coarse_candidates/migration.sql` — `coarse_candidates` 테이블 신설(job_posting_id FK, user_id FK, similarity_rank FLOAT, scored_at TIMESTAMPTZ). → 확인: migrate 성공 (AC-3)
 2. `ai/worker/src/worker/prefilter.py` — 신설. `select_candidates(...)`: pgvector `<=>` 연산자로 top-K_v 조회(SQL: `ORDER BY embedding <=> $resume_vec LIMIT $K_v`), 도메인·스킬 매칭 집합 계산, 합집합 → K_max cap → 유사도 desc/job_id asc 정렬 → `CandidateSet` 반환. → 확인: 단위 테스트(합집합 로직·tie-break 결정성) (AC-1, AC-4)
 3. `ai/worker/src/worker/scoring_runner.py` — 신설(또는 기존 진입점 수정). `run_full_scoring(resume, all_jobs, db)`:
-   - resume 임베딩 생성(1회, 캐시).
+   - resume 임베딩: T-064 `embed_resume()`로 영속·재사용(매 채점 재생성 금지 — 임베딩 호출 비결정성 차단, GS-1).
    - `select_candidates()` → K개.
    - K개에만 `run_scoring(resume, candidates)` 호출 — 본체 불변.
    - 후보 밖 공고 → `coarse_materialize()`.
@@ -65,7 +65,7 @@ T-064가 영속한 `job_embeddings`를 읽어 **하이브리드 합집합(벡터
 ## 6-1. 테스트 시나리오 (TDD Red)
 - AC-1 → pytest::ai/worker/tests/test_prefilter.py::test_AC_1_hybrid_union_and_deterministic_tiebreak
 - AC-2 → pytest::ai/worker/tests/test_scoring_runner.py::test_AC_2_llm_calls_proportional_to_K
-- AC-3 → vitest::podo/apps/api/test/feed_coarse.spec.ts::test_AC_3_coarse_section_no_fit_level
+- AC-3 → vitest::podo/apps/api/test/feed_coarse.spec.ts::test_AC_3_coarse_section_no_fit_level + vitest::podo/apps/web/test/coarse_section.spec.tsx::test_AC_3_coarse_no_badge
 - AC-4 → pytest::ai/worker/tests/test_prefilter.py::test_AC_4_deterministic_candidates_gs1
 
 ## 6-2. TDD opt-out
@@ -74,18 +74,19 @@ T-064가 영속한 `job_embeddings`를 읽어 **하이브리드 합집합(벡터
 - Milestone: [M5-coverage-and-algorithm](../milestones/M5-coverage-and-algorithm.md)
 - Feature: [F-021-jd-vectorization-and-cost](../features/F-021-jd-vectorization-and-cost.md)
 - Architecture: [ARCHITECTURE_OVERVIEW](../../20-system/ARCHITECTURE_OVERVIEW.md) (§3-2 pgvector DML=Python/api read-only, §7-3 워커)
+- Architecture-Iface: [ARCH ## 7-1 API](../../20-system/ARCHITECTURE_OVERVIEW.md#arch-7-1) (coarse 섹션 endpoint `GET /api/v1/feed?section=coarse`)
 - Algorithm SSOT: [SCORING_PIPELINE_SPEC](../../20-system/SCORING_PIPELINE_SPEC.md) (step1~12 불변 — K개 입력만)
 - Design: [DESIGN](../../20-system/DESIGN.md) (§7-3 CoarseSection — 배지 없음)
 - ADR: [ADR-108](../../90-decisions/project/ADR-108-scoring-candidate-prefilter.md) (D2 합집합, D3 coarse/deep 분리, D4 본체 불변, D6 결정성)
 
 ## 8. 메모
 - K_v·K_max 초기값: K_v≈50/K_max≈80(ADR-108 D2 — F-023 recall 측정 후 축소).
-- 구조화 JD JSONB 영속 여부(ADR-108 D1): 스킬 매칭을 `job_postings.tech_stack`(이미 컬럼) + raw_text 키워드로 충분한지 builder가 현 schema 확인 후 판단(충분하면 JSONB 미신설).
+- 스킬 매칭은 `job_postings.raw_text` 키워드 기반으로 확정한다(**현 schema에 `tech_stack` 컬럼 없음** — 2026-06-08 결정). 구조화 JD JSONB 영속(ADR-108 D1)은 raw_text로 recall 부족이 드러날 때만 F-023 이후 재검토(충분하면 미신설).
 - 열린 질문: pgvector ANN top-K_v 쿼리 정확도(ef_search 파라미터) — F-023 recall 측정 후 튜닝.
 
 ## 9. 의존성
 - depends_on: [T-064, T-066]
 - read_set: ["ai/worker/src/worker/embedding.py", "ai/worker/src/worker/persistence.py", "ai/core/src/core/models.py", "podo/apps/api/src/feed/feed.controller.ts"]
-- write_set: ["ai/worker/src/worker/prefilter.py", "ai/worker/src/worker/scoring_runner.py", "ai/worker/src/worker/coarse_materialize.py", "podo/apps/api/src/feed/feed.controller.ts", "podo/apps/web/components/CoarseSection.tsx"]
+- write_set: ["ai/worker/src/worker/prefilter.py", "ai/worker/src/worker/scoring_runner.py", "ai/worker/src/worker/coarse_materialize.py", "podo/apps/api/prisma/migrations/**", "podo/apps/api/src/feed/feed.controller.ts", "podo/apps/web/components/CoarseSection.tsx"]
 - assumptions: ["T-064 완료(job_embeddings 영속 가능)", "T-066 완료(resume.primary/secondary_domains 채워짐 — 도메인 매칭 입력)", "run_scoring(resume, jobs) 시그니처 불변"]
-- verifier: "uv run pytest ai/worker/tests/test_prefilter.py ai/worker/tests/test_scoring_runner.py && pnpm --filter @podo/api test"
+- verifier: "uv run pytest ai/worker/tests/test_prefilter.py ai/worker/tests/test_scoring_runner.py && pnpm --filter @podo/api test && pnpm --filter @podo/web test coarse_section"

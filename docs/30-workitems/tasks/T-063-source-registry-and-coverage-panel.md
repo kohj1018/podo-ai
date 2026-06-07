@@ -11,7 +11,7 @@ T-062가 확립한 ATS 어댑터 인프라 위에서, **공식 소스 ≥3개(AT
 
 ## 2. 작업 범위
 - 소스 레지스트리에 공식 IT기업 소스 ≥3개 등록(Greenhouse 어댑터 경유 ≥1개 포함, 기존 toss·karrot 포함 카운트 가능).
-- 소스별 수집 결과를 DB(또는 worker 소유 상태 테이블)에 기록: `source_id`, `last_success_at`, `status(active|failing|blocked)`.
+- 소스별 수집 결과를 **crawler(Collector) 소유 상태 테이블**에 기록(DDL=Prisma, DML=crawler, api read-only 서빙 — ARCH §3-2 write-owner): `source_id`, `last_success_at`, `status(active|failing|blocked)`.
 - 커버리지 패널 API(기존 NestJS `coverage` 모듈 확장 — `coverage.controller.ts`+`coverage.service.ts`, ARCH §7-1): `GET /api/v1/coverage`가 소스별 `{name, tier, status, last_success_at}` 반환.
 - 커버리지 패널 UI 컴포넌트(`CoveragePanel`, `podo/apps/web/components/`): 소스별 상태 + 마지막 성공 시각 표시. 수집 실패 소스는 "수집 실패/지연"으로 명시(부분 커버리지 정직 고지 — FAC-3).
 - 오프라인 fixture/mock 기반 E2E 보존(M2 패턴).
@@ -70,4 +70,4 @@ ATS 어댑터 ≥1종 포함 공식 소스 ≥3개에서 공고가 `job_postings
 - read_set: ["crawler/src/crawler/adapters/**", "crawler/src/crawler/gate.py", "crawler/src/crawler/sources/registry.py", "podo/apps/api/src/coverage/**", "podo/apps/web/components/**"]
 - write_set: ["podo/apps/api/prisma/migrations/**", "crawler/src/crawler/run_sources.py", "podo/apps/api/src/coverage/coverage.controller.ts", "podo/apps/api/src/coverage/coverage.service.ts", "podo/apps/web/components/CoveragePanel.tsx"]
 - assumptions: ["T-062 완료(BaseCrawlerAdapter + Greenhouse 어댑터 + 레지스트리 기반 신설됨)"]
-- verifier: "uv run pytest crawler/tests/test_run_sources.py && pnpm --filter @podo/api test coverage"
+- verifier: "uv run pytest crawler/tests/test_run_sources.py && pnpm --filter @podo/api test coverage && pnpm --filter @podo/web test coverage_panel"

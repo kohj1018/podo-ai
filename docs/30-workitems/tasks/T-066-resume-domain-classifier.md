@@ -12,11 +12,15 @@ feature
 ## 2. 작업 범위
 - `ai/worker/src/worker/domain_classifier.py` — 신설. `classify_domains(evidence_items: list[EvidenceItem]) -> DomainResult(primary_domains: list[str], secondary_domains: list[str], confidence: str)`.
   - **Step 1**: `EvidenceItem.domain` 값 빈도 집계 → 최다 도메인 primary, 차다 secondary.
-  - **Step 2**: 빈도 스킬 신호 빈약 시 결정적 규칙 사전 보강:
-    - frontend: React, Next.js, Vue, Angular, CSS, TypeScript(UI 컨텍스트)
-    - backend: Spring, Django, FastAPI, Node.js, Express, Go, Rust(server)
-    - data: pandas, Spark, SQL(analytics), Airflow, ML, PyTorch, TensorFlow
-    - (목록은 `SKILL_DOMAIN_RULES: dict[str, str]` 상수로 버전 핀)
+  - **Step 2**: 빈도 스킬 신호 빈약 시 결정적 규칙 사전 보강(값=기존 `ROLE_FAMILY_TO_DOMAINS` 토큰만, 새 어휘 X — §8 확정본):
+    - frontend: react/next.js/vue/angular/svelte/tailwind/redux/webpack
+    - backend: spring/django/fastapi/flask/express/nestjs/rails/laravel/grpc
+    - data: pandas/numpy/spark/airflow/dbt/kafka/hadoop/bigquery/etl
+    - ml_ai: pytorch/tensorflow/scikit-learn/hugging face/llm/nlp/mlops/keras
+    - mobile: android·jetpack compose→android · swift·swiftui·uikit·objective-c→ios · flutter·react native→mobile
+    - devops/cloud/infra: docker·kubernetes·terraform·ansible·ci/cd·jenkins·github actions·prometheus→devops · aws·gcp·azure→cloud · nginx·linux→infra
+    - security: owasp/penetration testing/siem/cryptography
+    - **다의어(python/java/typescript/go/sql)·kotlin 제외**(문맥 의존 → evidence.domain이 처리). `SKILL_DOMAIN_RULES: dict[str, str]` 상수로 버전 핀(`CLASSIFIER_VERSION`).
   - 다중 도메인(신호 혼재): `primary_domains`에 복수.
   - 신호 빈약(evidence 없음 or 규칙 미매칭): `confidence="low"` + `primary_domains=["unknown"]`.
   - `CLASSIFIER_VERSION = "v1"` 상수(변경 시 GS-1 무효화).
@@ -75,11 +79,15 @@ feature
 - Milestone: [M5-coverage-and-algorithm](../milestones/M5-coverage-and-algorithm.md)
 - Feature: [F-022-resume-domain-classification](../features/F-022-resume-domain-classification.md)
 - Architecture: [ARCHITECTURE_OVERVIEW](../../20-system/ARCHITECTURE_OVERVIEW.md) (§7-4 직군 분리 탭)
+- Architecture-Iface: [ARCH ## 7-1 API](../../20-system/ARCHITECTURE_OVERVIEW.md#arch-7-1) (`resume_domains` read-only 서빙 계약 — T-067 탭이 소비)
 - Algorithm SSOT: [SCORING_PIPELINE_SPEC](../../20-system/SCORING_PIPELINE_SPEC.md) (도메인 정렬)
 - ADR: [ADR-108](../../90-decisions/project/ADR-108-scoring-candidate-prefilter.md) (D6 결정성·버전 핀)
 
-## 8. 메모
-- 열린 질문: `SKILL_DOMAIN_RULES` 초기 목록의 직군 카테고리 집합(backend/frontend/data/fullstack/infra …) — plan에서 사용자 확정. 규칙 버전(`CLASSIFIER_VERSION`) bump 정책: 사전 변경 시 기존 분류 캐시 무효화 필요.
+## 8. 메모 — 결정 확정 (2026-06-08, 사용자 승인)
+- **도메인 어휘**: 기존 `core/models.py`의 `ROLE_FAMILY_TO_DOMAINS` 토큰 재사용(frontend·web·backend·fullstack·mobile·android·ios·data·ml_ai·ai·devops·cloud·infra·security). **새 어휘 신설 금지** — T-065 매칭(resume.domains ↔ JD.role_family→`ROLE_FAMILY_TO_DOMAINS`) 정합 필수. 비개발(product/marketing/design)은 분류 대상 외(Charter §5).
+- **분류 방식**: 결정적(LLM 아님, F-022 §5) = evidence.domain 집계(1차) + `SKILL_DOMAIN_RULES`(보강). `fullstack`은 frontend+backend 동시 신호 시 추론(사전에 없음). `web`은 frontend로 흡수.
+- **SKILL_DOMAIN_RULES 확정본**: §2 Step-2. 다의어(python/java/typescript/go/sql)·kotlin 제외. `CLASSIFIER_VERSION="v1"` — 사전 변경 시 bump + 재분류(GS-1).
+- **TODO(후속, M5 초기 미포함)**: ① kafka 등 다도메인 스킬 → `dict[str, list[str]]`로 multi-domain(backend+data) 지원. ② linux/nginx 등 약신호 → strong/weak 가중 분리.
 - `load_resume` 변경은 수술적 2줄 교체(ADR-006 YAGNI — 인접 코드 미개선).
 
 ## 9. 의존성
@@ -87,4 +95,4 @@ feature
 - read_set: ["ai/worker/src/worker/persistence.py", "ai/core/src/core/models.py", "podo/apps/api/prisma/schema.prisma"]
 - write_set: ["ai/worker/src/worker/domain_classifier.py", "ai/worker/src/worker/persistence.py", "ai/worker/tests/test_domain_classifier.py", "podo/apps/api/prisma/migrations/**", "podo/apps/api/prisma/schema.prisma", "podo/apps/api/src/feed/**", "ai/tests/test_schema_contract.py"]
 - assumptions: ["EvidenceItem.domain 필드가 core/models.py에 이미 존재", "Resume.primary_domains / secondary_domains가 list 타입으로 이미 정의됨"]
-- verifier: "uv run pytest ai/worker/tests/test_domain_classifier.py"
+- verifier: "uv run pytest ai/worker/tests/test_domain_classifier.py ai/tests/test_schema_contract.py && pnpm --filter @podo/api test"

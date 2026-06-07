@@ -15,14 +15,14 @@ M5는 커버리지를 토스·당근 2곳 → 다수 공식 채용 페이지로 
 ### D1. JD 임베딩 영속 (`job_embeddings`) — 정규화 테이블 미신설, 구조화 JD JSONB 영속은 F-021 재검토
 - **`job_embeddings`** 테이블 신설(worker 소유 — ARCH §3-2): `job_posting_id` FK + `embedding`(vector) + `embedding_version`. JD별 **1회 임베딩 → 영속·재사용**. vector 컬럼·`CREATE EXTENSION vector`·HNSW 인덱스 **DDL은 Prisma raw SQL**, 검색 **DML은 Python worker**(ARCH §3-2 경계 — pgvector를 *실제로 사용*하게 된다).
 - **`job_requirements` 같은 정규화 테이블은 만들지 않는다**(YAGNI, ADR-006).
-- **단, 구조화 JD를 DB에 JSONB로 영속할지(예: `job_postings.structured_json` 또는 `job_embeddings`에 동봉)는 F-021에서 재검토한다 — "디스크 캐시에만 둔다"고 못 박지 않는다.** 디스크 LLM 캐시는 *실행 최적화*이지 제품 데이터의 SSOT가 아니다(삭제 가능·배포 시 인스턴스별 상이·CI/로컬/운영 경로 분기). 특히 **D2의 스킬/`tech_stack` 매칭은 구조화 JD 산출물을 *후보 선별 시점*에 요구**하며(현재 구조화는 채점 시점 step2), JD 변경 감지·버전별 비교·디버깅도 구조화 JD를 필요로 할 수 있다 → F-021에서 *선별이 raw_text 키워드로 충분한지 vs 구조화 JSONB 영속이 필요한지* 결정.
+- **단, 구조화 JD를 DB에 JSONB로 영속할지(예: `job_postings.structured_json` 또는 `job_embeddings`에 동봉)는 F-021에서 재검토한다 — "디스크 캐시에만 둔다"고 못 박지 않는다.** 디스크 LLM 캐시는 *실행 최적화*이지 제품 데이터의 SSOT가 아니다(삭제 가능·배포 시 인스턴스별 상이·CI/로컬/운영 경로 분기). 특히 **D2의 스킬/키워드 매칭(raw_text 기반 — tech_stack 컬럼 없음)이 구조화 JD 산출물을 *후보 선별 시점*에 요구할 수 있으며**(현재 구조화는 채점 시점 step2), JD 변경 감지·버전별 비교·디버깅도 구조화 JD를 필요로 할 수 있다 → F-021에서 *선별이 raw_text 키워드로 충분한지 vs 구조화 JSONB 영속이 필요한지* 결정.
 
 ### D2. 후보 선별 = 하이브리드 합집합 (recall 우선)
 채점 시 후보를 다음 *합집합*으로 선별한다(교집합 아님 — recall 우선):
 ```
 candidates = 벡터 top-K_v(resume↔JD 임베딩 유사도)
            ∪ 도메인/role_family 매칭(resume primary/secondary_domains ↔ JD role_family)
-           ∪ 스킬/키워드 매칭(resume 스킬 ↔ JD tech_stack/raw_text)
+           ∪ 스킬/키워드 매칭(resume 스킬 ↔ JD raw_text 키워드 — 현 schema에 tech_stack 컬럼 없음)
 ```
 - 상한 **K_max**로 cap, **결정적 tie-break**(유사도 desc, job_id asc).
 - 잠정 기본값: **recall 우선이라 초기엔 넓게**(예: K_v≈50 / K_max≈80) 시작 → F-023 recall·비용 측정 후 축소(예: 30/50). *누락 위험을 먼저 보고 줄이는* 순서(처음부터 좁히면 놓친 적합 JD를 평가하기 어려움).
