@@ -42,6 +42,20 @@ model CrawlRun {
   @@map("crawl_runs")
 }
 
+// crawler 소유 (§3-2) — 소스별 현재 수집 상태 스냅샷(coverage 패널 서빙, T-063).
+// crawl_runs(런 히스토리)와 역할 분리: 이쪽은 전 tier 소스 + 정적 status 포함 현재 스냅샷.
+// status taxonomy: active/blocked/captcha/login-required/no-korea-jobs/unsupported.
+model SourceCrawlStatus {
+  source_id       String    @id
+  tier            String?
+  method          String?
+  status          String
+  last_success_at DateTime?
+  last_error      String?
+
+  @@map("source_crawl_status")
+}
+
 // worker 소유 — evidence opaque JSONB(result) + 결정적 복합 unique 키(캐시 hit = GS-1-through-DB).
 model RankingRun {
   id                Int              @id @default(autoincrement())

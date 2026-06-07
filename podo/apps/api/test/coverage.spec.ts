@@ -6,46 +6,61 @@ import { PrismaService } from '../src/prisma/prisma.service'
 
 const hasDb = Boolean(process.env.DATABASE_URL)
 
-describe.skipIf(!hasDb)('CoverageService (DB)', () => {
+describe.skipIf(!hasDb)('CoverageService (DB, source_crawl_status)', () => {
   let prisma: PrismaService
   let service: CoverageService
-  const runIds: number[] = []
+  const sourceIds = ['toss', 'kb-bank']
 
   beforeAll(async () => {
     prisma = new PrismaService()
     await prisma.$connect()
     service = new CoverageService(prisma)
 
-    const mk = async (status: string, iso: string): Promise<void> => {
-      const r = await prisma.crawlRun.create({
-        data: { channel: 'toss', status, run_at: new Date(iso) },
-      })
-      runIds.push(r.id)
-    }
-    await mk('success', '2026-06-06T00:00:00Z')
-    await mk('success', '2026-06-06T01:00:00Z') // MAX success
-    await mk('failed', '2026-06-06T02:00:00Z') // 최신 status
+    // toss=active(수집 성공) / kb-bank=login-required(미수집·투명 노출)
+    await prisma.sourceCrawlStatus.upsert({
+      where: { source_id: 'toss' },
+      create: {
+        source_id: 'toss',
+        tier: '3',
+        method: 'custom',
+        status: 'active',
+        last_success_at: new Date('2026-06-07T01:00:00Z'),
+      },
+      update: { status: 'active', last_success_at: new Date('2026-06-07T01:00:00Z') },
+    })
+    await prisma.sourceCrawlStatus.upsert({
+      where: { source_id: 'kb-bank' },
+      create: {
+        source_id: 'kb-bank',
+        tier: '5',
+        method: 'incruit',
+        status: 'login-required',
+        last_error: 'login-required: 목록 view 로그인 필요',
+      },
+      update: { status: 'login-required' },
+    })
   })
 
   afterAll(async () => {
-    if (runIds.length) {
-      await prisma.crawlRun.deleteMany({ where: { id: { in: runIds } } })
-    }
+    await prisma.sourceCrawlStatus.deleteMany({ where: { source_id: { in: sourceIds } } })
     await prisma.$disconnect()
   })
 
-  it('test_AC_1_last_success_at_per_channel', async () => {
+  it('test_AC_1_sources_upsert_and_coverage_status', async () => {
     const cov = await service.getCoverage()
+
     const toss = cov.channels.find((c) => c.name === 'toss')
     expect(toss).toBeDefined()
-    expect(toss?.status).toBe('failed') // 최신 run status
-    // last_success_at = MAX(run_at WHERE success) — 최신(failed)이 아니라 직전 success
-    expect(toss?.last_success_at?.toISOString()).toBe('2026-06-06T01:00:00.000Z')
-    // daangn: 수집 0 → uncollected
-    expect(cov.uncollected).toContain('daangn')
-    const daangn = cov.channels.find((c) => c.name === 'daangn')
-    expect(daangn?.status).toBeNull()
-    expect(daangn?.last_success_at).toBeNull()
+    expect(toss?.status).toBe('active')
+    expect(toss?.tier).toBe('3')
+    expect(toss?.last_success_at?.toISOString()).toBe('2026-06-07T01:00:00.000Z')
+
+    // kb-bank=login-required → 미수집(active 아님) + 투명 노출
+    const kb = cov.channels.find((c) => c.name === 'kb-bank')
+    expect(kb?.status).toBe('login-required')
+    expect(cov.uncollected).toContain('kb-bank')
+    // active 아닌 소스 존재 → degraded(거짓 완전성 차단)
+    expect(cov.degraded).toBe(true)
   })
 })
 

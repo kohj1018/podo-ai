@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 
 interface ChannelCoverage {
   name: string
+  tier?: string | null
   status: string | null
   last_success_at: string | null
 }
@@ -20,8 +21,38 @@ function hhmm(iso: string): string {
   return new Date(iso).toISOString().slice(11, 16)
 }
 
+// status taxonomy → 사용자 표시 라벨. login-required/no-korea-jobs/unsupported는 미수집을
+// *사유와 함께* 정직하게 노출(거짓 완전성 차단, Fail #3).
+function statusLabel(status: string | null): string {
+  switch (status) {
+    case 'active':
+    case 'success': // 레거시 crawl_runs 값 호환
+      return '수집 중'
+    case 'blocked':
+      return '차단'
+    case 'captcha':
+      return '캡차 차단'
+    case 'login-required':
+      return '로그인 필요(미수집)'
+    case 'no-korea-jobs':
+      return '한국 채용 없음'
+    case 'unsupported':
+      return '미지원'
+    case 'failed': // 레거시
+      return '수집 실패'
+    case null:
+      return '미수집'
+    default:
+      return status
+  }
+}
+
+function activeCount(channels: ChannelCoverage[]): number {
+  return channels.filter((c) => c.status === 'active' || c.status === 'success').length
+}
+
 // 커버리지 투명성 패널 — "전부 수집" 인상 차단(Fail #3 / Charter G3). 상시 노출.
-// 실패를 삼키지 않고 노출(REV-M2-UI-001) — 투명성 패널이 거짓 완전성을 보이면 존재 이유와 충돌.
+// 실패를 삼키지 않고 노출(REV-M2-UI-001). 소스별 status를 사유와 함께 + "N/M 소스 수집 중" 요약.
 export function CoveragePanel() {
   const [cov, setCov] = useState<Coverage | null>(null)
   const [error, setError] = useState(false)
@@ -69,7 +100,24 @@ export function CoveragePanel() {
     )
   }
 
-  // degraded(수집 실패/미수집) → danger + role=alert. "전부 수집" 거짓 인상 차단(Fail #3, AC-2).
+  const total = cov.channels.length
+  const summary =
+    total > 0 ? `${activeCount(cov.channels)}/${total} 소스 수집 중` : '등록된 소스 없음'
+
+  // 소스별 status 리스트(active=수집 중·시각, 그 외=사유 라벨). 공통 렌더.
+  const sourceList = (
+    <ul>
+      {cov.channels.map((c) => (
+        <li key={c.name}>
+          {c.name}
+          {c.tier ? ` (T${c.tier})` : ''}: {statusLabel(c.status)}
+          {c.last_success_at ? ` · 마지막 성공 ${hhmm(c.last_success_at)}` : ''}
+        </li>
+      ))}
+    </ul>
+  )
+
+  // degraded(수집 실패/미수집/차단/로그인 등) → danger + role=alert. "전부 수집" 거짓 인상 차단.
   if (cov.degraded) {
     return (
       <section
@@ -80,14 +128,11 @@ export function CoveragePanel() {
         style={{ color: 'var(--band-1-ink)', borderColor: 'var(--band-1-ink)' }}
       >
         <h2 className="font-medium">수집 실패</h2>
-        <p>일부 공고가 누락될 수 있어요.</p>
-        <ul>
-          {cov.channels.map((c) => (
-            <li key={c.name}>
-              {c.name}: {c.status ?? '미수집'}
-            </li>
-          ))}
-        </ul>
+        <p>{summary} · 일부 공고가 누락될 수 있어요.</p>
+        {sourceList}
+        {cov.uncollected.length > 0 ? (
+          <p style={{ color: 'var(--faint)' }}>미수집: {cov.uncollected.join(', ')}</p>
+        ) : null}
       </section>
     )
   }
@@ -105,14 +150,8 @@ export function CoveragePanel() {
       }}
     >
       <h2 className="font-medium">수집 현황</h2>
-      <ul>
-        {cov.channels.map((c) => (
-          <li key={c.name}>
-            {c.name}: {c.status ?? '미수집'}
-            {c.last_success_at ? ` · 마지막 성공 ${hhmm(c.last_success_at)}` : ''}
-          </li>
-        ))}
-      </ul>
+      <p>{summary}</p>
+      {sourceList}
       {cov.uncollected.length > 0 ? (
         <p style={{ color: 'var(--faint)' }}>미수집: {cov.uncollected.join(', ')}</p>
       ) : null}

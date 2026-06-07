@@ -1,58 +1,42 @@
 import { Injectable } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
 
-// 알려진 수집 채널(Charter §5 — 토스·당근). 미수집 표시는 이 목록 대비로 파생.
-const KNOWN_CHANNELS = ['toss', 'daangn'] as const
-
 export interface ChannelCoverage {
-  name: string
-  status: string | null // 최신 run status (수집 0이면 null)
-  last_success_at: Date | null // MAX(run_at WHERE status='success')
+  name: string // source_id
+  tier: string | null
+  status: string // active/blocked/captcha/login-required/no-korea-jobs/unsupported
+  last_success_at: Date | null
 }
 
 export interface Coverage {
   channels: ChannelCoverage[]
   uncollected: string[]
-  degraded: boolean // 수집 실패/미수집 존재 → "전부 수집" 거짓 인상 차단(Fail #3, T-046 AC-2)
+  degraded: boolean // active 아닌 소스 존재 → "전부 수집" 거짓 인상 차단(Fail #3)
 }
 
 @Injectable()
 export class CoverageService {
   constructor(private readonly prisma: PrismaService) {}
 
-  // crawl_runs(run별 1행)에서 채널별 최신 status + last_success_at 파생(read-only).
+  // source_crawl_status(소스별 현재 스냅샷)에서 커버리지 파생(read-only — crawler 단일 writer).
+  // crawl_runs(런 히스토리)와 역할 분리: 전 tier 소스 + 정적 status(login-required/no-korea-jobs/
+  // unsupported 포함)를 그대로 투명 노출한다(KNOWN_CHANNELS 하드코딩 제거 — T-063).
   async getCoverage(): Promise<Coverage> {
-    const channels: ChannelCoverage[] = []
-    const uncollected: string[] = []
+    const rows = await this.prisma.sourceCrawlStatus.findMany({
+      orderBy: [{ tier: 'asc' }, { source_id: 'asc' }],
+      select: { source_id: true, tier: true, status: true, last_success_at: true },
+    })
 
-    for (const name of KNOWN_CHANNELS) {
-      const latest = await this.prisma.crawlRun.findFirst({
-        where: { channel: name },
-        orderBy: { run_at: 'desc' },
-        select: { status: true },
-      })
-      const lastSuccess = await this.prisma.crawlRun.findFirst({
-        where: { channel: name, status: 'success' },
-        orderBy: { run_at: 'desc' },
-        select: { run_at: true },
-      })
+    const channels: ChannelCoverage[] = rows.map((r) => ({
+      name: r.source_id,
+      tier: r.tier,
+      status: r.status,
+      last_success_at: r.last_success_at,
+    }))
 
-      if (!latest) {
-        uncollected.push(name)
-        channels.push({ name, status: null, last_success_at: null })
-      } else {
-        channels.push({
-          name,
-          status: latest.status,
-          last_success_at: lastSuccess?.run_at ?? null,
-        })
-      }
-    }
-
-    // degraded = 미수집 채널 존재 또는 최신 run이 success가 아닌 채널 존재(수집 실패 노출).
-    const degraded =
-      uncollected.length > 0 ||
-      channels.some((c) => c.status !== null && c.status !== 'success')
+    // 미수집 = status가 active가 아닌 모든 소스(차단/로그인/미지원/한국공고없음 — 투명 노출).
+    const uncollected = channels.filter((c) => c.status !== 'active').map((c) => c.name)
+    const degraded = uncollected.length > 0
 
     return { channels, uncollected, degraded }
   }
