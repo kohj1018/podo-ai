@@ -1,7 +1,7 @@
 # T-043-login-ui-protected-routes
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 feature
@@ -27,10 +27,11 @@ Next.js 로그인 화면(`/login`)과 보호 라우트 SSR 가드를 만든다. 
 - OAuth provider 실 redirect(로컬 callback — T-042 담당). · 로그인 성공 후 피드 렌더(F-018 담당). · 비밀번호·이메일 인증. · 계정 삭제·설정 화면.
 
 ## 4-1. 변경 예정 파일/경로
-- `podo/apps/web/app/login/page.tsx` (신규)
-- `podo/apps/web/components/LoginButtons.tsx` (신규)
-- `podo/apps/web/middleware.ts` (신규 또는 수정)
-- `podo/apps/web/app/layout.tsx` — 헤더 로그아웃 버튼 추가
+- `podo/apps/web/app/login/page.tsx` (신규 — 서버 컴포넌트, 세션 있으면 / redirect)
+- `podo/apps/web/components/LoginButtons.tsx` (신규 — GitHub/Google, error prop)
+- `podo/apps/web/components/LogoutButton.tsx` (신규 — 헤더 로그아웃, layout에서 사용)
+- `podo/apps/web/middleware.ts` (신규 — matcher ['/','/resume','/feed'], connect.sid 없으면 /login)
+- `podo/apps/web/app/layout.tsx` — 세션 시 헤더 + LogoutButton 노출
 - `podo/apps/web/test/login.spec.tsx` (신규)
 
 ## 5. 완료 조건
@@ -59,6 +60,8 @@ Next.js 로그인 화면(`/login`)과 보호 라우트 SSR 가드를 만든다. 
 - 포도 톤: "포도와 함께 시작해요" 헤딩 — copy는 간결·친근. 보안 에러 메시지는 사실 명확("로그인에 실패했어요").
 - middleware는 `connect.sid` 쿠키 이름을 T-042 express-session 설정과 맞춰야 함(열린 질문 — 구현 시 확인).
 - 세션 유효 판단: SSR에서 쿠키 존재 체크 → api 세션 검증 없이(쿠키 유무로 1차 판단, api에서 최종 401). 구현 단순화.
+- 구현 결정(implement): **Button primitive 미존재**(DESIGN §7 등록되었으나 코드 컴포넌트 없음 — ResumeUpload도 inline 토큰 버튼) → LoginButtons/LogoutButton도 inline `var(--token)` 버튼(raw hex 0, 기존 컨벤션 정합). error는 **prop**(서버 page가 searchParams.error 주입)으로 — useSearchParams/Suspense 회피, 단위 테스트 단순. cookies()/searchParams는 Next 14.2 동기 API. 로그아웃 버튼은 layout에서 세션 쿠키 시에만 렌더(LogoutButton 별도 컴포넌트로 추출).
+- 검증(implement): web tsc green · login.spec 4 pass(AC-1/2/3 + middleware allow) · `pnpm validate` green.
 
 ## 9. 의존성
 - depends_on: [T-042]
