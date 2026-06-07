@@ -32,9 +32,29 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      # LocalStack SQS — 멀티유저 큐 채점 경로(T-052, ADR-106 A-INFRA). 큐는 아래 step에서 생성
+      # (GH service는 init 스크립트 미실행). M6에서 실 AWS SQS로 엔드포인트만 교체.
+      localstack:
+        image: localstack/localstack:3
+        env:
+          SERVICES: sqs
+        ports:
+          - 4566:4566
+        options: >-
+          --health-cmd "awslocal sqs list-queues || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     env:
       DATABASE_URL: postgresql://podo:podo@localhost:5432/podo
       E2E_SKIP_COMPOSE: '1'
+      # SQS 엔드포인트·큐 URL(LocalStack). worker(boto3)/api(AWS SDK) 공통.
+      SQS_ENDPOINT_URL: http://localhost:4566
+      SQS_QUEUE_URL: http://localhost:4566/000000000000/scoring-queue
+      SQS_STATUS_QUEUE_URL: http://localhost:4566/000000000000/scoring-status-queue
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_DEFAULT_REGION: us-east-1
       # 캐시 키 핀 — 커밋된 웜캐시(ai/worker/fixtures/llm_cache)를 생성한 값과 일치해야
       # cache hit. 재생성 시 이 3값 + 웜캐시를 함께 갱신(cache.py make_key 구성요소).
       OPENAI_MODEL: gpt-5.4-mini
@@ -54,5 +74,9 @@ jobs:
           cache: pnpm
       - name: Install JS deps
         run: pnpm install --frozen-lockfile
-      - name: Run fresh-clone E2E (keyless — committed warm cache)
+      - name: Create SQS queues (LocalStack service has no init hook)
+        run: |
+          aws --endpoint-url=http://localhost:4566 sqs create-queue --queue-name scoring-queue
+          aws --endpoint-url=http://localhost:4566 sqs create-queue --queue-name scoring-status-queue
+      - name: Run fresh-clone multiuser E2E (keyless — committed warm cache)
         run: node scripts/e2e.mjs --no-compose

@@ -1,7 +1,7 @@
 # T-052-multiuser-e2e-rewire
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 technical-enabler
@@ -28,10 +28,11 @@ M4 done-line(멀티유저 로컬 E2E)을 자동 게이트로 박는다. `scripts
 - live LLM 채점 — 웜캐시(키 보유 시만 live).
 
 ## 4-1. 변경 예정 파일/경로
-- `scripts/e2e.mjs` (재배선)
-- `scripts/e2e_account_pii_scan.py` (또는 기존 확장)
-- `.github/workflows/e2e-smoke.yml`
-- `ai/worker/fixtures/llm_cache/` (마스킹 fixture 웜캐시 — 필요 시 재생성, 사용자 키 1회)
+- `scripts/e2e.mjs` (재배선 — 2-user OAuth 우회 + 큐 enqueue/드레인 + 격리/지원기록/PII assert + worker 호스트 기동)
+- `scripts/e2e_account_pii_scan.py` (신규 — 계정 PII 미유입 스캔)
+- `scripts/e2e_seed_users.sql` (신규 — 사용자 A·B 시드, prisma db execute)
+- `.github/workflows/e2e-smoke.yml` — LocalStack SQS service + 큐 생성 step + SQS/AWS env
+- (웜캐시 재생성 불요 — 기존 fixture 웜캐시가 큐 경로에서도 hit, run_scoring 불변)
 
 ## 5. 완료 조건
 무키 `pnpm e2e`가 2명 OAuth 우회→업로드→큐 채점→격리 피드→지원기록까지 exit 0으로 완주하고, 데이터 격리·계정 PII 미유입이 자동 검증된다.
@@ -60,6 +61,9 @@ M4 done-line(멀티유저 로컬 E2E)을 자동 게이트로 박는다. `scripts
 ## 8. 메모
 - M2/M3와 동형: report-only stabilize가 못 닫는 done-line E2E를 코드 작업으로 자동 게이트화.
 - 웜캐시는 *마스킹 fixture* 이력서로만(실 PII 웜캐시 금지 — PII Safety 정합).
+- 구현 결정(implement): 사용자 시드 = `prisma db execute --file e2e_seed_users.sql`(cross-env, auth.controller 불변 — test-session은 {userId}만). 세션 쿠키는 Node fetch `getSetCookie()`로 수동 보관(쿠키 jar 없음). worker는 호스트 프로세스(`uv run python -m worker`, e2e가 spawn — M4 컨테이너 아님, T-045 정합). AWS 자격증명은 LocalStack용 더미(SDK/boto3 서명에 존재 필요). api는 NODE_ENV=test로 기동(test-session 우회 활성).
+- 구현 결정(implement): A·B가 동일 fixture 업로드 → 동일 마스킹본 → 동일 캐시 키(resume_id만 다른 별 run) → 웜캐시 hit(키 불요). 격리는 resume.user_id(A≠B)로 getFeed 범위·score 소유권·scoring-job 404가 보장.
+- **실측 결과(implement)**: `pnpm e2e`(docker compose: Postgres+LocalStack SQS) **exit 0** — 2-user 로그인→업로드(마스킹)→enqueue(202)→큐 드레인(worker SQS consume→ranking_run→done)→각자 격리 피드(scored 6/held 0)→비인증 401·A→B 403/404→지원 applied→피드 정리→PII scan(raw 0·account 0). `pnpm validate` green.
 
 ## 9. 의존성
 - depends_on: [T-043, T-045, T-051]
