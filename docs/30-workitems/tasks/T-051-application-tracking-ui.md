@@ -1,7 +1,7 @@
 # T-051-application-tracking-ui
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 feature
@@ -26,8 +26,9 @@ JobCard에 지원/스킵·즐겨찾기 액션 UI를 붙이고, 처리 결과를 
 - 기록 API·스키마 — T-050.
 
 ## 4-1. 변경 예정 파일/경로
-- `podo/apps/web/components/JobCardActions.tsx` (신설)
-- `podo/apps/web/components/JobCard.tsx` (actions 슬롯 결선)
+- `podo/apps/web/components/JobCardActions.tsx` (신설 — 지원/스킵·되돌리기/즐겨찾기 + Toast(output role=status) + 낙관/롤백)
+- `podo/apps/web/components/JobCard.tsx` (scored 분기에 JobCardActions 결선 + onProcessed/onRestore prop)
+- `podo/apps/web/components/FeedList.tsx` (onProcessed로 처리완료 공고 피드에서 제거)
 - `podo/apps/web/test/job_card_actions.spec.tsx` (신설)
 
 ## 5. 완료 조건
@@ -51,6 +52,9 @@ JobCard에 지원/스킵·즐겨찾기 액션 UI를 붙이고, 처리 결과를 
 
 ## 8. 메모
 - 지원 = 원본 채널 링크 이동(자동지원 아님 — Charter §5). Fail #8(기록 실패) 표면화.
+- 구현 결정(implement): JobCardActions가 `POST /api/v1/applications`(T-050) 호출. 지원=window.open(원본 url, 새 탭)+낙관적 onProcessed(피드 정리)+성공 Toast, 실패 시 onRestore 롤백+에러 Toast. 스킵은 토글(스킵↔되돌리기) 낙관적+실패 롤백. FeedList가 onProcessed로 해당 공고를 items에서 제거(처리완료 정리 라이브). held 공고엔 액션 미렌더(JobCard scored 분기만).
+- 구현 결정(implement): Toast는 `<output>`(암묵 role=status, aria-live) — biome useSemanticElements 정합(span role=status 차단). 별도 Toast 컴포넌트 미신설(inline, 단순성).
+- 검증(implement): web vitest job_card_actions 3 pass + 기존 web 회귀 0(37 pass) · `pnpm validate` green.
 
 ## 9. 의존성
 - depends_on: [T-047, T-050]

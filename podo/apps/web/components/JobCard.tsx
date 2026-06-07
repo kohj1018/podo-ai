@@ -3,6 +3,7 @@
 import { DeadlineRow } from './DeadlineRow'
 import { EvidenceBlock } from './EvidenceBlock'
 import { FitScoreRing } from './FitScoreRing'
+import { JobCardActions } from './JobCardActions'
 import { PassBand } from './PassBand'
 import { PendingState } from './PendingState'
 
@@ -34,7 +35,16 @@ function daysUntil(closingAt: string | null | undefined): number | null {
 
 // JobCard (DESIGN §7-2) — source/role/co + FitScoreRing + PassBand(적합도) + 마감 + 신규 표식 + 근거 펼침.
 // held(LLM 보류)는 가짜 점수/배지 대신 PendingState(Charter thesis). 합격확률/% 금지.
-export function JobCard({ item }: { item: FeedItem }) {
+// onProcessed/onRestore: 지원/스킵 처리완료 정리·롤백(F-019, JobCardActions 경유).
+export function JobCard({
+  item,
+  onProcessed,
+  onRestore,
+}: {
+  item: FeedItem
+  onProcessed?: (jobId: number) => void
+  onRestore?: (jobId: number) => void
+}) {
   const { posting, fit_level, status, evidence } = item
   const held = status === 'held'
   const days = daysUntil(posting.closing_at)
@@ -77,6 +87,12 @@ export function JobCard({ item }: { item: FeedItem }) {
             </div>
             {days !== null ? <DeadlineRow daysLeft={days} /> : null}
             <EvidenceBlock evidence={evidence} jobId={posting.id} />
+            <JobCardActions
+              jobId={posting.id}
+              url={posting.url}
+              onProcessed={onProcessed}
+              onRestore={onRestore}
+            />
           </>
         )}
       </div>

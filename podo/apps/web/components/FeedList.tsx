@@ -58,7 +58,14 @@ export function FeedList() {
       <ArrivalList
         items={items}
         keyOf={(item) => `${item.rank_position}-${item.posting.id}`}
-        renderItem={(item) => <JobCard item={item} />}
+        renderItem={(item) => (
+          <JobCard
+            item={item}
+            // 지원/스킵 처리완료 → 피드에서 정리(F-019), 실패 시 롤백 복원.
+            onProcessed={(jobId) => setItems((prev) => prev.filter((i) => i.posting.id !== jobId))}
+            onRestore={() => void 0}
+          />
+        )}
       />
 
       {error ? (
