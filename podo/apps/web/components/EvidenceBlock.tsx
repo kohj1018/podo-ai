@@ -1,3 +1,7 @@
+'use client'
+
+import { useState } from 'react'
+
 interface EvidenceRow {
   quote: string
   requirement: string
@@ -28,7 +32,8 @@ function extractRows(evidence: unknown, jobId: number): EvidenceRow[] {
   return out
 }
 
-// EvidenceBlock (DESIGN §7-2) — JD 인용 + 이력서↔JD 매핑(✓/△). 색만 의존 금지: ✓/△ + 라벨.
+// EvidenceBlock (DESIGN §7-2) — 근거 펼침 토글(키보드 접근) + JD 인용 + 이력서↔JD 매핑(✓/△).
+// 색만 의존 금지: ✓/△ + 라벨. 토글 = 네이티브 button(Enter/Space 활성) + aria-expanded/aria-controls.
 export function EvidenceBlock({
   evidence,
   jobId,
@@ -36,24 +41,45 @@ export function EvidenceBlock({
   evidence: unknown
   jobId: number
 }) {
+  const [open, setOpen] = useState(false)
+  const panelId = `evidence-${jobId}`
   const rows = extractRows(evidence, jobId)
-  if (rows.length === 0) {
-    return (
-      <p data-testid="evidence-block" className="mt-2 text-sm" style={{ color: 'var(--faint)' }}>
-        근거 없음 — 보류
-      </p>
-    )
-  }
+
   return (
-    <div data-testid="evidence-block" className="mt-2 flex flex-col gap-2 text-sm">
-      {rows.map((r) => (
-        <div key={`${r.requirement}-${r.quote}`} className="border-l-2 pl-2">
-          {r.quote ? <blockquote>“{r.quote}”</blockquote> : null}
-          <span>
-            {r.matched ? '✓' : '△'} {r.requirement}
-          </span>
+    <div>
+      <button
+        type="button"
+        data-testid="evidence-toggle"
+        aria-expanded={open}
+        aria-controls={panelId}
+        onClick={() => setOpen((o) => !o)}
+        className="mt-2 text-sm underline"
+        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink)' }}
+      >
+        {open ? '근거 접기' : '근거 보기'}
+      </button>
+      {open ? (
+        <div id={panelId} data-testid="evidence-block" className="mt-2 flex flex-col gap-2 text-sm">
+          {rows.length === 0 ? (
+            <p style={{ color: 'var(--faint)' }}>근거 없음 — 보류</p>
+          ) : (
+            rows.map((r) => (
+              <div key={`${r.requirement}-${r.quote}`} className="border-l-2 pl-2">
+                {r.quote ? (
+                  <blockquote>
+                    <mark style={{ background: 'var(--grape-100)', color: 'var(--ink)' }}>
+                      “{r.quote}”
+                    </mark>
+                  </blockquote>
+                ) : null}
+                <span>
+                  {r.matched ? '✓ 충족' : '△ 부족'} · {r.requirement}
+                </span>
+              </div>
+            ))
+          )}
         </div>
-      ))}
+      ) : null}
     </div>
   )
 }

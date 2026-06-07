@@ -88,8 +88,8 @@ describe('CoveragePanel error state (REV-M2-UI-001)', () => {
 describe('Held state (AC-3)', () => {
   it('test_AC_3_held_shows_pending_not_fake', () => {
     render(<JobCard item={held()} />)
-    // 보류 상태 표시
-    expect(screen.getByTestId('held-badge').textContent).toContain('보류')
+    // 보류 상태 = PendingState(T-047) — 가짜 점수 대신 정직한 보류
+    expect(screen.getByTestId('pending-state').textContent).toContain('분석하지 못했어요')
     // 가짜 점수/band 미표시 (fit 링·PassBand 없음)
     expect(screen.queryByTestId('fitring')).toBeNull()
     expect(screen.queryByTestId('passband')).toBeNull()

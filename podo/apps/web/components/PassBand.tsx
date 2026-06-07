@@ -21,7 +21,12 @@ export function PassBand({ level }: { level: number | null }) {
 
   const label = BAND_LABELS[level] ?? '보통'
   return (
-    <div data-testid="passband" data-level={level} className="flex items-center gap-2">
+    <div
+      data-testid="passband"
+      data-level={level}
+      aria-label={`적합도: ${label}`}
+      className="flex items-center gap-2"
+    >
       <span className="text-sm font-medium" style={{ color: `var(--band-${level}-ink)` }}>
         적합도 {label}
       </span>

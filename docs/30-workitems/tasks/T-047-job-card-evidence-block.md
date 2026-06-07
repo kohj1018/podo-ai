@@ -1,7 +1,7 @@
 # T-047-job-card-evidence-block
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 feature
@@ -32,14 +32,15 @@ feature
 - lottie arrival 모션(T-048). · 접근성 심화 단언(T-049). · 지원/스킵 버튼(T-051). · 커서 페이지네이션. · 신규 스코어링·출력계약 변경(동결).
 
 ## 4-1. 변경 예정 파일/경로
-- `podo/apps/web/components/PassBand.tsx` (신규)
-- `podo/apps/web/components/FitScoreRing.tsx` (신규)
-- `podo/apps/web/components/EvidenceBlock.tsx` (신규)
+- `podo/apps/web/components/PassBand.tsx` (수정 — aria-label 추가)
+- `podo/apps/web/components/FitScoreRing.tsx` (수정 — aria-label + indeterminate, fenced gradient 유지)
+- `podo/apps/web/components/EvidenceBlock.tsx` (수정 — 자체 토글 button + aria-expanded/aria-controls + 매핑 ✓충족/△부족)
 - `podo/apps/web/components/DeadlineRow.tsx` (신규)
 - `podo/apps/web/components/PendingState.tsx` (신규)
-- `podo/apps/web/components/JobCard.tsx` (신규 또는 수정)
+- `podo/apps/web/components/JobCard.tsx` (수정 — held→PendingState, DeadlineRow, diff badge(NEW/마감), EvidenceBlock 통합)
 - `podo/apps/web/test/job_card.spec.tsx` (신규)
-- `docs/20-system/DESIGN.md` §7
+- `podo/apps/web/test/evidence_coverage.spec.tsx` (수정 — held 테스트가 held-badge→PendingState, T-047 ripple)
+- (read-only) `docs/20-system/DESIGN.md` §7 — 6개 컴포넌트 이미 등록(§3 item7 — 신규 등록 불요)
 
 ## 5. 완료 조건
 JobCard가 적합도 배지·ring·근거 펼침·마감·신규 표식·보류 상태를 올바르게 렌더한다. held 공고에 가짜 점수가 없다. EvidenceBlock이 키보드로 토글된다. 색에 raw hex가 없다.
@@ -68,6 +69,10 @@ JobCard가 적합도 배지·ring·근거 펼침·마감·신규 표식·보류 
 - PendingState는 LLM miss(fit_level=null, status='held') 공고에만. 채점 중(scoring)은 T-046 skeleton.
 - EvidenceBlock 데이터: `ranking_runs.result` JSONB pass-through. web은 표시만(출력계약 동결 — 새 필드 추가 X).
 - 색만으로 의미 전달 금지(DESIGN §1): PassBand·DeadlineRow·매핑 항상 텍스트 라벨 동반.
+- 구현 결정(implement) — **PassBand 라벨 = DESIGN canonical "매우 높음"**: AC-1 문구 "매우 적합"은 서술이고 DESIGN §2-1(line 65 주석 band-5="매우 높음") + 기존 feed.spec이 "적합도 매우 높음" → 문서 권위(DESIGN > task) + 회귀 보존 위해 "매우 높음" 유지. AC-1 테스트는 실제 라벨 "매우 높음" + var(--band-5-ink) 토큰을 단언(AC 의도=상위 밴드 토큰·라벨 표시 충족).
+- 구현 결정(implement) — **EvidenceBlock 자체 토글**(§3 item3): JobCard의 별도 토글 제거, EvidenceBlock이 button('근거 보기'/'근거 접기')+aria-expanded+aria-controls 소유. 네이티브 button=키보드(Enter/Space) 접근 가능 → 테스트는 button 활성(click=활성 프록시)+aria-expanded 토글 단언(user-event 미설치). 기존 evidence_coverage AC-1('근거 보기' click→인용)은 그대로 통과.
+- 구현 결정(implement) — **held→PendingState**(AC-3): JobCard held 분기를 inline held-badge에서 PendingState(dashed+원문 링크)로 교체. FitScoreRing/PassBand 미렌더(숫자 점수 0). evidence_coverage held 테스트를 PendingState 단언으로 갱신(ripple). FitScoreRing은 fenced gradient(var(--brand-gradient)) 유지(raw hex 0) — SVG arc 전면 재작성은 YAGNI(AC-1 no-hex+fenced 충족).
+- 검증(implement): web vitest job_card 3 pass + 기존 web 27 회귀 0 · `pnpm validate` green.
 
 ## 9. 의존성
 - depends_on: [T-046]
