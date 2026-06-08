@@ -1,0 +1,17 @@
+{
+  "_synthetic": true,
+  "job_id": "jd-naver-fe",
+  "company": "naver",
+  "title": "Frontend Engineer",
+  "role_family": "frontend",
+  "tech_stack": ["react", "next.js", "typescript", "redux", "webpack"],
+  "raw_text": "네이버 프론트엔드 엔지니어. React 기반 웹 서비스 개발 경험. Next.js SSR 경험 우대. TypeScript 숙련. Redux 등 상태관리 경험. Webpack 빌드 최적화. 웹 접근성 이해.",
+  "requirements": [
+    "React 기반 웹 서비스 개발",
+    "Next.js SSR 경험",
+    "TypeScript 숙련",
+    "Redux 상태관리 경험",
+    "Webpack 빌드 최적화",
+    "웹 접근성 이해"
+  ]
+}

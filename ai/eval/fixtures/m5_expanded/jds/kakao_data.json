@@ -1,0 +1,17 @@
+{
+  "_synthetic": true,
+  "job_id": "jd-kakao-data",
+  "company": "kakao",
+  "title": "Data Engineer",
+  "role_family": "data",
+  "tech_stack": ["airflow", "spark", "bigquery", "kafka", "pandas"],
+  "raw_text": "카카오 데이터 엔지니어. Airflow 기반 ETL 파이프라인 구축 경험. Spark 대용량 데이터 처리. BigQuery 데이터 웨어하우스 운영. Kafka 스트리밍 파이프라인. pandas 데이터 분석. 데이터 모델링 경험.",
+  "requirements": [
+    "Airflow 기반 ETL 파이프라인 구축",
+    "Spark 대용량 데이터 처리",
+    "BigQuery 데이터 웨어하우스 운영",
+    "Kafka 스트리밍 파이프라인",
+    "pandas 데이터 분석",
+    "데이터 모델링 경험"
+  ]
+}

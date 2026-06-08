@@ -1,0 +1,47 @@
+{
+  "_synthetic": true,
+  "_note": "합성 fixture — T-068 확대 표본. 백엔드 엔지니어 이력서.",
+  "resume_id": "r_backend_engineer",
+  "primary_domains": ["backend"],
+  "secondary_domains": ["devops", "cloud"],
+  "resume": {
+    "raw_text": "백엔드 엔지니어. Spring Boot + Kotlin으로 4년간 마이크로서비스 개발. PostgreSQL 성능 최적화. Redis 캐시 설계. AWS EC2/RDS 운영. Docker 컨테이너화.",
+    "primary_domains": ["backend"],
+    "secondary_domains": ["devops", "cloud"],
+    "evidence": [
+      {
+        "evidence_id": "E1",
+        "title": "Spring 마이크로서비스",
+        "source_section": "Experience",
+        "exact_quote": "Spring Boot + Kotlin으로 4년간 마이크로서비스 개발",
+        "normalized_summary": "Spring Boot/Kotlin 마이크로서비스 4년",
+        "skills": ["spring"],
+        "domain": ["backend"],
+        "evidence_type": "work_experience",
+        "strength": "strong"
+      },
+      {
+        "evidence_id": "E2",
+        "title": "DB 최적화",
+        "source_section": "Experience",
+        "exact_quote": "PostgreSQL 성능 최적화",
+        "normalized_summary": "PostgreSQL 성능 최적화",
+        "skills": [],
+        "domain": ["backend"],
+        "evidence_type": "work_experience",
+        "strength": "medium"
+      },
+      {
+        "evidence_id": "E3",
+        "title": "AWS 운영",
+        "source_section": "Experience",
+        "exact_quote": "AWS EC2/RDS 운영",
+        "normalized_summary": "AWS EC2/RDS 운영",
+        "skills": ["aws"],
+        "domain": ["cloud"],
+        "evidence_type": "work_experience",
+        "strength": "medium"
+      }
+    ]
+  }
+}

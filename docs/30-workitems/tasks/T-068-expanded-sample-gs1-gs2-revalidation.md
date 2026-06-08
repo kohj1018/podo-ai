@@ -1,7 +1,7 @@
 # T-068-expanded-sample-gs1-gs2-revalidation
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 research-spike

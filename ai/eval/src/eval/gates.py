@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Callable
 
 # GS-2 기준값 (SPEC §10-3: hallucinated requirement ≤2%)
@@ -42,8 +43,12 @@ class GS2Gate:
     SPEC §10-3: 표본 ≥30의 매칭표·JD 원문 대비 hallucinated requirement 비율 ≤2%.
     """
 
-    def __init__(self, threshold: float = GS2_THRESHOLD) -> None:
+    def __init__(
+        self, threshold: float = GS2_THRESHOLD, fixture_dir: Path | None = None
+    ) -> None:
         self.threshold = threshold
+        # T-068: 확대 표본 출처(None=기존 동작 — 측정은 measure 인자 사용).
+        self.fixture_dir = fixture_dir
 
     @staticmethod
     def _normalize(text: str) -> str:
@@ -146,6 +151,10 @@ class GS1Gate:
 
     두 경로 모두 결정론적이어야 한다 (SPEC §3-1 결정론 경계).
     """
+
+    def __init__(self, fixture_dir: Path | None = None) -> None:
+        # T-068: 확대 표본 출처(None=기존 동작 — 측정은 measure 인자 사용).
+        self.fixture_dir = fixture_dir
 
     def measure(
         self,

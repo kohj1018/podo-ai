@@ -1,0 +1,36 @@
+{
+  "_synthetic": true,
+  "_note": "합성 fixture — T-068 확대 표본. 풀스택 엔지니어 이력서(frontend+backend 혼재).",
+  "resume_id": "r_fullstack_engineer",
+  "primary_domains": ["frontend", "backend"],
+  "secondary_domains": [],
+  "resume": {
+    "raw_text": "풀스택 엔지니어. React로 프론트엔드 SPA 개발 + Django REST API 백엔드 3년. Next.js SSR. PostgreSQL. 프론트와 백엔드를 모두 담당.",
+    "primary_domains": ["frontend", "backend"],
+    "secondary_domains": [],
+    "evidence": [
+      {
+        "evidence_id": "E1",
+        "title": "프론트엔드 SPA",
+        "source_section": "Experience",
+        "exact_quote": "React로 프론트엔드 SPA 개발",
+        "normalized_summary": "React SPA",
+        "skills": ["react", "next.js"],
+        "domain": ["frontend"],
+        "evidence_type": "work_experience",
+        "strength": "strong"
+      },
+      {
+        "evidence_id": "E2",
+        "title": "백엔드 API",
+        "source_section": "Experience",
+        "exact_quote": "Django REST API 백엔드 3년",
+        "normalized_summary": "Django API 3년",
+        "skills": ["django"],
+        "domain": ["backend"],
+        "evidence_type": "work_experience",
+        "strength": "strong"
+      }
+    ]
+  }
+}

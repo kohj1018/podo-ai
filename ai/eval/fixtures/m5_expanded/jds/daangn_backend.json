@@ -1,0 +1,17 @@
+{
+  "_synthetic": true,
+  "job_id": "jd-daangn-be",
+  "company": "daangn",
+  "title": "Server Engineer",
+  "role_family": "backend",
+  "tech_stack": ["go", "grpc", "kubernetes", "postgresql", "gcp"],
+  "raw_text": "당근 서버 엔지니어. Go 언어 기반 서버 개발 경험. gRPC API 설계. Kubernetes 컨테이너 오케스트레이션. PostgreSQL 운영. GCP 클라우드 인프라. 대규모 트래픽 처리 경험 우대.",
+  "requirements": [
+    "Go 언어 기반 서버 개발",
+    "gRPC API 설계",
+    "Kubernetes 컨테이너 오케스트레이션",
+    "PostgreSQL 운영",
+    "GCP 클라우드 인프라",
+    "대규모 트래픽 처리 경험"
+  ]
+}

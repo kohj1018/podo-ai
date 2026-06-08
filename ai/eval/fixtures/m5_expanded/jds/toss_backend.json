@@ -1,0 +1,17 @@
+{
+  "_synthetic": true,
+  "job_id": "jd-toss-be",
+  "company": "toss",
+  "title": "Backend Engineer",
+  "role_family": "backend",
+  "tech_stack": ["spring", "kotlin", "postgresql", "redis", "aws"],
+  "raw_text": "토스 백엔드 엔지니어. Spring Boot 기반 서버 개발 경험 필수. Kotlin 또는 Java 숙련. MSA 마이크로서비스 아키텍처 설계 경험. PostgreSQL 등 RDBMS 운영. Redis 캐시 활용. AWS 클라우드 환경 운영 경험 우대.",
+  "requirements": [
+    "Spring Boot 기반 서버 개발",
+    "Kotlin 또는 Java 숙련",
+    "MSA 마이크로서비스 아키텍처 설계",
+    "PostgreSQL RDBMS 운영",
+    "Redis 캐시 활용",
+    "AWS 클라우드 환경 운영"
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "_synthetic": true,
+  "_note": "합성 fixture — T-068 확대 표본. 프론트엔드 엔지니어 이력서.",
+  "resume_id": "r_frontend_engineer",
+  "primary_domains": ["frontend"],
+  "secondary_domains": ["fullstack"],
+  "resume": {
+    "raw_text": "프론트엔드 엔지니어. React 18 + TypeScript로 3년간 SPA 개발. Next.js 서버사이드 렌더링 경험. Redux 상태 관리. Tailwind CSS 스타일링. Webpack 빌드 최적화.",
+    "primary_domains": ["frontend"],
+    "secondary_domains": ["fullstack"],
+    "evidence": [
+      {
+        "evidence_id": "E1",
+        "title": "React SPA 개발",
+        "source_section": "Experience",
+        "exact_quote": "React 18 + TypeScript로 3년간 SPA 개발",
+        "normalized_summary": "React/TypeScript SPA 3년",
+        "skills": ["react", "typescript"],
+        "domain": ["frontend"],
+        "evidence_type": "work_experience",
+        "strength": "strong"
+      },
+      {
+        "evidence_id": "E2",
+        "title": "Next.js SSR",
+        "source_section": "Projects",
+        "exact_quote": "Next.js 서버사이드 렌더링 경험",
+        "normalized_summary": "Next.js SSR 경험",
+        "skills": ["next.js"],
+        "domain": ["frontend"],
+        "evidence_type": "project",
+        "strength": "medium"
+      },
+      {
+        "evidence_id": "E3",
+        "title": "Redux 상태 관리",
+        "source_section": "Skills",
+        "exact_quote": "Redux 상태 관리",
+        "normalized_summary": "Redux 상태 관리",
+        "skills": ["redux"],
+        "domain": ["frontend"],
+        "evidence_type": "skills",
+        "strength": "medium"
+      }
+    ]
+  }
+}

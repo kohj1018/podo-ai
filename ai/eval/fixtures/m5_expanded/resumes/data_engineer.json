@@ -1,0 +1,47 @@
+{
+  "_synthetic": true,
+  "_note": "합성 fixture — T-068 확대 표본. 데이터 엔지니어 이력서.",
+  "resume_id": "r_data_engineer",
+  "primary_domains": ["data"],
+  "secondary_domains": ["backend"],
+  "resume": {
+    "raw_text": "데이터 엔지니어. Airflow로 ETL 파이프라인 3년 운영. Spark 대용량 배치 처리. BigQuery 데이터 웨어하우스 설계. Kafka 스트리밍. pandas/numpy 분석.",
+    "primary_domains": ["data"],
+    "secondary_domains": ["backend"],
+    "evidence": [
+      {
+        "evidence_id": "E1",
+        "title": "ETL 파이프라인",
+        "source_section": "Experience",
+        "exact_quote": "Airflow로 ETL 파이프라인 3년 운영",
+        "normalized_summary": "Airflow ETL 3년",
+        "skills": ["airflow", "etl"],
+        "domain": ["data"],
+        "evidence_type": "work_experience",
+        "strength": "strong"
+      },
+      {
+        "evidence_id": "E2",
+        "title": "대용량 배치",
+        "source_section": "Experience",
+        "exact_quote": "Spark 대용량 배치 처리",
+        "normalized_summary": "Spark 배치",
+        "skills": ["spark"],
+        "domain": ["data"],
+        "evidence_type": "work_experience",
+        "strength": "medium"
+      },
+      {
+        "evidence_id": "E3",
+        "title": "데이터 웨어하우스",
+        "source_section": "Experience",
+        "exact_quote": "BigQuery 데이터 웨어하우스 설계",
+        "normalized_summary": "BigQuery DW 설계",
+        "skills": ["bigquery", "kafka"],
+        "domain": ["data"],
+        "evidence_type": "work_experience",
+        "strength": "medium"
+      }
+    ]
+  }
+}

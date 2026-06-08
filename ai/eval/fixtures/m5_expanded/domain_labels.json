@@ -1,0 +1,7 @@
+{
+  "_note": "T-068 수기 도메인 라벨. 합성 fixture는 저자 라벨 확정. 실 이력서 추가 시 사용자가 직군 라벨 채움(README 참조).",
+  "r_backend_engineer": "backend",
+  "r_frontend_engineer": "frontend",
+  "r_data_engineer": "data",
+  "r_fullstack_engineer": "frontend"
+}

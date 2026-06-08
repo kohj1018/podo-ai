@@ -1,0 +1,30 @@
+{
+  "gs1_result": {
+    "hit_score_variance": 0.0,
+    "hit_pass": true,
+    "miss_topk_order_changed": false,
+    "miss_pass": true,
+    "gate_pass": true,
+    "n_repeats": 10,
+    "top_k": 5,
+    "details": {
+      "hit_n_runs": 10,
+      "miss_n_runs": 10
+    }
+  },
+  "gs2_result": {
+    "total_count": 30,
+    "hallucinated_count": 0,
+    "hallucinated_ratio": 0.0,
+    "gate_pass": true,
+    "threshold": 0.02,
+    "details": []
+  },
+  "domain_accuracy": 1.0,
+  "fixture_dir": "C:\\Users\\kbwdesktop\\Desktop\\dev\\podo-ai\\ai\\eval\\fixtures\\m5_expanded",
+  "sample": {
+    "resumes": 4,
+    "jds": 5,
+    "gs2_requirements": 30
+  }
+}

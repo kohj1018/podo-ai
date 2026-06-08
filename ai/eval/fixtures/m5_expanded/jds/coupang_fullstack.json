@@ -1,0 +1,17 @@
+{
+  "_synthetic": true,
+  "job_id": "jd-coupang-fs",
+  "company": "coupang",
+  "title": "Fullstack Engineer",
+  "role_family": "fullstack",
+  "tech_stack": ["react", "spring", "typescript", "mysql", "docker"],
+  "raw_text": "쿠팡 풀스택 엔지니어. React 프론트엔드 개발 경험. Spring 백엔드 API 개발. TypeScript 활용. MySQL 데이터베이스 설계. Docker 컨테이너 환경. 프론트와 백엔드 모두 담당 가능.",
+  "requirements": [
+    "React 프론트엔드 개발",
+    "Spring 백엔드 API 개발",
+    "TypeScript 활용",
+    "MySQL 데이터베이스 설계",
+    "Docker 컨테이너 환경",
+    "프론트와 백엔드 모두 담당"
+  ]
+}
