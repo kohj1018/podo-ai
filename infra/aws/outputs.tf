@@ -68,3 +68,39 @@ output "worker_sg_id" {
   description = "worker ECS 서비스 SG ID (T-083 소비)"
   value       = aws_security_group.worker.id
 }
+
+# T-089 배포(turnkey) — 호스팅 출력
+output "alb_dns" {
+  description = "ALB DNS (api 공개 엔드포인트, HTTP). OAuth 콜백·NEXT_PUBLIC_API_BASE_URL 기준."
+  value       = aws_lb.api.dns_name
+}
+
+output "ecr_api_url" {
+  description = "api ECR 리포 URL (docker push 대상 / GitHub Secret ECR_REGISTRY 파생)"
+  value       = aws_ecr_repository.api.repository_url
+}
+
+output "ecr_worker_url" {
+  description = "worker ECR 리포 URL"
+  value       = aws_ecr_repository.worker.repository_url
+}
+
+output "ecr_registry" {
+  description = "ECR 레지스트리 호스트 (GitHub Secret ECR_REGISTRY)"
+  value       = split("/", aws_ecr_repository.api.repository_url)[0]
+}
+
+output "ecs_cluster_name" {
+  description = "ECS 클러스터 이름 (GitHub Secret ECS_CLUSTER)"
+  value       = aws_ecs_cluster.main.name
+}
+
+output "ecs_service_api" {
+  description = "api ECS 서비스 이름 (GitHub Secret ECS_SERVICE_API)"
+  value       = aws_ecs_service.api.name
+}
+
+output "ecs_service_worker" {
+  description = "worker ECS 서비스 이름 (GitHub Secret ECS_SERVICE_WORKER)"
+  value       = aws_ecs_service.worker.name
+}

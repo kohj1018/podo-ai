@@ -73,11 +73,8 @@ resource "aws_iam_policy" "api_secrets" {
         "secretsmanager:GetSecretValue",
         "secretsmanager:DescribeSecret"
       ]
-      Resource = [
-        aws_secretsmanager_secret.openai_api_key.arn,
-        aws_secretsmanager_secret.database_url.arn,
-        aws_secretsmanager_secret.oauth_secret.arn,
-      ]
+      # T-089: 프로덕션 시크릿 세트(SESSION_SECRET·OAuth client 등) 추가 → prefix 와일드카드로 확장.
+      Resource = ["arn:aws:secretsmanager:${var.aws_region}:*:secret:podo/${var.env}/*"]
     }]
   })
 }
@@ -144,10 +141,8 @@ resource "aws_iam_policy" "worker_secrets" {
         "secretsmanager:GetSecretValue",
         "secretsmanager:DescribeSecret"
       ]
-      Resource = [
-        aws_secretsmanager_secret.openai_api_key.arn,
-        aws_secretsmanager_secret.database_url.arn,
-      ]
+      # T-089: prefix 와일드카드로 확장(프로덕션 시크릿 세트 정합).
+      Resource = ["arn:aws:secretsmanager:${var.aws_region}:*:secret:podo/${var.env}/*"]
     }]
   })
 }

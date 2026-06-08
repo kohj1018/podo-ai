@@ -18,3 +18,15 @@ db_instance_class = "db.t3.micro"
 # GitHub OIDC sub claim (T-084 배포 역할 제한 범위)
 # 형식: "<github-org>/<repo-name>"
 github_org_repo = "your-org/podo-ai"
+
+# ── T-089 배포(turnkey) 결선 ──────────────────────────────────
+# Vercel web 도메인 (api CORS 허용 origin). 1차 apply 후 Vercel 배포 도메인으로 채움.
+vercel_origin = ""        # 예: "https://podo.vercel.app"
+
+# api 공개 URL. 비우면 ALB DNS(HTTP) 사용. 커스텀 HTTPS 도메인 붙이면 그 값으로
+# (Google OAuth는 HTTPS 필수). OAuth 콜백·CORS 기준이 된다.
+api_public_url = ""       # 예: "https://api.podo.example.com"
+
+# OAuth client ID(비밀 아님). OAuth 앱 발급 후 채움. client secret은 Secrets Manager.
+github_client_id = ""
+google_client_id = ""

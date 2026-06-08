@@ -1,0 +1,20 @@
+# 빌드 컨텍스트에서 로컬 산출물 제외 — 이미지 오염·캐시 무효화 방지 (T-089 배포)
+**/node_modules
+**/dist
+**/.next
+**/.turbo
+**/*.tsbuildinfo
+**/.venv
+**/__pycache__
+**/*.py[cod]
+**/.pytest_cache
+**/.ruff_cache
+**/.mypy_cache
+**/.cache
+.git
+.github
+infra/aws/.terraform
+infra/aws/*.tfstate*
+infra/aws/terraform.tfvars
+**/.env
+docs

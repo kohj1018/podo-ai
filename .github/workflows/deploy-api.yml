@@ -68,54 +68,27 @@ jobs:
           aws-region: ap-northeast-2
 
       - name: Login to Amazon ECR
-        id: ecr-login
         uses: aws-actions/amazon-ecr-login@v2
 
+      # 빌드 컨텍스트 = 리포 루트(.) — pnpm workspace lockfile 필요(Dockerfile은 podo/apps/api/Dockerfile).
+      # 태스크 정의(Terraform 소유)가 :latest를 참조하므로 :latest + :<sha>(이력) 동시 태깅·push.
       - name: Build and push API image
         run: |
-          docker build \
-            -f podo/apps/api/Dockerfile \
-            -t $ECR_REGISTRY/podo-api:$IMAGE_TAG \
-            podo/apps/api
-          docker push $ECR_REGISTRY/podo-api:$IMAGE_TAG
+          docker build -f podo/apps/api/Dockerfile \
+            -t "$ECR_REGISTRY/podo-api:$IMAGE_TAG" \
+            -t "$ECR_REGISTRY/podo-api:latest" .
+          docker push "$ECR_REGISTRY/podo-api:$IMAGE_TAG"
+          docker push "$ECR_REGISTRY/podo-api:latest"
 
-      # task-def-api.json = ECS task definition 베이스(컨테이너 정의·CPU/메모리·logConfiguration·
-      # Secrets Manager valueFrom). 최초 배포 전 사용자/IaC가 생성하는 prerequisite — render는
-      # image 태그만 주입(T-084 §9 "ECS 서비스 정의 존재 또는 생성", 사용자 수행).
-      - name: Render new ECS task definition
-        id: task-def
-        uses: aws-actions/amazon-ecs-render-task-definition@v1
-        with:
-          task-definition: infra/aws/task-def-api.json
-          container-name: podo-api
-          image: ${{ env.ECR_REGISTRY }}/podo-api:${{ env.IMAGE_TAG }}
+      # 서비스 강제 재배포 → 새 :latest 이미지를 pull(태스크 정의 Terraform 소유, 불변 → drift 없음).
+      - name: Deploy to ECS (force new deployment)
+        run: |
+          aws ecs update-service --cluster "${{ secrets.ECS_CLUSTER }}" \
+            --service "${{ secrets.ECS_SERVICE_API }}" --force-new-deployment --no-cli-pager
+          aws ecs wait services-stable --cluster "${{ secrets.ECS_CLUSTER }}" \
+            --services "${{ secrets.ECS_SERVICE_API }}"
 
-      - name: Deploy to ECS
-        id: ecs-deploy
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
-        with:
-          task-definition: ${{ steps.task-def.outputs.task-definition }}
-          service: ${{ secrets.ECS_SERVICE_API }}
-          cluster: ${{ secrets.ECS_CLUSTER }}
-          wait-for-service-stability: true
-
-      - name: Rollback on failure
+      - name: Deploy failed notice
         if: failure()
         run: |
-          echo "Deploy failed — rolling back to previous task definition revision"
-          PREV_REVISION=$(aws ecs describe-services \
-            --cluster ${{ secrets.ECS_CLUSTER }} \
-            --services ${{ secrets.ECS_SERVICE_API }} \
-            --query 'services[0].deployments[?status==`PRIMARY`].taskDefinition' \
-            --output text | sed 's/:[0-9]*$//')
-          PREV_REVISION_NUM=$(aws ecs describe-task-definition \
-            --task-definition "$PREV_REVISION" \
-            --query 'taskDefinition.revision' \
-            --output text)
-          ROLLBACK_REVISION=$((PREV_REVISION_NUM - 1))
-          aws ecs update-service \
-            --cluster ${{ secrets.ECS_CLUSTER }} \
-            --service ${{ secrets.ECS_SERVICE_API }} \
-            --task-definition "${PREV_REVISION}:${ROLLBACK_REVISION}" \
-            --no-cli-pager
-          echo "Rolled back to ${PREV_REVISION}:${ROLLBACK_REVISION}"
+          echo "::error::api 배포 실패. 롤백: 직전 안정 커밋 SHA 이미지를 :latest로 재태깅·push 후 force-new-deployment."
