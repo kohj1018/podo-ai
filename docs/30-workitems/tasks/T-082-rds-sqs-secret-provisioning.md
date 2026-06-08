@@ -17,7 +17,7 @@ AWS RDS(Postgres+pgvector)·SQS·Secrets Manager·네트워킹을 IaC(`infra/aws
 - SQS 큐 URL·ARN을 서비스 환경변수로 출력(F-025에서 소비).
 
 ## 3. 구현 항목
-1. `infra/aws/main.tf` (또는 동등 IaC 파일) — 현재: 없음 → 변경: RDS 인스턴스(db.t3.micro, **Postgres 16.5+** [pgvector 0.8 지원 — RDS 확인됨], Multi-AZ OFF MVP), SQS 표준 큐(`podo-scoring-queue`), Secrets Manager 시크릿 리소스, 보안그룹(api→RDS 5432, worker→RDS, worker→SQS), IAM 역할(최소권한 — RDS 접근 + SQS SendMessage/ReceiveMessage). **GitHub Actions OIDC**: IAM **OIDC identity provider**(`token.actions.githubusercontent.com`, audience `sts.amazonaws.com`) + 배포용 AssumeRole 역할(`sub` claim을 `repo:<org>/<repo>:ref:refs/heads/main`으로 제한 — T-084가 사용). → 확인: `terraform plan`(또는 동등) 오류 0. (AC-1)
+1. `infra/aws/main.tf` (또는 동등 IaC 파일) — 현재: 없음 → 변경: RDS 인스턴스(**db.t4g.micro**(또는 t3.micro), **Postgres 16.5+** [pgvector 0.8 지원 — RDS 확인됨], **Multi-AZ OFF · `backup_retention_period=0`(백업 미사용) · private DB subnet group** — ADR-109 D3 비용최소·유실 risk accepted), SQS 표준 큐(`podo-scoring-queue`), Secrets Manager 시크릿 리소스, 보안그룹(api→RDS 5432, worker→RDS, worker→SQS — rds-sg는 api/worker-sg source만, T-083 상세), IAM 역할(최소권한 — RDS 접근 + SQS SendMessage/ReceiveMessage). **GitHub Actions OIDC**: IAM **OIDC identity provider**(`token.actions.githubusercontent.com`, audience `sts.amazonaws.com`) + 배포용 AssumeRole 역할(`sub` claim을 `repo:<org>/<repo>:ref:refs/heads/main`으로 제한 — T-084가 사용). → 확인: `terraform plan`(또는 동등) 오류 0. (AC-1)
 2. **사용자 수행** — AWS 콘솔/CLI에서 IaC apply, RDS 엔드포인트·SQS URL 확보, Secrets Manager에 실 시크릿 값 주입. → 확인: 후속 AC-2 마이그레이션 단계로 검증.
 3. `podo/apps/api/prisma/schema.prisma` 및 마이그레이션 — 현재: 로컬 PG 대상 → 변경: `DATABASE_URL`이 RDS 엔드포인트를 가리키도록 환경변수 문서화(코드 변경 없음, env만) → 확인: `prisma migrate deploy`를 RDS 대상으로 실행 후 `SELECT extname FROM pg_extension WHERE extname='vector'` 성공. (AC-2)
 4. `.env.example` — 현재: 로컬 값 → 변경: `DATABASE_URL`·`SQS_QUEUE_URL`·`AWS_REGION`·`OPENAI_API_KEY` 이름 추가(값 비움, 주석으로 Secrets Manager 참조 명시) → 확인: `.env` gitignore 유지, `.env.example`만 커밋. (AC-3)
@@ -56,13 +56,13 @@ RDS(Postgres+pgvector)·SQS·Secrets Manager가 AWS에 존재하고, `prisma mig
 - Feature: [F-024-aws-infra-provisioning](../features/F-024-aws-infra-provisioning.md)
 - Architecture: [ARCHITECTURE_OVERVIEW](../../20-system/ARCHITECTURE_OVERVIEW.md) (§3-2 A-INFRA, §6 RDS/SQS, §7-3)
 - Architecture-Iface: [ARCH ## 7-3 백엔드/인프라](../../20-system/ARCHITECTURE_OVERVIEW.md#arch-7-3)
-- ADR: [ADR-101](../../90-decisions/project/ADR-101-stack-selection.md) · [ADR-106](../../90-decisions/project/ADR-106-worker-trigger-boundary.md)
+- ADR: [ADR-101](../../90-decisions/project/ADR-101-stack-selection.md) · [ADR-106](../../90-decisions/project/ADR-106-worker-trigger-boundary.md) · [ADR-109](../../90-decisions/project/ADR-109-aws-hosting-topology.md)(호스팅·RDS 사양·백업)
 
 ## 8. 메모
 - **IaC 도구 = Terraform 확정**(M6 §7 — ECS/Fargate 정합). §3·verifier(`terraform validate/plan`)가 이 선택과 일치. (CDK/SST 전환 시 AWS 호스팅 ADR + verifier 갱신.)
 - **RDS pgvector (확인됨 2026-06):** pgvector는 RDS Postgres **15.9+/16.5+/17.1+에서 0.8** 지원(15.2+부터 가용) → **PG 16.5+ 선택**. `CREATE EXTENSION vector`·HNSW는 Prisma migration raw SQL(로컬과 동일). `rds.force_ssl=1` 권장. *(열린 질문 해소.)*
 - **GitHub OIDC provider/role**: T-084 배포가 OIDC AssumeRole을 쓰므로 본 IaC가 OIDC identity provider + 역할을 함께 생성(사용자 apply). long-lived AWS key 미사용.
-- MVP: db.t3.micro, 단일 AZ, 자동 백업 7일. 고가용은 비범위.
+- MVP: **db.t4g.micro(또는 t3.micro), 단일 AZ, 백업 미사용**(`backup_retention_period=0`) — ADR-109 D3(비용최소 우선 · 데이터 유실 risk accepted; 데이터 가치 상승 시 백업·Multi-AZ 활성). RDS는 **private subnet**(절대 public 금지). 고가용은 비범위.
 - 사용자 수행 단계(IaC apply, 시크릿 주입)는 에이전트가 실행하지 않는다.
 
 ## 9. 의존성

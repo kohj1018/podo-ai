@@ -12,7 +12,7 @@ M4(멀티유저 MVP)·M5(커버리지·알고리즘 강화)가 로컬 docker com
 
 ## 2. 범위 (잠정)
 - **인프라 실물 이전 (A-INFRA)** — Postgres+pgvector → **AWS RDS**(또는 관리형 PG+pgvector), **LocalStack SQS → 실제 AWS SQS**, 시크릿 관리(`OPENAI_API_KEY`·`DATABASE_URL` 등 `.env`→시크릿 매니저). **S3는 미사용**(바이너리 저장 없음 + 공유 LLM 캐시 = Postgres, F-027) — 바이너리 저장 도입 시 재검토.
-- **호스팅** — api/worker/crawler를 AWS에(ECS/Fargate vs Lambda vs EC2 — ADR로 확정). 프론트는 **Vercel(사용자 직접 배포)**. web→api 도메인·CORS·환경변수(`NEXT_PUBLIC_API_BASE_URL`) 실값 결선.
+- **호스팅** — api/worker를 AWS **ECS/Fargate 상시 1대씩**([ADR-109](../../90-decisions/project/ADR-109-aws-hosting-topology.md) 확정 — NAT 없는 public subnet·RDS private 최소사양), crawler=GHA cron. 프론트는 **Vercel(사용자 직접 배포)**. web→api 도메인·CORS·환경변수(`NEXT_PUBLIC_API_BASE_URL`) 실값 결선.
 - **CI/CD + cron 실가동** — GitHub Actions `deploy-api`·`deploy-worker`·`crawl-jobs`·`schema-contract`·`e2e-smoke` 실가동. **`crawl-jobs` 매일 오전 cron**으로 신규/마감 diff 자동 갱신(M4가 UI만 준비한 그 트리거를 실제로 켬). *알림 발송 기능은 비범위(§1).*
 - **공개 환경 PII/보안** — raw PII는 여전히 미영속(마스킹본 only)이되, 공개 노출에 맞춰 **at-rest 암호화·간접 재식별 방어 경계(M3에서 M4로, M4에서 여기로 이연)·접근통제 재점검·보안 헤더/레이트리밋**. 의존성 보안 부채(`next`≥15.5.16 + NestJS bump — M2부터 이연) 청산.
 - **운영성** — 크롤 실패율·캡차율·채점 큐 지연 로깅/알람, 캐시 무효화(모델/프롬프트 버전 변경) 추적.
@@ -51,10 +51,10 @@ M4(멀티유저 MVP)·M5(커버리지·알고리즘 강화)가 로컬 docker com
 - Charter: [PROJECT_CHARTER](../../10-charter/PROJECT_CHARTER.md) (§7 제약 — 배포·인증·푸시, §8 흐름1 알림)
 - Architecture: [ARCHITECTURE_OVERVIEW](../../20-system/ARCHITECTURE_OVERVIEW.md) (§3-2 A-INFRA, §6 외부 연동·푸시 채널, §7-3 cron·캐시 어댑터, §7-4 Vercel)
 - 선행 마일스톤: [M4-product-mvp](M4-product-mvp.md) · [M5-coverage-and-algorithm](M5-coverage-and-algorithm.md)
-- ADR: [ADR-101](../../90-decisions/project/ADR-101-stack-selection.md)(배포/스케줄러) · ADR(가칭, AWS 호스팅 방식) · ADR(가칭, 공유 LLM 캐시 어댑터) — `/plan-workitem M6`에서 신설
+- ADR: [ADR-101](../../90-decisions/project/ADR-101-stack-selection.md)(배포/스케줄러) · [ADR-109](../../90-decisions/project/ADR-109-aws-hosting-topology.md)(**AWS 호스팅 토폴로지 — 작성됨**) · ADR(가칭, 공유 LLM 캐시 어댑터) — `/plan-workitem M6`에서 신설
 
 ## 7. 열린 질문 (잠정)
-- **api/worker 호스팅 = Terraform + ECS/Fargate 기본 가정(M6 task §3·verifier 정합)** — SQS 상시 consumer에 적합, crawler=GHA cron. Lambda/EC2로 변경 시 AWS 호스팅 ADR 신설 + 해당 task §3/verifier 갱신(M6-repair 2026-06-07). 비용·콜드스타트는 ADR에서 비교.
+- ✅ **[해소 2026-06-08 — [ADR-109](../../90-decisions/project/ADR-109-aws-hosting-topology.md)]** api/worker 호스팅 = Terraform + **ECS/Fargate 상시 1대씩**(worker scale-to-zero 기각 — on-demand 채점 cold-start UX 우선) · **NAT Gateway 미사용**(public subnet + assignPublicIp) · **RDS private·t4g.micro·백업 없음**(유실 risk accepted) · crawler=GHA cron. scale-to-zero/scheduled run-task·RDS 백업·Multi-AZ는 후속 비용최적화 옵션. public subnet 보안은 T-089 accepted-risk.
 - 간접 재식별 방어를 어디까지(공개 배포 시 직접 식별자 외 학교+회사+기간 조합)?
 - (이연) 알림 발송 기능(이메일/푸시)은 별도 후속 마일스톤 — 채널·발송 트리거·SLA("오전 첫 진입 전 반영")는 그때 결정.
 - 배포 후 트랙: **A-6 외부 인터뷰**(시장 수요 검증 — 이 plan 전체에서 미검증 잔류) + **GS-3 실데이터 수집**(지원 결과 누적)을 M6 안/직후 별도 트랙으로.

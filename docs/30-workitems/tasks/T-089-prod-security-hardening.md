@@ -14,6 +14,7 @@ technical-enabler
 - **간접 재식별 방어 경계**: 직접 식별자 외 학교+회사+기간 조합의 역추적 방어 경계 결정·적용(과마스킹과 GS-2 균형 — evidence 보존). ADR-105 Amend1 M6 이연분.
 - **의존성 bump**: `next`≥15.5.16 + NestJS 갱신 후 `pnpm audit --prod` high 0 확인(M2부터 이연 부채). pip-audit clean 유지.
 - **시크릿/헤더/레이트리밋**: 시크릿 미커밋(F-024 정합) + 보안 헤더(CSP/HSTS 등) + 기본 레이트리밋.
+- **public subnet / NAT 없음 accepted-risk 명문화 (ADR-109 D2/D4)**: NAT 미사용 비용 절감 대가로 api/worker가 public subnet(public IP) — *의식적 비용/보안 트레이드오프*. 보상책을 보안 baseline에 기록: ① SG inbound 최소화(api=ALB source만·worker=ingress 없음), ② RDS private(절대 public 금지), ③ 시크릿=Secrets Manager, ④ 노출면=ALB+api로 한정. 트래픽·민감도 상승 시 NAT+private subnet 또는 VPC endpoint로 승격(후속).
 
 ## 3. 구현 항목
 1. RDS at-rest 암호화 설정(IaC) + 필요 시 민감 컬럼 암호화. → 확인: 설정 검증 + PII 불변식 scan (AC-1)
@@ -54,11 +55,12 @@ technical-enabler
 - Feature: [F-027-shared-cache-and-hardening](../features/F-027-shared-cache-and-hardening.md)
 - Architecture: [ARCH §8 보안](../../20-system/ARCHITECTURE_OVERVIEW.md)
 - Architecture-Iface: [ARCH ## 7-1 API](../../20-system/ARCHITECTURE_OVERVIEW.md#arch-7-1)(보안 헤더·레이트리밋), [## 7-3 백엔드](../../20-system/ARCHITECTURE_OVERVIEW.md#arch-7-3)
-- ADR: [ADR-105 Amend1](../../90-decisions/project/ADR-105-pii-masking-policy.md#adr-105-amend-1) (간접 재식별→M6)
+- ADR: [ADR-105 Amend1](../../90-decisions/project/ADR-105-pii-masking-policy.md#adr-105-amend-1) (간접 재식별→M6) · [ADR-109](../../90-decisions/project/ADR-109-aws-hosting-topology.md)(public subnet/no-NAT accepted-risk)
 
 ## 8. 메모
 - 의존성 bump는 M2 [Dependency] P1이 M2→M3→M4 이연된 부채 — M6에서 청산.
 - 간접 재식별: 과마스킹은 grounding/GS-2 약화 → evidence(학교·회사·기간) 보존과 균형.
+- public subnet/no-NAT는 ADR-109 결정 — 본 task가 **accepted-risk로 명문화**(보상: SG·private RDS·Secrets Manager). 침투 노출면은 ALB+api로 한정. 데이터 가치·트래픽 상승 시 재평가.
 
 ## 9. 의존성
 - depends_on: [T-082, T-088]

@@ -10,21 +10,21 @@ technical-enabler
 `infra/aws/`의 VPC 네트워킹·보안그룹·IAM 역할을 세분화하고, 환경(staging/prod) 구분·재현 가능성을 완성한다. T-082가 단일 파일로 초안을 잡으면 본 task가 네트워킹/IAM을 구체화해 `FAC-4`(IaC 재현 가능 정의)를 충족시킨다.
 
 ## 2. 작업 범위
-- VPC·서브넷·인터넷게이트웨이·라우팅 테이블: api/worker용 private 서브넷, RDS용 DB 서브넷 그룹.
-- 보안그룹 세분화: api-sg(외부 인바운드 80/443), worker-sg(SQS outbound only), rds-sg(api-sg·worker-sg만 5432 인바운드).
+- VPC·서브넷·인터넷게이트웨이·라우팅 테이블: **api/worker용 public 서브넷**(`assignPublicIp`, NAT 없이 outbound — ADR-109 D2), **RDS용 private DB 서브넷 그룹**(절대 public 금지).
+- 보안그룹 세분화: api-sg(**ALB 경유 인바운드만**), worker-sg(**egress 443 — OpenAI·AWS API·ECR; ingress 없음**), rds-sg(api-sg·worker-sg source만 5432 인바운드).
 - IAM 역할: api-role(Secrets Manager read, SQS SendMessage), worker-role(Secrets Manager read, SQS ReceiveMessage/DeleteMessage, RDS IAM auth).
 - 환경(staging/prod) 변수화 — `var.env`로 이름·태그 분기.
 - `infra/aws/README.md` — 사용자 직접 수행 단계(apply 순서·시크릿 주입 방법) 기술.
 
 ## 3. 구현 항목
-1. `infra/aws/networking.tf` — 현재: 없음 → 변경: VPC(CIDR `10.0.0.0/16`), public 서브넷 2개(NAT GW용), private 서브넷 2개(api/worker), DB 서브넷 그룹(private 서브넷 참조) 정의 → 확인: `terraform validate` 오류 0. (AC-1)
-2. `infra/aws/security_groups.tf` — 현재: 없음 → 변경: api-sg·worker-sg·rds-sg 분리(rds-sg ingress = api-sg·worker-sg source만, 와일드카드 0.0.0.0/0 금지) → 확인: 보안그룹 ingress 규칙에 `0.0.0.0/0` 포함 여부 grep(`grep -r "0\.0\.0\.0/0" infra/aws/` — rds-sg에 없어야 함). (AC-2)
+1. `infra/aws/networking.tf` — 현재: 없음 → 변경: VPC(CIDR `10.0.0.0/16`), **public 서브넷 2개(api/worker — `map_public_ip_on_launch`)**, **private DB 서브넷 2개(RDS)**, DB 서브넷 그룹(private 참조), 인터넷게이트웨이 — **NAT Gateway 없음**(ADR-109 D2) 정의 → 확인: `terraform validate` 오류 0 + `grep -rc "aws_nat_gateway" infra/aws/` = 0. (AC-1)
+2. `infra/aws/security_groups.tf` — 현재: 없음 → 변경: api-sg(ingress=**ALB source만** 80/443)·worker-sg(**ingress 없음**, egress 443)·rds-sg(ingress = api-sg·worker-sg source만 5432, 와일드카드 0.0.0.0/0 금지) — public subnet 보상(ADR-109 D4) → 확인: ingress 규칙에 `0.0.0.0/0` 포함 여부 grep(`grep -r "0\.0\.0\.0/0" infra/aws/` — rds-sg·worker-sg ingress에 없어야 함). (AC-2)
 3. `infra/aws/iam.tf` — 현재: 없음 → 변경: api-role(policy: `secretsmanager:GetSecretValue`, `sqs:SendMessage`), worker-role(policy: `secretsmanager:GetSecretValue`, `sqs:ReceiveMessage`, `sqs:DeleteMessage`, `rds-db:connect`) 정의, 최소권한 원칙 — 불필요한 `*` action 없음 → 확인: `terraform validate` + 수동 policy 문서 검토. (AC-2)
 4. `infra/aws/variables.tf` — 현재: 없음 → 변경: `env`(default="staging")·`aws_region`·`db_instance_class`(default="db.t3.micro") 변수 정의, staging/prod 이름 분기(`"podo-${var.env}-*"` 패턴) → 확인: `terraform plan -var env=prod` 오류 0. (AC-1)
 5. `infra/aws/README.md` — 현재: 없음 → 변경: 사용자 직접 수행 단계(①IaC apply 순서 ②Secrets Manager 시크릿 값 주입 방법 ③RDS endpoint 확인 ④SQS URL 확인) 명시 → 확인: 문서 존재 + 단계 목록 포함. (AC-3)
 
 ## 4. 제외 항목
-- NAT Gateway 실 생성(비용 — MVP는 worker가 VPC endpoint 또는 public subnet 임시 허용; 열린 질문, 사용자 결정).
+- NAT Gateway — **영구 미사용 확정**(ADR-109 D2: public subnet + assignPublicIp로 outbound). VPC endpoint는 후속 보안/비용 옵션.
 - WAF·Shield·고급 엣지 보안.
 - 멀티리전·오토스케일.
 
@@ -57,10 +57,10 @@ technical-enabler
 - Feature: [F-024-aws-infra-provisioning](../features/F-024-aws-infra-provisioning.md)
 - Architecture: [ARCHITECTURE_OVERVIEW](../../20-system/ARCHITECTURE_OVERVIEW.md) (§3-2 A-INFRA, §7-3)
 - Architecture-Iface: [ARCH ## 7-3 백엔드/인프라](../../20-system/ARCHITECTURE_OVERVIEW.md#arch-7-3)
-- ADR: [ADR-101](../../90-decisions/project/ADR-101-stack-selection.md)
+- ADR: [ADR-101](../../90-decisions/project/ADR-101-stack-selection.md) · [ADR-109](../../90-decisions/project/ADR-109-aws-hosting-topology.md)(호스팅·networking·NAT 미사용)
 
 ## 8. 메모
-- NAT Gateway 비용 결정: MVP에서 worker private subnet의 SQS outbound를 NAT GW 없이 처리하려면 VPC endpoint(com.amazonaws.{region}.sqs) 사용. 비용 대비 단순성 — 사용자 판단.
+- **NAT Gateway 미사용 확정**(ADR-109 D2). worker outbound(OpenAI·AWS·ECR)는 public subnet + public IP 경유. AWS 서비스 호출만 VPC endpoint로 좁히는 건 후속 옵션(OpenAI은 외부라 여전히 public IP egress 필요). public subnet 보안 다운그레이드는 **T-089 accepted-risk**.
 - 환경 변수화: `terraform.tfvars.example`도 함께 두면 사용자 진입 마찰 감소(`.env.example`과 동일 패턴).
 
 ## 9. 의존성
