@@ -9,9 +9,10 @@ import { AuthService } from './auth.service'
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   constructor(private readonly authService: AuthService) {
     super({
-      clientID: process.env.GOOGLE_CLIENT_ID ?? 'unset',
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? 'unset',
-      callbackURL: process.env.GOOGLE_CALLBACK_URL ?? 'http://localhost:3001/auth/google/callback',
+      // `||` (not `??`): 미설정 env가 빈 문자열("")로 주입되는 경우에도 placeholder로 fallback.
+      clientID: process.env.GOOGLE_CLIENT_ID || 'unset',
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'unset',
+      callbackURL: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:3001/auth/google/callback',
       scope: ['email', 'profile'],
     })
   }

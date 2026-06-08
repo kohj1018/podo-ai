@@ -9,9 +9,11 @@ import { AuthService } from './auth.service'
 export class GitHubStrategy extends PassportStrategy(Strategy, 'github') {
   constructor(private readonly authService: AuthService) {
     super({
-      clientID: process.env.GITHUB_CLIENT_ID ?? 'unset',
-      clientSecret: process.env.GITHUB_CLIENT_SECRET ?? 'unset',
-      callbackURL: process.env.GITHUB_CALLBACK_URL ?? 'http://localhost:3001/auth/github/callback',
+      // `||` (not `??`): 미설정 env가 빈 문자열("")로 주입되는 경우(예: Terraform task-def의
+      // 미설정 변수)에도 placeholder로 fallback해야 passport-oauth2가 throw하지 않는다.
+      clientID: process.env.GITHUB_CLIENT_ID || 'unset',
+      clientSecret: process.env.GITHUB_CLIENT_SECRET || 'unset',
+      callbackURL: process.env.GITHUB_CALLBACK_URL || 'http://localhost:3001/auth/github/callback',
       scope: ['user:email'],
     })
   }
