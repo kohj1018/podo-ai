@@ -41,8 +41,11 @@ describe.skipIf(!hasDb)('CoverageService (DB, source_crawl_status)', () => {
     })
   })
 
+  const lastCrawlRunAt = new Date('2026-12-31T21:00:00Z') // 테스트 fixture 중 최신 보장
+
   afterAll(async () => {
     await prisma.sourceCrawlStatus.deleteMany({ where: { source_id: { in: sourceIds } } })
+    await prisma.crawlRun.deleteMany({ where: { run_at: lastCrawlRunAt } })
     await prisma.$disconnect()
   })
 
@@ -61,6 +64,21 @@ describe.skipIf(!hasDb)('CoverageService (DB, source_crawl_status)', () => {
     expect(cov.uncollected).toContain('kb-bank')
     // active 아닌 소스 존재 → degraded(거짓 완전성 차단)
     expect(cov.degraded).toBe(true)
+  })
+
+  it('test_AC_3_last_crawl_from_crawl_runs', async () => {
+    // 동일 run_at 배치: toss 성공 + daangn 실패 → lastCrawlSuccess=false (Fail #3 가시화)
+    await prisma.crawlRun.createMany({
+      data: [
+        { channel: 'toss', run_at: lastCrawlRunAt, status: 'success', new_count: 3 },
+        { channel: 'daangn', run_at: lastCrawlRunAt, status: 'failed', error: 'network down' },
+      ],
+    })
+
+    const cov = await service.getCoverage()
+
+    expect(cov.lastCrawlAt?.toISOString()).toBe('2026-12-31T21:00:00.000Z')
+    expect(cov.lastCrawlSuccess).toBe(false)
   })
 })
 

@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import logging
 import os
+import sys
 from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
@@ -53,12 +54,13 @@ def crawl(
     *,
     now: datetime,
     fixture_jobs: dict[str, list[RawJob]] | None = None,
-) -> dict[str, dict[str, int]]:
+) -> dict[str, dict[str, Any]]:
     """채널별 fetch → upsert + crawl_run 기록. 채널 실패는 격리(전체 중단 X).
 
+    반환 각 채널: {"new","kept","closed"} 카운트 + "status"("success"|"failed").
     fixture_jobs가 주어지면 라이브 fetch 대신 채널별 fixture 공고를 쓴다(client 미사용).
     """
-    summary: dict[str, dict[str, int]] = {}
+    summary: dict[str, dict[str, Any]] = {}
     for channel, fetcher in _CHANNELS:
         try:
             jobs = (
@@ -84,7 +86,7 @@ def crawl(
                 tier="tier1",
                 method="custom",
             )
-            summary[channel] = counts
+            summary[channel] = {**counts, "status": "success"}
             logger.info("crawl_ok channel=%s counts=%s", channel, counts)
         except Exception as exc:  # 시스템 경계 — 채널 fetch 실패 표면화(조용한 무시 X)
             record_crawl_run(conn, channel, "failed", run_at=now, error=str(exc))
@@ -97,8 +99,19 @@ def crawl(
                 method="custom",
             )
             logger.error("crawl_failed channel=%s error=%s", channel, exc)
-            summary[channel] = {"new": 0, "kept": 0, "closed": 0}
+            summary[channel] = {"new": 0, "kept": 0, "closed": 0, "status": "failed"}
     return summary
+
+
+def exit_code_from_summary(summary: dict[str, dict[str, Any]]) -> int:
+    """수집 요약 → 종료 코드(실패 채널 ≥1 또는 채널 0개면 1, 전부 성공이면 0).
+
+    cron(GHA)이 조용히 green이면 수집 실패가 묻힌다(Fail #3 조용한 실패 금지).
+    """
+    if not summary:
+        return 1
+    failed = [ch for ch, s in summary.items() if s.get("status") != "success"]
+    return 1 if failed else 0
 
 
 def main() -> None:
@@ -110,14 +123,29 @@ def main() -> None:
     now = datetime.now(timezone.utc)
     fixture_path = os.environ.get("CRAWL_FIXTURE")
     client = None if fixture_path else httpx.Client()
+    summary: dict[str, dict[str, Any]] = {}
     try:
         fixture_jobs = load_fixture(fixture_path) if fixture_path else None
-        crawl(conn, client, now=now, fixture_jobs=fixture_jobs)
+        summary = crawl(conn, client, now=now, fixture_jobs=fixture_jobs)
         conn.commit()
     finally:
         if client is not None:
             client.close()
         conn.close()
+
+    # stdout 요약(수집 수·실패 여부) — cron 로그/커버리지 가시성(§3-3).
+    total_new = sum(s["new"] for s in summary.values())
+    total_closed = sum(s["closed"] for s in summary.values())
+    failed = [ch for ch, s in summary.items() if s.get("status") != "success"]
+    print(
+        f"[crawl] channels={len(summary)} new={total_new} "
+        f"closed={total_closed} failed={failed}"
+    )
+    code = exit_code_from_summary(summary)
+    if code != 0:
+        # non-zero exit → GHA job fail 표시(조용한 실패 금지, Fail #3).
+        print(f"[crawl] FAILED channels={failed}", file=sys.stderr)
+    sys.exit(code)
 
 
 if __name__ == "__main__":

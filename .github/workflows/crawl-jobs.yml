@@ -7,8 +7,8 @@ name: crawl-jobs
 on:
   workflow_dispatch:
   schedule:
-    # 매일 1회 (UTC 22:00 ≈ KST 07:00).
-    - cron: '0 22 * * *'
+    # 매일 1회 (UTC 21:00 = KST 06:00). 사용자 오전 첫 진입 전 반영(T-085 §8).
+    - cron: '0 21 * * *'
 
 jobs:
   crawl-jobs:

@@ -1,7 +1,7 @@
 # T-085-crawl-cron-realrun
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 technical-enabler
@@ -29,10 +29,12 @@ technical-enabler
 - 크롤 커버리지 UI 변경 — M4/M5 완성분 재활용.
 
 ## 4-1. 변경 예정 파일/경로
-- `.github/workflows/crawl-jobs.yml`
-- `crawler/src/crawler/__main__.py`(또는 진입점) — exit code 보장 확인/최소 수정
-- `podo/apps/api/src/coverage/**` — `crawl_runs` 기반 마지막 성공/실패 반환(미구현분만)
-- *(새 migration 불요 — 기존 `crawl_runs` 재사용)*
+- `.github/workflows/crawl-jobs.yml` — cron `0 22`→`0 21`(UTC=KST 06:00, §8) + workflow_dispatch 유지(기존)
+- `crawler/src/crawler/__main__.py` — 채널별 `status` 표면화 + `exit_code_from_summary()`(pure) + `main()` stdout 요약 + 실패 시 `sys.exit(non-zero)` (Fail #3)
+- `crawler/tests/test_main_exit_code.py` (신규) — exit code pure 함수 3 테스트(항상 실행) + crawl() 실패 채널 표면화 1 테스트(DATABASE_URL 게이트)
+- `podo/apps/api/src/coverage/coverage.service.ts` — `Coverage`에 `lastCrawlAt`·`lastCrawlSuccess` 추가(`crawl_runs` 최신 run_at 배치에서 파생, read-only)
+- `podo/apps/api/test/coverage.spec.ts` — `test_AC_3_last_crawl_from_crawl_runs`(DB 게이트) + crawlRun cleanup
+- *(새 migration 불요 — 기존 `crawl_runs`/`CrawlRun` 모델 재사용)*
 
 ## 5. 완료 조건
 `crawl-jobs` cron이 매일 오전 자동 실행되어 `job_postings`의 `diff_status`를 갱신하고, 실패 시 GHA job이 fail 상태로 표시되며 커버리지 패널에 마지막 성공 시각이 반영된다.
