@@ -9,7 +9,7 @@
 # ---------------------------------------------------------------------------
 resource "aws_security_group" "alb" {
   name        = "podo-${var.env}-alb-sg"
-  description = "ALB — 인터넷 HTTP/HTTPS inbound"
+  description = "ALB - internet HTTP/HTTPS inbound"
   vpc_id      = aws_vpc.main.id
 
   ingress {
@@ -45,7 +45,7 @@ resource "aws_security_group" "alb" {
 # ---------------------------------------------------------------------------
 resource "aws_security_group" "api" {
   name        = "podo-${var.env}-api-sg"
-  description = "ECS api service — ALB source 경유 inbound만"
+  description = "ECS api service - inbound via ALB source only"
   vpc_id      = aws_vpc.main.id
 
   ingress {
@@ -72,7 +72,7 @@ resource "aws_security_group" "api" {
 # ---------------------------------------------------------------------------
 resource "aws_security_group" "worker" {
   name        = "podo-${var.env}-worker-sg"
-  description = "ECS worker service — outbound only (ADR-109 D2, inbound 없음)"
+  description = "ECS worker service - outbound only (ADR-109 D2, no inbound)"
   vpc_id      = aws_vpc.main.id
 
   # inbound 규칙 없음 — worker는 SQS poll 방식(outbound 전용)
@@ -94,7 +94,7 @@ resource "aws_security_group" "worker" {
 # ---------------------------------------------------------------------------
 resource "aws_security_group" "rds" {
   name        = "podo-${var.env}-rds-sg"
-  description = "RDS Postgres — api/worker SG source 5432 only"
+  description = "RDS Postgres - api/worker SG source 5432 only"
   vpc_id      = aws_vpc.main.id
 
   ingress {
@@ -102,7 +102,7 @@ resource "aws_security_group" "rds" {
     to_port         = 5432
     protocol        = "tcp"
     security_groups = [aws_security_group.api.id, aws_security_group.worker.id]
-    description     = "Postgres from api/worker SGs only — 0.0.0.0/0 금지"
+    description     = "Postgres from api/worker SGs only (no 0.0.0.0/0)"
   }
 
   egress {

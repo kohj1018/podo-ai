@@ -19,7 +19,7 @@ resource "aws_iam_openid_connect_provider" "github" {
 
 resource "aws_iam_role" "github_deploy" {
   name        = "podo-${var.env}-github-deploy"
-  description = "T-084 GitHub Actions 배포 역할 — OIDC AssumeRole"
+  description = "T-084 GitHub Actions deploy role - OIDC AssumeRole"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -47,7 +47,7 @@ resource "aws_iam_role" "github_deploy" {
 # ---------------------------------------------------------------------------
 resource "aws_iam_role" "api" {
   name        = "podo-${var.env}-api-role"
-  description = "ECS api task role — Secrets Manager read + SQS SendMessage"
+  description = "ECS api task role - Secrets Manager read + SQS SendMessage"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -115,7 +115,7 @@ resource "aws_iam_role_policy_attachment" "api_sqs_send" {
 # ---------------------------------------------------------------------------
 resource "aws_iam_role" "worker" {
   name        = "podo-${var.env}-worker-role"
-  description = "ECS worker task role — Secrets read + SQS consume + RDS IAM auth"
+  description = "ECS worker task role - Secrets read + SQS consume + RDS IAM auth"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
