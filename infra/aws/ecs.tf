@@ -101,6 +101,47 @@ resource "aws_iam_role_policy" "ecs_exec_secrets" {
 }
 
 # ---------------------------------------------------------------------------
+# GitHub Actions(deploy-api/worker) 배포 권한 — github_deploy 역할에 부착.
+# T-082는 OIDC trust만 만들고 권한 정책을 안 붙여, ECR 로그인부터 막혔다(런타임 권한).
+# 필요한 것: ECR 인증·push + ECS 강제 재배포(update-service)·안정화 대기(describe-services).
+# ---------------------------------------------------------------------------
+resource "aws_iam_role_policy" "github_deploy_perms" {
+  name = "podo-${var.env}-github-deploy-perms"
+  role = aws_iam_role.github_deploy.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "EcrAuth" # GetAuthorizationToken은 리소스 * 필수(AWS 제약)
+        Effect   = "Allow"
+        Action   = ["ecr:GetAuthorizationToken"]
+        Resource = ["*"]
+      },
+      {
+        Sid    = "EcrPushPull" # podo-api / podo-worker 리포에 한정
+        Effect = "Allow"
+        Action = [
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage",
+          "ecr:InitiateLayerUpload",
+          "ecr:UploadLayerPart",
+          "ecr:CompleteLayerUpload",
+          "ecr:PutImage",
+        ]
+        Resource = [aws_ecr_repository.api.arn, aws_ecr_repository.worker.arn]
+      },
+      {
+        Sid      = "EcsDeploy" # update-service --force-new-deployment + wait services-stable
+        Effect   = "Allow"
+        Action   = ["ecs:UpdateService", "ecs:DescribeServices"]
+        Resource = ["*"]
+      },
+    ]
+  })
+}
+
+# ---------------------------------------------------------------------------
 # ALB — api 공개 엔드포인트 (HTTP 80; HTTPS는 사용자 도메인+ACM, GUIDE §HTTPS)
 # ---------------------------------------------------------------------------
 resource "aws_lb" "api" {
