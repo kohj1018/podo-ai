@@ -23,7 +23,10 @@ provider "aws" {
 resource "aws_db_instance" "main" {
   identifier              = "podo-${var.env}-pg"
   engine                  = "postgres"
-  engine_version          = "16.5"
+  # 메이저 "16"만 지정 → RDS가 가용한 최신 16.x 마이너를 자동 선택. pgvector 0.8은 16.5+에서
+  # 지원되는데, 특정 마이너(예: 16.5)는 시간이 지나면 RDS 신규 생성 목록에서 빠질 수 있어
+  # 메이저 핀이 안전(파라미터 그룹 family=postgres16과 정합).
+  engine_version          = "16"
   instance_class          = var.db_instance_class
   allocated_storage       = 20
   storage_type            = "gp3"
@@ -38,8 +41,12 @@ resource "aws_db_instance" "main" {
   backup_retention_period = 0       # ADR-109 D3: 백업 미사용 (risk accepted)
   deletion_protection     = false
   skip_final_snapshot     = true
-  # pgvector 0.8 지원 (RDS Postgres 16.5+ — T-082 §8 확인됨)
   parameter_group_name    = aws_db_parameter_group.main.name
+
+  # 메이저 핀이라 실제 마이너(예: 16.9)와 config("16")가 달라 매 plan마다 drift로 뜨는 것 방지.
+  lifecycle {
+    ignore_changes = [engine_version]
+  }
 
   tags = { Name = "podo-${var.env}-rds" }
 }
