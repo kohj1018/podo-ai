@@ -1,7 +1,7 @@
 # T-083-iac-networking-and-iam
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 technical-enabler
@@ -29,11 +29,14 @@ technical-enabler
 - 멀티리전·오토스케일.
 
 ## 4-1. 변경 예정 파일/경로
-- `infra/aws/networking.tf`
-- `infra/aws/security_groups.tf`
-- `infra/aws/iam.tf`
-- `infra/aws/variables.tf`
-- `infra/aws/README.md`
+- `infra/aws/networking.tf` (신규) — VPC·public/private subnet·IGW·라우팅·DB subnet group (NAT 없음)
+- `infra/aws/security_groups.tf` (신규) — alb-sg(인터넷 80/443)·api-sg(ALB source만)·worker-sg(ingress 없음)·rds-sg(api/worker SG source 5432만)
+- `infra/aws/iam.tf` (신규) — api-role(secrets read + sqs send)·worker-role(secrets read + sqs consume + rds-db:connect)·GitHub OIDC provider/deploy role (main.tf에서 이동)
+- `infra/aws/variables.tf` — `db_instance_class`(default db.t3.micro) 추가
+- `infra/aws/README.md` (신규) — 사용자 수행 단계(apply 순서·시크릿 주입·endpoint/SQS 확인) + 보안 결정
+- `infra/aws/terraform.tfvars.example` (신규, 커밋 O) — 변수 입력 예시(실 tfvars는 gitignore)
+- `infra/aws/main.tf` — networking/SG/IAM 블록을 위 파일들로 **추출**(refactor) + RDS `instance_class = var.db_instance_class` 배선 (T-083 §1 "단일 파일 초안→세분화" 목적상 불가피)
+- `infra/aws/outputs.tf` — IAM 분리에 따라 `ecs_task_role_arn` → `api_role_arn`·`worker_role_arn`로 교체
 
 ## 5. 완료 조건
 `infra/aws/`가 `terraform validate`(또는 동등) 오류 0이고, 보안그룹·IAM이 최소권한이며, 환경 변수화로 staging/prod 양쪽 plan이 가능하다. 사용자가 README를 보고 apply·시크릿 주입을 자력으로 수행할 수 있다.

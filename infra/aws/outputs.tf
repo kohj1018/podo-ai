@@ -34,9 +34,14 @@ output "github_deploy_role_arn" {
   value       = aws_iam_role.github_deploy.arn
 }
 
-output "ecs_task_role_arn" {
-  description = "ECS 태스크 역할 ARN (T-083 소비)"
-  value       = aws_iam_role.ecs_task.arn
+output "api_role_arn" {
+  description = "ECS api 태스크 역할 ARN (T-083, iam.tf)"
+  value       = aws_iam_role.api.arn
+}
+
+output "worker_role_arn" {
+  description = "ECS worker 태스크 역할 ARN (T-083, iam.tf)"
+  value       = aws_iam_role.worker.arn
 }
 
 output "vpc_id" {

@@ -1,0 +1,20 @@
+# terraform.tfvars.example — 실값을 채워 terraform.tfvars로 저장 (커밋 금지)
+# .gitignore에 *.tfvars가 포함되어 있어야 함 (*.tfvars.example만 커밋)
+
+# 배포 환경: staging | prod
+env = "staging"
+
+# AWS 리전 (Seoul)
+aws_region = "ap-northeast-2"
+
+# RDS 마스터 패스워드 — 강력한 랜덤 비밀번호 사용
+# 환경변수로도 주입 가능: export TF_VAR_db_password="<password>"
+db_password = "REPLACE_ME_strong_random_password"
+
+# RDS 인스턴스 클래스 (ADR-109 D3 기본값: db.t3.micro)
+# prod 환경에서 더 큰 사양이 필요하면 변경 (예: db.t4g.small)
+db_instance_class = "db.t3.micro"
+
+# GitHub OIDC sub claim (T-084 배포 역할 제한 범위)
+# 형식: "<github-org>/<repo-name>"
+github_org_repo = "your-org/podo-ai"

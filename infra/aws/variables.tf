@@ -21,6 +21,12 @@ variable "db_password" {
   sensitive   = true
 }
 
+variable "db_instance_class" {
+  description = "RDS 인스턴스 클래스 (ADR-109 D3: MVP 최소사양)"
+  type        = string
+  default     = "db.t3.micro"
+}
+
 variable "github_org_repo" {
   description = "GitHub OIDC sub claim 패턴 (예: myorg/podo-ai)"
   type        = string
