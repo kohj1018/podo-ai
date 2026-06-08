@@ -1,7 +1,7 @@
 # T-089-prod-security-hardening
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 technical-enabler
@@ -28,10 +28,16 @@ technical-enabler
 - WAF·DDoS 고급 방어 — 후속.
 
 ## 4-1. 변경 예정 파일/경로
-- `infra/aws/` (RDS 암호화)
-- `podo/apps/web/package.json`·`podo/apps/api/package.json` (dep bump)
-- `podo/apps/api/src/main.ts`(보안 헤더·레이트리밋)
-- `docs/90-decisions/project/ADR-105-pii-masking-policy.md`(간접 재식별 경계 — 별도 발화 시)
+- `infra/aws/main.tf` — RDS `storage_encrypted = true`(PII at-rest 암호화)
+- `podo/apps/web/package.json` — `next` ^14.2.0 → ^15.5.16(5개 next high 해소)
+- `podo/apps/web/app/layout.tsx`·`app/login/page.tsx` — Next 15 async API 마이그레이션(`await cookies()`·async `searchParams`)
+- `podo/apps/web/next-env.d.ts` — next 15 자동 재생성(auto-gen)
+- `pnpm-workspace.yaml` — `overrides.multer: ^2.1.1`(multer high×3 정밀 해소, NestJS major bump 회피) + `sharp: false`(ignored-build 에러 해소)
+- `podo/apps/api/package.json` — `helmet`·`express-rate-limit` 런타임 + `express`·`@types/express` devDep(security 테스트용)
+- `podo/apps/api/src/main.ts` — `helmet()` 보안 헤더 + `express-rate-limit` 레이트리밋
+- `podo/apps/api/test/security.spec.ts` (신규) — AC-3 보안 헤더·레이트리밋 테스트(`vitest run security` 매칭)
+- `pnpm-lock.yaml` — dep 해소 결과
+- `docs/90-decisions/project/ADR-105-pii-masking-policy.md` — Amendment 2(간접 재식별 경계 확정)
 
 ## 5. 완료 조건
 배포 환경에서 PII at-rest 암호화 + 간접 재식별 경계가 적용되고, dep audit high 0이며, 시크릿 미커밋 + 보안 헤더/레이트리밋 baseline이 충족된다.

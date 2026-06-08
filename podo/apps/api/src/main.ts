@@ -1,6 +1,8 @@
 import 'reflect-metadata'
 import { NestFactory } from '@nestjs/core'
+import rateLimit from 'express-rate-limit'
 import session from 'express-session'
+import helmet from 'helmet'
 import passport from 'passport'
 import { AppModule } from './app.module'
 import { AllExceptionsFilter } from './common/error.filter'
@@ -8,6 +10,12 @@ import { AllExceptionsFilter } from './common/error.filter'
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule)
   app.useGlobalFilters(new AllExceptionsFilter()) // 단일 envelope { error: { code, message } } (ARCH §7-1)
+
+  // 보안 헤더(HSTS·X-Content-Type-Options·frameguard 등) — 공개 배포 baseline(T-089).
+  // JSON API라 CSP 영향 최소, HSTS는 프로덕션 HTTPS 전제.
+  app.use(helmet())
+  // 기본 레이트리밋 — 남용/DoS 완화 baseline(T-089). IP당 분당 300회 + RateLimit-* 헤더 노출.
+  app.use(rateLimit({ windowMs: 60_000, limit: 300, standardHeaders: true, legacyHeaders: false }))
 
   // httpOnly 쿠키 세션(express-session) + passport. DB 세션 테이블 없음(stateless 서명 쿠키, ADR-006 단순성).
   // 쿠키: 로컬(web:3000↔api:3001 same-site)=lax, 프로덕션(Vercel↔AWS cross-site)=none+secure(M6 T-087).

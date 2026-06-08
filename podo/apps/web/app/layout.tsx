@@ -9,9 +9,10 @@ export const metadata: Metadata = {
   description: 'podo feed',
 }
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
   // 세션 있을 때만 헤더 로그아웃 노출(/login 등 비로그인 화면엔 미표시).
-  const loggedIn = cookies().has('connect.sid')
+  // Next 15: cookies()는 async — await 필수(T-089 dep bump).
+  const loggedIn = (await cookies()).has('connect.sid')
   return (
     <html lang="ko">
       <head>

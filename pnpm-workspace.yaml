@@ -1,5 +1,9 @@
 packages:
   - "podo/apps/*"
+# T-089: 보안 dep bump — multer high(DoS×3)를 2.1.1+로 정밀 override(NestJS major bump 회피).
+#   next≥15.5.16은 web 직접 의존으로 처리. (pnpm 11은 overrides를 이 파일에서 읽음.)
+overrides:
+  multer: "^2.1.1"
 allowBuilds:
   '@biomejs/biome': true
   '@nestjs/core': false
@@ -7,6 +11,8 @@ allowBuilds:
   '@prisma/engines': true
   esbuild: true
   prisma: true
+  # sharp: prebuilt @img/* 패키지로 동작(빌드 스크립트 불요) → false로 명시(ignored-build 에러 해소).
+  sharp: false
 onlyBuiltDependencies:
   - "@biomejs/biome"
   - "esbuild"

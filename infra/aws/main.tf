@@ -27,6 +27,7 @@ resource "aws_db_instance" "main" {
   instance_class          = var.db_instance_class
   allocated_storage       = 20
   storage_type            = "gp3"
+  storage_encrypted       = true   # T-089: PII at-rest 암호화(공개 배포 baseline, AWS 관리형 KMS 키)
   db_name                 = "podo"
   username                = "podo"
   password                = var.db_password
