@@ -89,7 +89,8 @@ M4가 "핵심 워크플로우가 도는 멀티유저 MVP"를 완성하면, M5는
 ## 8. 회고 (stabilize 자동 채움)
 > `/stabilize-milestone M5` (2026-06-08). 졸업 가능 **NO** — task 15/15 done·validate exit 0(Py 236/TS 72)·AC 51/51·FAC 20/20이나 **P0 2건**(코어 비용레버 미배선 + 무키 E2E red). 상세 [QA_FINDINGS ## M5](../../40-validation/QA_FINDINGS.md) · [IMPROVEMENT_GUIDE §0~§4 M5](../../40-validation/IMPROVEMENT_GUIDE.md).
 > **↳ 갱신 2026-06-08 (repair)**: P0 2건 *해소* — `run_full_scoring`·`embed_new_jobs`·domain 탭·coverage 배선 + 무키 import 안전화(커밋 `2821a79`) + 웜캐시 재생성 → **`pnpm e2e` fresh-volume exit 0** 실증. 졸업 *재grade*는 `/stabilize-milestone M5` 재실행으로 확정(본 NO 판정은 최초 stabilize 기록 보존).
-- 목표 달성도: **부분(≈50%)** — 커버리지 트랙(5-tier 어댑터·discovery·레지스트리·패널)은 구현·테스트 완결, 알고리즘 모듈(임베딩·prefilter·coarse·도메인분류·확대검증 eval)도 단위 green. **그러나 M5 *핵심*인 "비용 구조 전환 N→K"가 서비스 경로에 미배선**(`run_full_scoring`·`embed_new_jobs`가 진입점에서 0회 호출 — worker는 여전히 N개 전체 `run_scoring`) → 비용 절감·coarse 섹션이 프로덕션 미실현. 도메인분류기(T-066)만 run_scoring에 배선됨.
+> **↳ [정식 재grade 2026-06-08] `/stabilize-milestone M5` 재실행 — 졸업 가능 NO→YES.** validate exit 0 + **`pnpm e2e` exit 0**(A scored 4/B 6/held 0·격리·app-tracking·PII 0) 본 세션 실측 + 배선 코드 실독 정합 확인 → ### P0 open 0. 잔여(비차단): 무키 E2E는 N-path 폴백을 타므로 K-path 비용절감·coarse population은 키 있는 실행/후속 fixture-임베딩-seed E2E로만 실증(P2) · status채널(M4)·[Dependency] 4회 open.
+- 목표 달성도: **초판 ≈50% → Fix round 후 핵심 배선 완료(재grade YES).** 커버리지 트랙(5-tier 어댑터·discovery·레지스트리·패널)·알고리즘 모듈(임베딩·prefilter·coarse·도메인분류·확대검증) 구현+단위 green에 더해, **초판에서 미배선이던 M5 *핵심*("비용 구조 전환 N→K")이 Fix round로 worker 채점 경로에 배선**(`__main__.run()`→`embed_new_jobs`+`run_full_scoring`, 도메인 탭→FeedView→`?domain=`). 단 무키 E2E는 N-path 폴백 검증이라 *K-path 절감 자체*의 E2E 실증은 키 있는 실행 후속(eval T-069 synthetic + 단위로는 충족).
 - scope creep 사례: 없음 — 변경은 AC로 역추적 가능. 커버리지 확대는 Charter §5 scope-note(공식페이지·티어드·게이트)와 ADR-108 범위 안.
 - 비목표(charter §5) 위반 사례: 없음 — 커버리지 확대는 *공식 채용 페이지 한정* + Charter §5 scope-note 기록(M5-repair-1 적용, 별도 ADR 불필요는 사용자 판단)으로 *정식 반전*. 애그리게이터 영구 비범위 준수.
 - 핵심 학습:
