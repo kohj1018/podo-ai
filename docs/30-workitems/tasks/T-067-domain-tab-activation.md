@@ -1,7 +1,7 @@
 # T-067-domain-tab-activation
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 feature
@@ -32,9 +32,10 @@ M4에서 직군 분리 탭을 "자동 분류가 없어서 보류"로 미뤘다(C
 
 ## 4-1. 변경 예정 파일/경로
 - `podo/apps/api/src/feed/feed.controller.ts` (domain 필터 파라미터 추가)
+- `podo/apps/api/src/feed/feed.service.ts` (getFeed domain→role_family 필터 — §3#1 NestJS 서비스 계층 필연, AC-1 추적)
 - `podo/apps/web/components/DomainTabBar.tsx` (신설 또는 활성화)
 - `podo/apps/web/app/page.tsx` (DomainTabBar 마운트)
-- `podo/apps/web/test/domain_tab.spec.ts` (신설)
+- `podo/apps/web/test/domain_tab.spec.tsx` (신설)
 
 ## 5. 완료 조건
 이력서의 자동 분류 결과에 따라 직군 분리 탭이 피드 상단에 표시되고, 탭 전환 시 해당 직군 공고만 필터링 노출된다. 저신뢰 분류 시 정직한 안내가 표시된다.

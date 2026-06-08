@@ -150,7 +150,8 @@ export class FeedService {
 
   // worker 산출 recommendations를 current run 한정 + rank_position 커서로 서빙(read-only).
   // userId 주어지면 그 사용자 이력서의 run으로 범위 격리(멀티유저, T-042). 미지정 시 전역(하위호환).
-  async getFeed(cursor: number, userId?: string, take = 20): Promise<FeedPage> {
+  // domain(직군) 필터: 주어지면 job_postings.role_family = domain 공고만(T-067 직군 탭).
+  async getFeed(cursor: number, userId?: string, take = 20, domain?: string): Promise<FeedPage> {
     // (a) current run = (해당 사용자) 최신 ranking_runs (run 간 stale 혼입 차단 — cross-LLM P1)
     const currentRun = await this.prisma.rankingRun.findFirst({
       where: userId ? { resume: { user_id: userId } } : undefined,
@@ -179,6 +180,8 @@ export class FeedService {
         run_id: currentRun.id,
         rank_position: { gt: cursor },
         ...(excludedJobIds.length ? { job_posting_id: { notIn: excludedJobIds } } : {}),
+        // T-067 직군 탭: domain 주어지면 해당 role_family 공고만(값 없거나 'all'이면 전체).
+        ...(domain && domain !== 'all' ? { job_posting: { role_family: domain } } : {}),
       },
       orderBy: { rank_position: 'asc' },
       take,

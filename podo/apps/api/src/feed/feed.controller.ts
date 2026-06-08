@@ -25,12 +25,14 @@ export class FeedController {
   async getFeed(
     @Query('cursor', new DefaultValuePipe(-1), ParseIntPipe) cursor: number,
     @Query('section') section: string | undefined,
+    @Query('domain') domain: string | undefined,
     @Req() req: AuthedRequest,
   ): Promise<FeedPage | CoarsePage> {
     if (section === 'coarse') {
       return this.feed.getCoarseFeed(cursor, req.user?.id)
     }
-    return this.feed.getFeed(cursor, req.user?.id)
+    // domain(직군) 필터 — T-067 직군 탭. 값 없으면 전체.
+    return this.feed.getFeed(cursor, req.user?.id, 20, domain)
   }
 
   // GET /api/v1/feed/meta — 피드 진입 8-상태 분기 메타(F-018, T-046). 커서 무관 1회 호출.
