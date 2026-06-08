@@ -98,7 +98,34 @@ Telemetry — M4 (졸업 가능 YES)
 - Cross-stabilize 회귀 신호: 3종 — [Dependency](M2→M3→M4 3회, next/NestJS bump deferred) · [Design] FitScoreRing arc(DSN-M2-FITRING→DSN-M4-002 재등장, M3 미터치) · [Design-draft]/[Doc-status-draft](M1~M4 DESIGN/DISCOVERY/Charter status=draft). **개선 신호**: 데이터 격리·PII·큐 멱등 done-line을 T-052 자동 E2E 게이트가 흡수(report-only가 못 닫던 부분 — M2/M3 동형 3회째). subagent budget-exhaustion 미재발(qa/reviewer 전원 finding 정상 출력).
 ```
 
+### M5 — /stabilize-milestone (2026-06-08)
+- **졸업 가능: NO (P0 2건 — 코어 미배선 + E2E red).** 15/15 task done · 통합 validate exit 0(Python 236 passed/25 DB-skip · TS 72 passed[web 47/api 25]+13 DB-skip) · AC 매핑 51/51(100%) · FAC 20/20(100%). **그러나** graduation §5 #3 무키 E2E(`pnpm e2e`) 본 세션 실측 **exit 1(FAIL)** + §5 #6 **QA_FINDINGS 코드/통합결함 P0 2건** → 졸업 미충족. §5 #4(게이트)·#5(비용)도 *eval 하니스에서만* 실증되고 *서비스 경로엔 미실현*(아래 P0).
+  - **P0 #1 — 코어 비용레버 미배선([QA-M5-001](QA_FINDINGS.md) / 아래 §2 M5-WIRING-001):** M5의 명시적 핵심("비용 구조 전환 N→K", milestone §1)인 `run_full_scoring`(T-065 prefilter/coarse) + `embed_new_jobs`(T-064)가 *어떤 서비스 진입점에서도 호출 안 됨* — worker `__main__.run()`이 N개 전체를 `run_scoring`에 직접 투입. 후보선별·pgvector·coarse가 프로덕션 0회 → 비용 절감 미실현 + coarse 피드 섹션 항상 빈 채. 배선 task 미소유(T-065 §4-1 write_set에 `__main__.py` 부재) = spec-coverage gap.
+  - **P0 #2 — 무키 E2E red([QA-M5-002](QA_FINDINGS.md) / §2 M5-E2E-001):** T-066 도메인분류 주입(pipeline.py:206)이 listwise 캐시 키를 변경했으나 웜캐시(M3 `f1f17df` 이후 미재생성)가 stale → listwise miss → 무키 OpenAI 크래시 → status 큐 consumer 부재로 90s 타임아웃. M2-E2E-001/M3-E2E-001 패턴 3회째.
+- **reviewer/qa 위임:** 본 세션 qa·reviewer subagent를 Agent 도구로 2회 spawn했으나 **양쪽 모두 탐색만 하고 finding 블록을 turn 내 미출력**(M1 qa·M2/M3 reviewer budget-exhaustion 재발) + SendMessage 부재로 재개 불가 → **메인 세션이 직접 코드 실독으로 qa·reviewer 수행**(직접 재현 포함: `pnpm e2e` exit 1, `python -m worker --resume-id 30` 크래시 트레이스). finding 전수 [QA_FINDINGS ## M5](QA_FINDINGS.md)(P0 2/P1 3/P2 3) + 아래 §2·§3.
+- **Dependency hygiene:** `pnpm audit --prod`(podo/) → **22건 (high 8 / moderate 12 / low 2)** — `next`(<15.5.16 cache-poisoning) + `@nestjs/*`. **M2→M3→M4→M5 4회 연속 재등장** → 아래 §2 P1. pip-audit clean(로컬 editable). 6개월 unused deps 해당없음.
+- **Deterministic preflight:** ADR-ref 전부 resolve(**ADR-108 신규 존재** status=accepted · ARCH §3-2/§7-3 anchor 실재). FAC↔AC unmapped 0(F-020~023 = 20/20). raw-hex: 컴포넌트 .tsx 0(CoarseSection/domain tab은 토큰 사용) · globals.css `:root`만(5-2 제외 동형). markdown-link-check 미설치 → Doc-link 외부검사 **skip**. ARCH §7-x `### Don'ts` 부재 → 5-4 grep skip(문서화된 gap). **repair-plan owed 항목 close 확인:** Charter §5 scope-note(공식페이지·티어드·게이트, line 81 실재) · ADR-108 D3 "즉석 쿼리 아님"(line 33 실재 + 코드 정합) · DESIGN §7 coarse(JobCard 재사용) — M5-repair-1/2/5 owed 모두 적용됨.
+- **DISCOVERY↔Charter staleness:** mtime drift 없음(Charter=DISCOVERY 동일 2026-06-07 21:19 · DESIGN 23:27). Insight backlog 신호 본 라운드 미점검(qa/reviewer 보고 부재) → 다음 라운드. DISCOVERY/Charter/DESIGN `## 0. Status`=draft(M1~M4 동일 권고, 비차단).
+
+```
+Telemetry — M5 (졸업 가능 NO)
+- Tasks: 15 / 15 (100%)
+- AC↔테스트 매핑: 51 / 51 (100%)
+- FAC coverage: 20 / 20 (100%)
+- Evidence Bundle 신뢰도: 해당없음 (Evidence Bundle Step 미도입 마일스톤)
+- Validate exit code: 0 (Python 236 passed/25 DB-skip · TS 72 passed/13 DB-skip) · **E2E exit 1 (FAIL — 무키 listwise 캐시 miss 크래시 + status consumer 부재 타임아웃)**
+- Findings: P0 2 / P1 3 / P2 3 (+reviewer surface 미수행 — 메인 직접검증으로 대체)
+- Cross-stabilize 회귀 신호: 4종 — [Dependency](M2→M3→M4→M5 4회, next/NestJS bump deferred) · **[E2E/wiring-gap]**(M2-E2E-001·M3-E2E-001·M5 3회째 — 신기능이 running 경로 미배선 + 웜캐시 미재생성으로 무키 E2E red) · [Status-channel](REV-M4-003/010 carryover — M5에서 E2E fail-fast를 막아 영향도 상승) · [Doc-status-draft](M1~M5 DESIGN/DISCOVERY/Charter status=draft). **개선 신호 없음**(M3·M4가 끊었던 doc-drift는 유지되나, E2E/wiring-gap이 3회째 patterned drift로 굳어짐 — §4 instruction 후보).
+```
+
 ## 1. 우선순위
+
+### M5
+1. (P0 후속) **M5-WIRING-001 — 코어 비용레버를 서비스 경로에 배선** — `__main__.run()`(resume_id + consumer 공통)을 `run_full_scoring`로 교체 + `embed_new_jobs` 트리거 지점(crawl 후속 / consumer lazy embed) 결정 + ARCH §7-3 1줄. **architect 검토 권장**(배선 위치·임베딩 트리거 = 경계 결정). milestone §1 핵심 미실현이라 최우선. `/plan-workitem M5`(배선 task 신설) 또는 main-session Fix round.
+2. (P0 후속) **M5-E2E-001 — 무키 E2E 복구 + §5 #3 충족** — (1)WIRING-001 완료 후 (2)`pnpm e2e:warm`(OPENAI_API_KEY 1회)으로 *M5 채점 경로* 웜캐시 재생성→커밋 (3)e2e.mjs에 fixture 임베딩 seed + coarse 섹션 assert 추가 (4)`/stabilize-milestone M5` 재grade. stabilize report-only라 직접 못 함.
+3. (P1) **[Status-channel] (REV-M4-003/010 carryover, 영향도 상승)** — worker "failed" emit의 consumer 부재가 M5 E2E에서 fail-fast를 막아 90s 타임아웃 유발(QA-M5-003). M4 상태채널 ADR(architect)에 본 신호 추가 — M6 DLQ로 미루지 말고 최소 failed 가시화.
+4. (P1) **[Dependency]** — `next`≥15.5.16 + NestJS bump 후 재audit(high 8). **4회 연속 재등장** — 별도 bump task로 닫을 것(M3 실증 처방: 권고를 task로 박기).
+5. (P2) prefilter 키워드/주석 정정(QA-M5-006/007) · cost_regression oracle 격상(QA-M5-005) · coarse_materialize 배치화(QA-M5-008) — 전부 배선 후 유의미.
 
 ### M4
 1. (P0 후속) **없음** — graduation §5 필수 8/8 충족, 졸업 가능 YES. **잔여(외부검증만): push 시 CI e2e-smoke green 1회.**
@@ -258,7 +285,34 @@ Telemetry — M4 (졸업 가능 YES)
   - 발견: DESIGN.md status=draft + M4=대규모 UI 구현 → ADR-027#amend-3 신호. M1~M3 "status 정리" 권고 미적용(반복 회귀).
   - 권장: status=accepted 승격 또는 프로젝트 draft 컨벤션 명문화. `/bootstrap-design` 재실행 불필요(§2~§9 충실).
 
+### M5
+
+> `/stabilize-milestone M5` (2026-06-08, 메인 세션 직접검증 — qa/reviewer subagent finding 미출력으로 대체). graduation §5 **NO** — P0 2건(코어 미배선 + 무키 E2E red). 아래는 main-session/`/repair-workitem`/`/plan-workitem` 회수 대상. stabilize는 report-only이므로 배선·웜캐시 재생성을 직접 수행하지 않는다(M2-E2E-001/M3-E2E-001 패턴).
+
+- **M5-WIRING-001** | P0 | [관측됨] [Arch-debt] [Spec-coverage-gap] | linked: M5,T-064,T-065 | status: open | `ai/worker/src/worker/__main__.py:71-80` (← `scoring_runner.run_full_scoring`, `embed_batch.embed_new_jobs`)
+  - 발견: **M5 핵심("비용 구조 전환 N→K", milestone §1·§2)을 구현하는 `run_full_scoring`(T-065 prefilter/coarse 분리)·`embed_new_jobs`(T-064 JD 임베딩 영속)가 서비스 진입점에서 0회 호출.** worker `run()`(resume_id 경로 line 213 + SQS consumer `process_message`→`run` line 139 *양쪽*)이 N개 전체를 `run_scoring`에 직접 투입. repo 전수 grep: `run_full_scoring`=scoring_runner.py+테스트만 · `embed_new_jobs`=테스트만 · `job_embeddings`를 채우는 cron/진입점 없음. T-065 §4-1 write_set에 `__main__.py` 부재 → **배선 task가 아예 미소유**(spec-coverage gap — FAC↔AC는 100% 매핑이나 AC가 *함수 단위*만 검증, 서비스 사용을 검증하는 AC/E2E 없음 = oracle gap).
+  - 근거: 프로덕션에서 ① pgvector ANN·후보선별·증분채점 0회 → 비용 절감(§5 #5) 미실현, ② `coarse_candidates` 항상 빈 채 → `GET /feed?section=coarse`(feed.service.ts:213 구현됨) 항상 빈 섹션, ③ T-069 cost_regression은 mock scoring_fn에 미리 분할된 N/K 집합을 넣는 *시뮬레이션*이라 실 prefilter 미검증(QA-M5-005). M2-E2E-001/M3-E2E-001 동형(모듈 충실·테스트됨, running 경로 미연결).
+  - 권장: **P0 후속** — (a) `__main__.run()`을 `run_full_scoring`로 교체(공통) + ADR-108 D2~D4 정합, (b) `embed_new_jobs` 트리거 지점(crawl cron 후속 / consumer lazy embed) 결정, (c) ARCH §7-3에 "embed→prefilter→coarse=worker 채점 경로" 1줄. **architect 검토 권장**(배선 위치·임베딩 트리거=경계 결정). `/plan-workitem M5` 배선 task 신설 또는 main-session Fix round.
+- **M5-E2E-001** | P0 | [관측됨] | linked: M5,T-066 | status: open | `ai/worker/src/worker/pipeline.py:206` · `ai/worker/fixtures/llm_cache/`(M3 `f1f17df` 이후 미재생성) · `scripts/e2e.mjs`
+  - 발견: **graduation §5 #3 무키 E2E(`pnpm e2e`) 본 세션 실측 exit 1.** worker가 user A scoring-job을 90s 내 종결 못 함. 직접 재현(resume 30, key=''): `run_scoring`의 listwise rerank 웜캐시 miss → `rerank_listwise.py:165 → llm.py:52 openai.OpenAI(api_key='')` → `OpenAIError: Missing credentials` 크래시.
+  - 근거: T-066이 `classify_domains(evidence)`를 run_scoring에 주입(pipeline.py:206)하며 이력서 domains를 분류 결과로 교체 → `domain_alignment` → `domain_ctx` → `listwise_rank(domain_ctx=...)` **프롬프트·캐시 키 변경**. 그러나 웜캐시는 M3(`f1f17df`) 이후 *M5 커밋 0건* → stale → listwise miss. + `process_message`가 3회 retry 후 "failed"를 status 큐에 emit하나 **consumer 부재(REV-M4-003/010)** → `scoring_jobs.status` 미갱신 → fail-fast조차 못 하고 90s 타임아웃.
+  - 권장: **P0 후속** — M5-WIRING-001 완료 후 `pnpm e2e:warm`(OPENAI_API_KEY 1회)으로 *M5 채점 경로*(도메인분류 주입 + prefilter) 웜캐시 재생성→커밋 + e2e.mjs에 **fixture 임베딩 seed**(§5 #3 명시) + coarse 섹션 assert → 재grade. M2-E2E-001/M3-E2E-001 패턴 3회째.
+- **[Status-channel]** | P1 | [관측됨] [Arch-debt] [ADR-candidate] | linked: T-044,T-045,M4-carryover | status: open | `ai/worker/src/worker/__main__.py:147-154`
+  - 발견: worker "failed" emit의 status 큐 consumer 부재(M4 REV-M4-003/010)가 **M5 E2E에서 fail-fast를 막아 90s 타임아웃 유발**(QA-M5-003) — M4에서 "비차단 arch-debt"였던 것이 M5에서 차단 신호로 상승.
+  - 권장: M4 상태채널 ADR(architect 검토 대기 중)에 본 신호 추가. M6 DLQ로 미루지 말고 최소 worker가 실패 시 `ranking_runs` 자기-소유 failed 마커로 api join이 'failed' 노출(§3-2 단일writer 유지) 또는 api status-queue consumer.
+- **[Dependency]** | P1 | [관측됨] | linked: F-005,T-018,M2~M4-carryover | status: open (M2→M3→M4→M5 4회) | `podo/apps/web/package.json`(next) · `podo/apps/api`(@nestjs/*)
+  - 발견: `pnpm audit --prod` 22건(high 8 / moderate 12 / low 2). `next`(<15.5.16 cache-poisoning) + `@nestjs/*`. **4회 연속 재등장**(deferred bump). pip-audit clean.
+  - 권장: `next`≥15.5.16 + NestJS bump 후 재audit. M3 실증 처방(권고를 다음 milestone task로 박기) 적용 — 별도 bump task.
+
 ## 3. 권장 리팩토링
+
+### M5 (P2 — 메인 직접검증, 전부 비차단 / 대부분 *배선 후* 유의미)
+- **QA-M5-006** | P2 | [관측됨] [Clean-Code: Naming] | T-065 | `ai/worker/src/worker/prefilter.py:80-97` — `_skill_match_ids`가 이름·docstring("raw_text 키워드")과 달리 `resume_domains`(도메인 라벨 frontend/backend/data)를 raw_text에 substring 매칭 — 실 스킬 토큰(React·Python) 아님. recall 신호 약함(벡터·도메인 집합과 중복). 배선 전 "스킬 키워드" 실제 소스 확정 권장(F-023 recall 입력).
+- **QA-M5-007** | P2 | [관측됨] [Clean-Code: Comment-WHY] | T-065 | `prefilter.py:65-77` — `_domain_match_ids` docstring "부분 포함 포함" ↔ 코드 `rf in domain_lower`(완전 일치). 주석↔코드 drift 정정.
+- **QA-M5-008** | P2 | [가설] [Clean-Code: Function-size] | T-065 | `coarse_materialize.py:46-57` — DELETE 후 행별 `INSERT ON CONFLICT` 루프(N-K 개별 라운드트립). `executemany`/`INSERT...SELECT` 축약 후보(배선 후 N-K 클 때만 유의미).
+- **QA-M5-005** | P2 | [가설] [Arch-debt] | T-069 | `ai/eval/src/eval/cost_regression.py:29-58` — `measure_cost`가 mock scoring_fn에 미리 분할된 N/K 집합을 넣어 자명하게 k<n. 실 prefilter N→K 미검증(oracle gap, M5-WIRING-001 동근). 배선 후 `run_full_scoring` 통한 실측으로 격상 또는 "비용 모델 시연" docstring 명문화.
+- **[Doc-status-draft]** | P2 | [관측됨] | linked: docs/10-charter,docs/20-system | DISCOVERY/Charter/DESIGN `## 0. Status`=draft 잔존(M1~M4 동일 권고, 비차단). label 정리 또는 draft 컨벤션 명문화.
+- 어댑터 family(T-062/070-076) 심층 리팩토링 후보는 본 라운드 미감사(qa/reviewer subagent 보고 부재) — 다음 라운드 reviewer 회수.
 
 ### M4 (P2 — reviewer 위임 + design 폴리시 + qa cross-list, 전부 behavior-preserving / 비차단)
 - **REV-M4-001** | P2 | [관측됨] [Clean-Code: Function-size/SRP] | T-045 | `__main__.py:115-155` — `process_message`가 running emit + run/persist + retry/backoff + done/failed emit 4책임 혼재. `_run_with_retry(...)→str` 분리 후보(동작 불변).
@@ -354,6 +408,16 @@ Telemetry — M4 (졸업 가능 YES)
 - [관측됨 · M2→M3→M4 재발] **design subagent severity 인플레 지속.** design 위임이 lottie loop·GreetingCard strip을 P1로 제기 → 메인 세션이 latent/polish 근거로 P2 하향. M2 instruction 후보("P0=기능/접근성 *차단*만; 미구현 폴리시·상태는 P1 이하")를 프롬프트에 명시했음에도 P1↔P2 경계 인플레 잔존 → `reviewer.md` design surface에 "polish/aspirational/**latent**=P2" 1줄 추가 후보.
 - [관측됨 · qa P1→P2 1회] qa가 큐 delete-after-failed를 P1로 제기 → 메인이 "M4 DLQ 미도입 = terminate-on-failure 의도(AC-4)"로 P2 하향. qa 위임에 *"마일스톤 비범위(M6 DLQ 등)는 P2 + 근거"* 힌트 추가 후보.
 - [관측됨 · Cross-stabilize] **[Dependency] 3회·FitScoreRing/[Design-draft] 반복** = report-only 권고가 milestone 간 미적용 누적. M3가 실증한 처방(권고를 다음 milestone task로 박기 — F-012 효과)을 [Dependency] bump·DESIGN status·FitScoreRing arc에도 적용 권장(`/plan-workitem` 회수 강제). graduation 비차단이라 누적되나 외부 검증(보안 advisory)이 걸려 있어 우선 회수 권장.
+
+### M5 — ADR 후보 + instruction 개선 후보
+**ADR 후보 (M5 중 내려졌어야 할 결정인데 미배선/미문서 — 경계·트리거 결정은 ADR-006 정책상 ADR/architect 대상):**
+1. **비용레버 서비스 배선 경계 ADR / architect 결정** (M5-WIRING-001): `run_full_scoring`·`embed_new_jobs`를 *어느 진입점에서 어떤 트리거로* 호출할지 미결정·미배선. (a)임베딩 트리거 = crawl cron 후속 단계 vs worker consumer lazy embed, (b)consumer가 N→K wrapper를 쓰도록 `__main__.run()` 교체. ADR-108은 *알고리즘*은 규율하나 *서비스 배선 위치*는 미규율 → ARCH §7-3 보강 + 배선 task 필요. **architect 검토 권장.**
+2. **상태채널 ADR (M4 REV-M4-003/010 carryover — 영향도 상승)**: M5 E2E에서 worker "failed"가 소비자 없어 작업 영구 미종결 → fail-fast 차단. M4에서 미결인 "api polling(ranking_run join) vs api SQS consumer vs worker failed 마커" 결정을 더 미루면 M6 운영에서 차단. **architect 검토 권장**(M4 ADR 후보에 본 신호 병합).
+
+**Instruction 개선 후보 (ADR-022 ratchet evidence label 부착 — *보고만*, AGENTS.md/agent/skill body 자동 수정 X):**
+- [관측됨 · M2-E2E-001·M3-E2E-001·M5 3회째 = patterned drift, **M5 내부에서만 3 인스턴스**] **"신기능을 running 진입점에 배선 + 웜캐시 재생성"이 milestone 분해에서 반복 누락.** M5는 *모듈은 만들고 배선 task 자체가 미소유* 패턴이 **task 3건에서 동시 발생**: ① T-065 prefilter→`__main__.run()` 미배선(write_set에 `__main__.py` 부재), ② T-064 `embed_new_jobs`→cron/진입점 미배선, ③ **T-067 도메인탭→FeedView 미배선**(`<FeedView />` prop 없음, AC-1 dead-end — QA-M5-009). FAC↔AC 100% 매핑이어도 AC가 *함수/컴포넌트 단위*만 검증하면 "running 표면이 그것을 *쓰는가*"는 무검증(oracle gap). **③은 외부 `/repair-plan M5` self-review가 plan-doc 층에서 독립 지적(T-067 AC-1↔write_set FeedView 누락) → 메인 세션 코드 실독으로 확정**(수렴 — 단 외부 리뷰는 "M6 follow-up"로 *severity 과소*, 실제론 graduation AC 미충족). 즉 *plan-doc 리뷰는 1개 인스턴스를 잡았으나 코드 미실행이라 나머지 2개(서비스 미호출)는 못 잡음* — plan 건전성 ≠ 배선 완료. **후보: `/plan-workitem`(또는 TASK_TEMPLATE/AC 가이드)에 "capability를 *running 진입점*(서비스 entry / 페이지 컴포넌트)에 배선하는 task + 그 경로를 타는 E2E/통합 AC + (LLM 의존 시)웜캐시 재생성"을 milestone 분해 체크리스트로 박기.** M3가 실증한 "권고를 다음 milestone task로 박기"의 *분해 단계 버전* — 권고 누적이 아니라 분해 시점에 강제.
+- [관측됨 · 본 세션 qa+reviewer 양쪽 / M1·M2·M3 누적 + M4 "미재발" 후 재발] **subagent finding-미출력 재발 — 이번엔 *Agent 도구로 spawn한 stabilize 단계 4·5 위임*에서.** output-first 계약(ENTIRE final message must be findings)을 명시했음에도 qa(2회: 80k/61k tok)·reviewer(2회: 66k/70k tok) 모두 탐색만 하고 finding 블록 미반환 + "Now I have enough information…" 류 직전 종료. M4의 "미재발"은 *in-prompt 제약이 작동*함을 보였으나, **stabilize가 Agent 도구로 spawn할 때는 동일 제약으로도 실패** → 메인 직접검증으로 대체(추가 토큰). 후보: ① `qa.md`/`reviewer.md` *body 자체*에 "final message MUST be the findings block" self-check를 박기(per-prompt 반복 처방의 한계 3~4회 실증) ② SendMessage 부재(M1~M3 누적 확인 — 본 세션도 deferred 목록에 없음) → paused subagent 재개 불가가 비용을 키움; stabilize 위임은 *self-contained + 단일 turn 완결*을 구조적으로 보장하는 형태(예: 더 좁은 scope·강제 schema 반환)로 재설계 후보.
+- [관측됨 · Cross-stabilize] **[Dependency] 4회 연속(M2~M5)** — report-only 권고가 milestone 간 미적용 누적. 외부 보안 advisory(next cache-poisoning high 8)가 걸려 있어 graduation 비차단이라도 우선 회수 권장(별도 bump task).
 
 ## 5. Repair decision log
 

@@ -87,7 +87,12 @@ M4가 "핵심 워크플로우가 도는 멀티유저 MVP"를 완성하면, M5는
 - ⏸ **모델 티어링**(저가/고가 분리): F-023 GS-2(근거 사실성 ≤2%) 측정 후 적용(ADR-108 D7). HNSW `m`/`ef_construction`은 pgvector 기본값 시작.
 
 ## 8. 회고 (stabilize 자동 채움)
-- 목표 달성도: <정량/정성 1줄>
-- scope creep 사례: <있으면 1줄, 없으면 "없음">
-- 비목표(charter §5) 위반 사례: <있으면 1줄 — 커버리지 확대는 ADR로 정식 반전 시 위반 아님>
-- 핵심 학습 3개 이내
+> `/stabilize-milestone M5` (2026-06-08). 졸업 가능 **NO** — task 15/15 done·validate exit 0(Py 236/TS 72)·AC 51/51·FAC 20/20이나 **P0 2건**(코어 비용레버 미배선 + 무키 E2E red). 상세 [QA_FINDINGS ## M5](../../40-validation/QA_FINDINGS.md) · [IMPROVEMENT_GUIDE §0~§4 M5](../../40-validation/IMPROVEMENT_GUIDE.md).
+> **↳ 갱신 2026-06-08 (repair)**: P0 2건 *해소* — `run_full_scoring`·`embed_new_jobs`·domain 탭·coverage 배선 + 무키 import 안전화(커밋 `2821a79`) + 웜캐시 재생성 → **`pnpm e2e` fresh-volume exit 0** 실증. 졸업 *재grade*는 `/stabilize-milestone M5` 재실행으로 확정(본 NO 판정은 최초 stabilize 기록 보존).
+- 목표 달성도: **부분(≈50%)** — 커버리지 트랙(5-tier 어댑터·discovery·레지스트리·패널)은 구현·테스트 완결, 알고리즘 모듈(임베딩·prefilter·coarse·도메인분류·확대검증 eval)도 단위 green. **그러나 M5 *핵심*인 "비용 구조 전환 N→K"가 서비스 경로에 미배선**(`run_full_scoring`·`embed_new_jobs`가 진입점에서 0회 호출 — worker는 여전히 N개 전체 `run_scoring`) → 비용 절감·coarse 섹션이 프로덕션 미실현. 도메인분류기(T-066)만 run_scoring에 배선됨.
+- scope creep 사례: 없음 — 변경은 AC로 역추적 가능. 커버리지 확대는 Charter §5 scope-note(공식페이지·티어드·게이트)와 ADR-108 범위 안.
+- 비목표(charter §5) 위반 사례: 없음 — 커버리지 확대는 *공식 채용 페이지 한정* + Charter §5 scope-note 기록(M5-repair-1 적용, 별도 ADR 불필요는 사용자 판단)으로 *정식 반전*. 애그리게이터 영구 비범위 준수.
+- 핵심 학습:
+  1. **모듈 green ≠ 서비스 실현.** 함수 단위 AC(T-065 AC-2가 `run_full_scoring`를 직접 호출)는 "서비스가 그 함수를 쓰는가"를 검증 못 한다(oracle gap). milestone 분해에 *running 진입점 배선 task + 그 경로를 타는 E2E AC*가 명시적으로 필요(T-065 §4-1 write_set에 `__main__.py` 부재가 근인).
+  2. **알고리즘 변경이 LLM 캐시 키를 바꾸면 웜캐시 재생성이 동반돼야 무키 E2E가 산다** — T-066 도메인분류 주입이 listwise 캐시 키를 바꿨으나 웜캐시 미재생성 → 무키 크래시. M2/M3/M5 3회째 E2E·웜캐시 동기 누락(patterned drift).
+  3. **"비차단 arch-debt"의 이연 비용은 상승한다** — M4에서 비차단으로 둔 status 큐 consumer 부재가 M5 E2E에서 fail-fast를 막아 차단 신호로 전이.

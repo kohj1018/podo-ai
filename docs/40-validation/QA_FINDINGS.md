@@ -191,6 +191,54 @@
 - feed currentRun tie-break: `orderBy [{created_at:desc},{id:desc}]` — QA-M2-006 해소 유지.
 - M3 carryover: QA-M3-006(오라클 갭) resolved 유지. QA-M2-003/REV-M3-007 seed write 편의 예외 = M4도 worker `_ensure_seed_resume` 잔존(큐 경로는 미사용 → dead shim, [REV-M4-002]로 이관).
 
+## M5
+
+> `/stabilize-milestone M5` (2026-06-08) — 메인 세션 직접 검증(qa·reviewer subagent는 본 세션 2회 모두 탐색만 하고 finding 블록을 turn 내 미출력 → SendMessage 부재로 재개 불가 → 메인 세션이 직접 코드 실독으로 수행. M1 qa·M2/M3 reviewer budget-exhaustion 패턴이 *Agent 도구로 spawn한 stabilize 단계 4·5 위임*에서 재발 — §IMPROVEMENT_GUIDE §4 instruction 후보). 대상: T-062~T-076(커버리지 5-tier 어댑터 + 알고리즘 후보선별/임베딩/도메인분류/확대검증). 통합 validate exit 0(Python 236 passed/25 DB-skip, TS 72 passed[web 47/api 25]+13 DB-skip). **그러나 graduation §5 #3 무키 E2E(`pnpm e2e`)는 본 세션 실측 exit 1(FAIL)** + **M5 핵심 비용레버가 서비스 경로 미배선** → **코드결함/통합결함 P0 2건 → 졸업 가능 NO.** finding 전수 기록(ADR-046#d3).
+> **↳ 해소 2026-06-08 (메인세션 repair, 커밋 `2821a79`)**: QA-M5-001(`run_full_scoring`/`embed_new_jobs` 미배선) + QA-M5-002(웜캐시 stale) 둘 다 수정 — worker `run()`이 `run_full_scoring`(임베딩 없으면 N-path 폴백) + `embed_new_jobs` 호출, `embedding.py`/`llm.py` 무키 import 안전화, FeedList/View domain 배선, crawler가 `source_crawl_status` 기록, 웜캐시 fixture 재생성. **`pnpm e2e` fresh-volume exit 0**. 졸업 재grade는 `/stabilize-milestone M5` 재실행 대기. (QA-M5-009 FeedView dead-end도 동일 커밋서 해소.)
+
+### P0
+- **QA-M5-001** | P0 | [관측됨] | linked: T-064,T-065,M5 | status: open | `ai/worker/src/worker/__main__.py:71-80` (← `scoring_runner.py:run_full_scoring`, `embed_batch.py:embed_new_jobs`)
+  - 발견: **M5의 명시적 핵심("비용 구조 전환 N→K", milestone §1·§2)을 구현하는 `run_full_scoring`(T-065 후보 prefilter + coarse/deep 분리)와 `embed_new_jobs`(T-064 JD 임베딩 영속)가 어떤 서비스 진입점에서도 호출되지 않는다.** worker `__main__.py`의 `run()`(─`--resume-id` 경로 line 213 *와* SQS consumer `process_message`→`run` line 139 *양쪽*)이 `persistence.load_jobs(conn)` 전체 N개를 `pipeline.run_scoring`에 직접 넣는다(M4 동작 그대로). repo 전수 grep: `run_full_scoring`=scoring_runner.py+test_scoring_runner.py만, `embed_new_jobs`=test_embedding.py만. cron/진입점 어디서도 `job_embeddings`를 채우지 않음.
+  - 근거: 결과로 ① 후보선별·pgvector ANN·증분채점이 프로덕션에서 0회 실행 → **채점 비용은 여전히 N개 전체**(milestone §5 "비용 측정" 절감이 서비스에 미실현), ② `coarse_materialize`가 호출 안 됨 → `coarse_candidates` 테이블 항상 비어 있음 → `GET /api/v1/feed?section=coarse`(T-065 AC-3, feed.service.ts:213 구현됨)는 프로덕션에서 **항상 빈 섹션**, ③ T-065 AC-2("run_full_scoring 실행 시 K개 호출")는 `test_scoring_runner.py`가 *함수를 직접* 호출해 검증 → **서비스 경로가 wrapper를 쓰는지를 어떤 AC/E2E도 검증 안 함**(oracle gap). T-065 §4-1 write_set에 `__main__.py` 부재 → *배선 task가 아예 미소유*(spec-coverage gap). M2-E2E-001/M3-E2E-001과 동형(기능 모듈은 충실·테스트됐으나 running 경로에 미연결).
+  - 결정/권장: **P0 후속(stabilize report-only 밖, main-session/`/repair-workitem` 또는 `/plan-workitem`)** — (a) `__main__.run()`을 `run_full_scoring`로 교체(resume_id 경로·consumer 공통) + ADR-108 D2~D4 정합, (b) crawl 후 `embed_new_jobs` 호출 지점(크롤러 cron 후속 단계 또는 worker consumer 진입 시 lazy embed) 결정, (c) ARCH §7-3에 "embed→prefilter→coarse가 worker 채점 경로의 일부" 1줄. **architect 검토 권장**(배선 위치·임베딩 트리거 = 경계 결정).
+- **QA-M5-002** | P0 | [관측됨] | linked: T-066,M5 | status: open | `ai/worker/src/worker/pipeline.py:206` · `ai/worker/fixtures/llm_cache/`(M3 `f1f17df` 이후 미재생성)
+  - 발견: **graduation §5 #3 무키 E2E(`pnpm e2e`)가 본 세션 실측 exit 1.** worker가 user A scoring-job을 90s 내 done/failed로 못 만들고 타임아웃. 근인 직접 재현(resume 30, OPENAI_API_KEY=''): `run_scoring`이 **listwise rerank 단계에서 웜캐시 miss** → `rerank_listwise.py:165 → llm.py:52 _openai_call → openai.OpenAI(api_key='')` → `openai.OpenAIError: Missing credentials` 크래시.
+  - 근거: M5 T-066이 `classify_domains(evidence)`를 `run_scoring`에 주입(pipeline.py:206)하면서 이력서 domains(이전 하드코딩)를 분류 결과로 교체 → `domain_alignment` tier → `domain_ctx` → **`listwise_rank(domain_ctx=...)` 프롬프트 내용 변경 → 캐시 키 변경**. 그런데 커밋된 웜캐시(`ai/worker/fixtures/llm_cache`)는 **M3(`f1f17df`)에서 마지막 재생성·M5 커밋 0건** → 변경된 listwise 키에 대해 miss → 무키 경로가 실 LLM 호출 → 크래시. 추가로 `process_message`가 예외를 3회 retry 후 "failed"를 status 큐에 emit하지만 **status 큐 consumer 부재(M4 REV-M4-003/010 carryover)** → `scoring_jobs.status`가 done/failed로 절대 안 바뀜 → E2E는 90s 타임아웃(fail-fast조차 못 함).
+  - 결정/권장: **P0 후속** — M5 배선(QA-M5-001) 완료 후 `pnpm e2e:warm`(OPENAI_API_KEY 1회)으로 *M5 채점 경로(도메인분류 주입 + 배선 시 prefilter)* 웜캐시 재생성→커밋 + e2e.mjs에 **fixture 임베딩 seed**(§5 #3 명시) + coarse 섹션 assert 추가 → 재grade. M2-E2E-001/M3-E2E-001 패턴 3회째.
+
+### P1
+- **QA-M5-003** | P1 | [관측됨] | linked: T-045,T-044,M4-carryover | status: open | `ai/worker/src/worker/__main__.py:147-154` · status 큐 consumer 부재
+  - 발견: QA-M5-002의 *증상 증폭 원인* — worker가 "failed"를 emit해도 소비자가 없어 작업이 영구 미종결로 보인다. M4 [REV-M4-003/010]이 "비차단 arch-debt"로 분류됐으나, **M5 E2E에서 실제로 fail-fast를 막아 90s 타임아웃을 유발** → 영향도가 비차단→차단으로 상승.
+  - 권장: M6 DLQ와 묶지 말고, 최소한 worker가 실패 시 `ranking_runs`에 failed 마커 행을 자기-소유로 남겨 api join이 'failed'를 노출하게 하거나(§3-2 단일writer 유지), api status-queue consumer 도입. architect 상태채널 ADR(M4 잔여)에 본 신호 추가.
+- **QA-M5-004** | P1 | [관측됨] [Dependency] | linked: F-005,T-018,M2~M4-carryover | status: open | `podo/apps/web/package.json`(next) · `podo/apps/api`(@nestjs/*)
+  - 발견: `pnpm audit --prod` **22건(high 8 / moderate 12 / low 2)** — `next`(<15.5.16 cache-poisoning) + NestJS. **M2→M3→M4→M5 4회 연속 재등장**(deferred bump). pip-audit는 clean.
+  - 권장: `next`≥15.5.16 + NestJS bump 후 재audit. M3가 실증한 처방(권고를 다음 milestone task로 박기)을 적용 — 별도 bump task로 닫을 것.
+- **QA-M5-005** | P1 | [가설] | linked: T-069 | status: open | `ai/eval/src/eval/cost_regression.py:29-58`
+  - 발견: T-069 AC-1("k_calls < n_calls") 검증인 `measure_cost`가 **mock `scoring_fn`에 미리 분할된 `jd_sets_n`(전체)·`jd_sets_k`(부분)를 넣어** 호출/토큰을 센다 → 작은 집합이 적은 호출을 내는 것은 자명. **실 prefilter가 N→K를 선별하는지는 검증 안 함**(QA-M5-001 unwired와 동일 oracle gap). 비용 절감이 *시뮬레이션*으로만 실증.
+  - 권장: 배선 완료 후 `run_full_scoring`를 통한 실제 N(전체 jobs)→K(prefilter 결과) 호출 수 비교로 격상. 현 테스트는 "비용 모델 시연"으로 docstring 명문화.
+- **QA-M5-009** | P1 | [관측됨] (외부 repair-plan self-review와 수렴) | linked: T-067 | status: open | `podo/apps/web/app/page.tsx:24,52,56` · `components/FeedView.tsx:40`
+  - 발견: **직군 분리 탭이 dead-end** — `page.tsx`가 선택 탭을 `active` state로 잡지만(`onChange={setActive}`) `<FeedView />`를 **prop 없이** 렌더(`FeedView()`는 파라미터 0개) → 탭 선택이 피드 fetch/렌더에 *전혀 반영 안 됨*. api `getFeed`는 `?domain=` 지원·DomainTabBar는 정상이나 둘을 잇는 web glue 부재. **T-067 AC-1("탭→filtered feed display")이 running 앱에서 미충족**인데 `domain_tab.spec.tsx`가 탭 onChange만 isolation 검증 → 페이지 배선 무검증(QA-M5-001과 동일 oracle gap, T-067 write_set에 FeedView.tsx 부재).
+  - 근거: **외부 `/repair-plan M5` self-review가 동일 gap(T-067 AC-1↔write_set FeedView 누락)을 독립 지적 → 메인 세션 코드 실독으로 확정**(수렴 = 신뢰도↑). 단 외부 리뷰는 이를 "M6 follow-up"로 분류했으나, 탭이 *아무 동작도 안 하는* 현 상태는 graduation 관심사(AC 미충족)이지 M6 nicety 아님. **QA-M5-001(T-065)·embed(T-064)과 함께 M5 intra-milestone 배선누락 3번째 인스턴스** — 동일 bug class(capability 구현·테스트됐으나 running 표면 미연결).
+  - 권장: `<FeedView active={active} />` + FeedView가 domain을 `getFeed(?domain=)`에 전달·탭 변경 시 refetch. M5-WIRING-001 후속과 묶어 회수(`/plan-workitem M5`).
+
+### P2
+- **QA-M5-006** | P2 | [관측됨] | linked: T-065 | status: open | `ai/worker/src/worker/prefilter.py:80-97`
+  - 발견: `_skill_match_ids`가 "스킬/키워드 매칭"이라는 이름과 docstring(§8 "raw_text 키워드")에도 불구하고 실제로는 **`resume_domains`(예: `frontend`/`backend`/`data` 도메인 라벨)를** raw_text에 substring 매칭한다 — 실제 스킬 토큰(React·Python 등)이 아님. 도메인 라벨이 JD raw_text에 우연히 박혀야만 매칭 → recall 신호가 약하고 *벡터·도메인 집합과 거의 중복*. (현재 unwired라 무영향, 배선 시 후보 recall에 영향.)
+  - 권장: 배선 전 "스킬 키워드"의 실제 소스를 확정(evidence skills vs domain label). F-023 recall 측정 입력.
+- **QA-M5-007** | P2 | [관측됨] | linked: T-065 | status: open | `ai/worker/src/worker/prefilter.py:65-77`
+  - 발견: `_domain_match_ids` docstring은 "부분 포함 포함"이라 하나 코드는 `rf in domain_lower`(set 멤버십=완전 일치)다. 주석↔코드 drift.
+  - 권장: 주석을 "완전 일치"로 정정하거나 의도가 부분매칭이면 코드 수정.
+- **QA-M5-008** | P2 | [가설] | linked: T-065 | status: open | `ai/worker/src/worker/coarse_materialize.py:33,46-57`
+  - 발견: `DELETE FROM coarse_candidates WHERE resume_id` 후 행별 `INSERT ... ON CONFLICT (job_posting_id, resume_id)` — DELETE가 선행하므로 ON CONFLICT는 방어적 중복(같은 트랜잭션 내 충돌 없음). 또한 행별 루프 INSERT(N-K건 개별 라운드트립). 기능 정상, 성능·간결성만.
+  - 권장: 단일 `executemany` 또는 `INSERT ... SELECT`로 축약. 배선 후 N-K가 클 때만 유의미.
+
+### 관찰 메모
+- **api ADR-108 D3 준수 확인**: `feed.service.ts:212` 주석 "vector 쿼리 0줄" + `getCoarseFeed`가 `coarse_candidates` read-only 조회만 — api 레이어 vector SQL 0(D3 위반 없음). worker `prefilter.py`/`coarse_materialize.py`만 `<=>` 사용 — 경계 정상.
+- **T-066 도메인 분류기는 배선됨**(pipeline.py:206, run_scoring 내부) — 알고리즘 트랙에서 유일하게 서비스 경로에 살아있는 M5 신기능. 결정적(LLM 0, 규칙 기반). confidence=low 시 입력 domains 보존(known→unknown 덮어쓰기 방지) — 정상.
+- **결정성 모듈 점검**: `prefilter.select_candidates` tie-break(`-similarity, int(jid)`) 결정적 · `coarse_materialize` 정렬 무관(materialize만) · `domain_classifier.classify_domains` 2회 동일(T-066 AC-4) — 신규 알고리즘 모듈은 GS-1 구조 충족(단 unwired라 서비스 GS-1엔 미반영).
+- **커버리지 어댑터(T-062/070-076) 심층 미감사**: qa/reviewer subagent 보고 부재로 어댑터 family 중복·게이트 엣지를 본 세션에서 심층 audit하지 못함. per-task validation(test_ats_family·test_custom_adapters·test_tier2~5 전부 green) + 본 stabilize validate green이 보조 커버. 다음 라운드 reviewer 회수 권장.
+- **M4 carryover**: QA-M4-001(delete-after-failed)·REV-M4-003/010(status 채널) = QA-M5-003으로 영향도 상승(E2E 차단 유발). QA-M4-004(seed user_id 비대칭)·REV-M4-002(seed shim)는 M5에서 미해소(여전히 `_ensure_seed_resume` 잔존).
+
 ## 일반
 
 ### P0
