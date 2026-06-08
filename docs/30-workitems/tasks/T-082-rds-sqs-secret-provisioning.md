@@ -1,7 +1,7 @@
 # T-082-rds-sqs-secret-provisioning
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 technical-enabler
@@ -31,8 +31,12 @@ AWS RDS(Postgres+pgvector)·SQS·Secrets Manager·네트워킹을 IaC(`infra/aws
 - (IaC 도구는 **Terraform 확정** — M6 §7. 비범위 아님.)
 
 ## 4-1. 변경 예정 파일/경로
-- `infra/aws/` (신규 디렉터리 + IaC 파일들)
-- `.env.example`
+- `infra/aws/main.tf` (신규) — VPC·public/private subnet·SG·RDS(PG16.5)·SQS×2·Secrets×3·OIDC·IAM 초안(T-083이 networking/SG/IAM 분리·세분화)
+- `infra/aws/outputs.tf` (신규) — rds_endpoint·sqs_queue_url/arn·OIDC role ARN 등 출력
+- `infra/aws/variables.tf` (신규) — env·aws_region·db_password(sensitive)·github_org_repo (T-083이 db_instance_class 등 추가)
+- `infra/aws/.terraform.lock.hcl` (신규, 커밋 O) — provider 버전 핀(aws ~> 5.0)
+- `.env.example` — AWS 배포 섹션 추가(`AWS_REGION`·`SQS_QUEUE_URL`; DATABASE_URL·OPENAI_API_KEY 기존 + Secrets Manager 주입 주석)
+- `.gitignore` — Terraform 산출물 ignore(`.terraform/`·`*.tfstate`·실 `*.tfvars`; lock·*.example은 커밋)
 
 ## 5. 완료 조건
 RDS(Postgres+pgvector)·SQS·Secrets Manager가 AWS에 존재하고, `prisma migrate deploy`가 RDS 대상으로 green이며, 시크릿이 저장소에 커밋되지 않은 상태로 서비스에 주입 가능하다.
