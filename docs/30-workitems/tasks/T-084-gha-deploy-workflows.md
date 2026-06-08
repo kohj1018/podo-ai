@@ -63,6 +63,7 @@ main 머지 시 schema-contract·e2e-smoke gate가 green인 조건에서 api·wo
 - 호스팅 방식(ECS/Fargate vs Lambda vs EC2) 미확정 — 사용자 결정 후 §3의 ECS 명령을 실제 방식으로 교체. Lambda는 SQS 상시 consumer 모델에 적합(event source mapping), ECS는 장기 실행 프로세스에 적합.
 - OIDC(GitHub→AWS AssumeRole) 권장(long-lived key 회피). **`aws-actions/configure-aws-credentials@v6`**(2026-06 현행 — *v4 아님*) + job `permissions: id-token: write`. ECR=`amazon-ecr-login`, 배포=`amazon-ecs-render-task-definition`→`amazon-ecs-deploy-task-definition@v2`. AWS 계정에 **IAM OIDC identity provider(`token.actions.githubusercontent.com`) + repo/branch sub-claim 제한 AssumeRole 역할**을 사전 생성(T-082 IaC, 사용자 수행).
 - worker는 단일 인스턴스(F-025 범위). 다중화는 F-027 후속(미분해)(F-027) 이후.
+- repair-workitem 2026-06-09 P1 ci-gate: Adopt — inline `gate` job이 빈 DB에서 `pytest test_schema_contract.py` 실행(migrate 누락) → node/pnpm setup + `prisma migrate deploy` step 추가(deploy-api/worker.yml, schema-contract.yml 패턴 정합). T-086 검증 중 발견.
 
 ## 9. 의존성
 - depends_on: [T-082, T-083]   # RDS·SQS·IAM이 존재해야 배포 대상 있음

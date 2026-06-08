@@ -36,6 +36,18 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install uv
         uses: astral-sh/setup-uv@v5
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - name: Install JS deps
+        run: pnpm install --frozen-lockfile
+      # test DB 마이그레이션 — schema-contract pytest는 컬럼 존재를 검증하므로 빈 DB면 실패.
+      - name: Run Prisma migrations (test DB)
+        run: pnpm --filter @podo/api exec prisma migrate deploy
       - name: Run schema-contract (pre-deploy gate)
         run: uv run pytest ai/tests/test_schema_contract.py
 
