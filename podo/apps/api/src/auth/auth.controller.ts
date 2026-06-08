@@ -20,7 +20,9 @@ interface JsonResponse {
   redirect(url: string): void
 }
 
-const WEB_ORIGIN = (): string => process.env.WEB_ORIGIN ?? 'http://localhost:3000'
+// OAuth 콜백 후 돌아갈 web(Vercel) 도메인 = CORS 허용 origin과 동일 값(단일 var, T-087).
+// 프로덕션은 main.ts 부트스트랩이 CORS_ALLOWED_ORIGIN 미설정 시 기동 실패시키므로 여기선 set 보장.
+const webRedirectOrigin = (): string => process.env.CORS_ALLOWED_ORIGIN ?? 'http://localhost:3000'
 
 @Controller('auth')
 export class AuthController {
@@ -33,7 +35,7 @@ export class AuthController {
   @Get('github/callback')
   @UseGuards(AuthGuard('github'))
   githubCallback(@Res() res: JsonResponse): void {
-    res.redirect(WEB_ORIGIN())
+    res.redirect(webRedirectOrigin())
   }
 
   @Get('google')
@@ -43,7 +45,7 @@ export class AuthController {
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
   googleCallback(@Res() res: JsonResponse): void {
-    res.redirect(WEB_ORIGIN())
+    res.redirect(webRedirectOrigin())
   }
 
   // 로그아웃 — 세션 무효화.

@@ -29,7 +29,13 @@ async function bootstrap(): Promise<void> {
   app.use(passport.session())
 
   // credentials 쿠키 전송을 위해 origin 명시(와일드카드 금지 — T-087). web fetch는 credentials:'include'.
-  app.enableCors({ origin: process.env.WEB_ORIGIN ?? 'http://localhost:3000', credentials: true })
+  // 프로덕션에서 CORS_ALLOWED_ORIGIN 미설정 시 localhost fallback 방지를 위해 기동 실패(AC-1 §3-2).
+  // 이 origin = 허용된 web(Vercel) 도메인. auth.controller의 OAuth 리다이렉트도 동일 값 사용(단일 var).
+  const corsAllowedOrigin = process.env.CORS_ALLOWED_ORIGIN
+  if (isProd && !corsAllowedOrigin) {
+    throw new Error('CORS_ALLOWED_ORIGIN env var is required in production (T-087 AC-1)')
+  }
+  app.enableCors({ origin: corsAllowedOrigin ?? 'http://localhost:3000', credentials: true })
 
   await app.listen(process.env.PORT ?? 3001)
 }

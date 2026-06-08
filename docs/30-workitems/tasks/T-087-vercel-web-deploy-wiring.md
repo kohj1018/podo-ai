@@ -1,7 +1,7 @@
 # T-087-vercel-web-deploy-wiring
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 technical-enabler
@@ -29,9 +29,9 @@ Next.js web을 Vercel에 배포(사용자 직접)하고, api(AWS) 도메인·COR
 - api 호스팅 — F-025/T-084.
 
 ## 4-1. 변경 예정 파일/경로
-- `podo/apps/api/src/main.ts`
-- `podo/apps/api/src/auth/` (쿠키 설정 파일)
-- `.env.example`
+- `podo/apps/api/src/main.ts` — CORS `origin: process.env.CORS_ALLOWED_ORIGIN`(와일드카드 0) + 프로덕션 미설정 시 기동 실패 가드; 쿠키 `sameSite: isProd ? 'none':'lax'`·`secure: isProd`(기존 구현 유지)
+- `podo/apps/api/src/auth/auth.controller.ts` — OAuth 콜백 리다이렉트를 `WEB_ORIGIN`→`CORS_ALLOWED_ORIGIN`로 통일(dual-var footgun 제거; 동일 web origin, write_set `auth/**` 내)
+- `.env.example` — `CORS_ALLOWED_ORIGIN` 항목 추가(프로덕션 필수·localhost 기본·task definition 주입 주석)
 
 ## 5. 완료 조건
 Vercel 배포 URL에서 `NEXT_PUBLIC_API_BASE_URL`로 AWS api를 호출하고 CORS가 허용되며, OAuth 로그인이 실 도메인에서 동작하고, 쿠키 Secure·SameSite=None이 설정된다.
