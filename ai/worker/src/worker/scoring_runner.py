@@ -7,6 +7,7 @@ run_scoring을 K개에만 호출(파이프라인 본체·캐시 키·recommendat
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
@@ -25,6 +26,8 @@ COARSE_CACHE_KEY_VERSION = (
     f"{EMBEDDING_VERSION}|prefilter-v1|kv{DEFAULT_K_V}|kmax{DEFAULT_K_MAX}"
 )
 
+logger = logging.getLogger(__name__)
+
 
 def _parse_vector(vec_text: str) -> list[float]:
     """pgvector '[x,y,...]' 텍스트 → list[float]."""
@@ -37,8 +40,15 @@ def _parse_vector(vec_text: str) -> list[float]:
 def _load_resume_embedding(
     conn: psycopg.Connection[tuple[Any, ...]], resume_id: int, masked_content: str
 ) -> list[float]:
-    """이력서 임베딩 영속·재사용 후 벡터 로드(매 채점 재생성 금지 — GS-1, T-064)."""
-    embed_resume(conn, resume_id, masked_content)  # 없으면 1회 생성, 있으면 skip
+    """이력서 임베딩 영속·재사용 후 벡터 로드(매 채점 재생성 금지 — GS-1, T-064).
+
+    무키/임베딩 실패 시 빈 list 반환 → run_full_scoring이 prefilter 없이 N-path로 폴백.
+    """
+    try:
+        embed_resume(conn, resume_id, masked_content)  # 없으면 1회 생성, 있으면 skip
+    except Exception as exc:  # 시스템 경계(OpenAI) — 무키/실패 시 prefilter 미사용
+        logger.warning("resume_embed_skip resume_id=%s error=%s", resume_id, exc)
+        return []
     with conn.cursor() as cur:
         cur.execute(
             "SELECT embedding::text FROM resume_embeddings "
@@ -87,8 +97,20 @@ def run_full_scoring(
     4. 후보 밖 → coarse_candidates materialize(fit_level 없음, 유사도 rank).
     """
     embedding = _load_resume_embedding(conn, resume_id, resume.raw_text)
-    resume_domains = _load_resume_domains(conn, resume_id)
 
+    # 임베딩 미적재(무키/초기) → 벡터 prefilter 불가 → 전체 deep(N-path 폴백, coarse 0).
+    # 무키 E2E는 M4 동작 보존(회귀 0); keyed/운영서 임베딩 존재 시에만 N→K 절감 활성화.
+    if not embedding:
+        return run_scoring(
+            resume=resume,
+            jobs=all_jobs,
+            ranking_mode=ranking_mode,
+            structured_call_fn=structured_call_fn,
+            listwise_call_fn=listwise_call_fn,
+            pairwise_call_fn=pairwise_call_fn,
+        )
+
+    resume_domains = _load_resume_domains(conn, resume_id)
     cset = select_candidates(
         conn, embedding, all_jobs, resume_domains, K_v=K_v, K_max=K_max
     )

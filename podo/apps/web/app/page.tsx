@@ -53,7 +53,7 @@ export default function HomePage() {
           confidence={confidence}
         />
       ) : null}
-      <FeedView />
+      <FeedView domain={active} />
     </div>
   )
 }

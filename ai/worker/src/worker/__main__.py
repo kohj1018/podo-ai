@@ -7,6 +7,7 @@ seed 이력서는 config.load_seed_resume()로 주입(SPEC §9-4, 실 PII 비범
 from __future__ import annotations
 
 import json
+import logging
 import os
 import sys
 import time
@@ -17,7 +18,10 @@ import psycopg
 from core import db
 from core.models import Resume
 from worker import config, persistence
-from worker.pipeline import run_scoring
+from worker.embed_batch import embed_new_jobs
+from worker.scoring_runner import run_full_scoring
+
+logger = logging.getLogger(__name__)
 
 # in-process 재시도 한도 — 초과 시 status=failed (무한 재시도 종료, T-045 AC-4).
 MAX_RETRIES = 3
@@ -69,9 +73,17 @@ def run(
         resume = config.load_seed_resume()
         rid = _ensure_seed_resume(conn, resume)
     jobs = persistence.load_jobs(conn)
-    result = run_scoring(
-        resume=resume,
-        jobs=jobs,
+    # T-064: 신규 JD 임베딩 적재(무키/실패 시 skip — prefilter는 N-path 폴백).
+    try:
+        embed_new_jobs(conn)
+    except Exception as exc:  # 시스템 경계(OpenAI/DB) — 무키/실패 시 임베딩 없이 진행
+        logger.warning("embed_new_jobs_skip error=%s", exc)
+    # T-065: N→K 후보 선별 — 임베딩 있으면 K개만 deep(절감), 없으면 N-path 폴백.
+    result = run_full_scoring(
+        conn,
+        resume,
+        rid,
+        jobs,
         ranking_mode=ranking_mode,
         structured_call_fn=structured_call_fn,
         listwise_call_fn=listwise_call_fn,
@@ -146,7 +158,14 @@ def process_message(
             conn.commit()
             _emit_status(sqs, status_queue_url, job_id, "done")
             return "done"
-        except Exception:
+        except Exception as exc:
+            # 채점 실패 원인을 삼키지 않고 기록(3회 무성 재시도 관측 불가 결함 제거).
+            logger.warning(
+                "scoring_attempt_failed job_id=%s attempt=%s error=%r",
+                job_id,
+                attempt + 1,
+                exc,
+            )
             conn.rollback()
             attempt += 1
             if attempt >= max_retries:

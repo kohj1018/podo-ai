@@ -1,0 +1,1 @@
+{"response": "{\"winner\":\"b\",\"confidence\":\"medium\",\"reason\":\"Job B has strong domain alignment to frontend and at least some direct evidence for React/Next.js and TypeScript, even though several critical prerequisites remain unproven. Job A is a weak-domain backend role with most critical requirements missing and no direct backend evidence, so B is the better fit.\"}"}

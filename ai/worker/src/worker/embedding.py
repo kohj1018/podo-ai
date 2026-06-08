@@ -23,12 +23,16 @@ if TYPE_CHECKING:
 EMBEDDING_VERSION = "v1-text-embedding-3-small-1536"
 _EMBEDDING_MODEL = "text-embedding-3-small"
 
-# 모듈 레벨 클라이언트 — patch 지점 (테스트에서 worker.embedding.openai_client로 교체)
-openai_client: Any = OpenAI(api_key=OPENAI_API_KEY)
+# 모듈 레벨 클라이언트 — patch 지점(테스트가 worker.embedding.openai_client로 교체).
+# 무키 import 안전: OpenAI 생성자가 빈 키에 raise하므로 키 있을 때만 인스턴스화. 무키는
+# None → _call_embed가 명시 raise(호출자 try/except → N-path 폴백).
+openai_client: Any = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
 
 
 def _call_embed(text: str) -> list[float]:
-    """OpenAI embeddings API 단건 호출 → 1536차원 float 벡터."""
+    """OpenAI embeddings 단건 호출 → 1536차원 벡터. 무키면 raise(폴백 신호)."""
+    if openai_client is None:
+        raise RuntimeError("OPENAI_API_KEY 미설정 — 임베딩 불가(무키 모드)")
     resp = openai_client.embeddings.create(
         model=_EMBEDDING_MODEL,
         input=[text],

@@ -1,0 +1,1 @@
+{"response": "{\"winner\":\"a\",\"confidence\":\"high\",\"reason\":\"Job A has strong domain alignment and at least some same-stack evidence in React/TypeScript/Node.js, making it a closer fit despite missing core backend prerequisites. Job B is weakly aligned and shows no direct evidence for any critical backend requirements, so it is the poorer match.\"}"}

@@ -63,6 +63,8 @@ M4에서 직군 분리 탭을 "자동 분류가 없어서 보류"로 미뤘다(C
 ## 8. 메모
 - M4 보류분(직군 분리 탭 컴포넌트 코드가 이미 부분 존재 가능) — builder가 `DomainTabBar` or 유사 컴포넌트 존재 여부 확인 후 활성화 또는 신설 선택.
 - 열린 질문: `domain` 필터를 server-side(API 파라미터)로 처리할지 client-side로 할지 — API 응답 크기·UX 응답성 고려해 builder 판단(단, API 레이어에 도메인 필터 경로는 필수).
+- repair-plan 2026-06-08 [self-review] P1 Plan-scope: Adopt(기록) — **AC-1의 end-to-end "탭→피드 필터링 노출"은 `FeedView.tsx`/`FeedList.tsx`가 active domain을 소비해야 성립하나 write_set에 미포함**(plan under-scope). DomainTabBar/API `?domain=`/page.tsx만 완성돼 탭 클릭이 피드에 무반영(dead-end)이었음.
+- repair 2026-06-08 [stabilize 수렴] **배선 완료(M5 graduation 차단 해소, M6 아님)**: `FeedList`에 `domain` prop+`&domain=` fetch+변경 시 재요청, `FeedView`→`page.tsx active` 전달 추가. 무키 멀티유저 E2E(`pnpm e2e`) green으로 실증. [QA-M5-009 수렴]
 
 ## 9. 의존성
 - depends_on: [T-066, T-065]   # T-066=분류·resume_domains 계약 / T-065=feed.controller 선수정(둘 다 feed.controller 편집 → 순차)

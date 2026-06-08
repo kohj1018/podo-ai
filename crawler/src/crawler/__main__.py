@@ -24,6 +24,7 @@ from core import db
 from crawler.fetch_jobs import fetch_daangn_jobs, fetch_toss_jobs
 from crawler.manual import parse_manual
 from crawler.persistence import RawJob, record_crawl_run, upsert_jobs
+from crawler.run_sources import record_source_crawl_status
 
 logger = logging.getLogger(__name__)
 
@@ -74,10 +75,27 @@ def crawl(
                 new_count=counts["new"],
                 closed_count=counts["closed"],
             )
+            # T-063: 커버리지 패널이 읽는 소스별 현재 스냅샷도 갱신(active + 성공 시각).
+            record_source_crawl_status(
+                conn,
+                channel,
+                status="active",
+                last_success_at=now,
+                tier="tier1",
+                method="custom",
+            )
             summary[channel] = counts
             logger.info("crawl_ok channel=%s counts=%s", channel, counts)
         except Exception as exc:  # 시스템 경계 — 채널 fetch 실패 표면화(조용한 무시 X)
             record_crawl_run(conn, channel, "failed", run_at=now, error=str(exc))
+            record_source_crawl_status(
+                conn,
+                channel,
+                status="blocked",
+                last_error=str(exc),
+                tier="tier1",
+                method="custom",
+            )
             logger.error("crawl_failed channel=%s error=%s", channel, exc)
             summary[channel] = {"new": 0, "kept": 0, "closed": 0}
     return summary

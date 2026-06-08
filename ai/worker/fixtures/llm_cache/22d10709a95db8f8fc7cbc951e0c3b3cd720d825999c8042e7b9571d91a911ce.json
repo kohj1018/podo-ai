@@ -1,0 +1,1 @@
+{"response": "{\"winner\":\"b\",\"confidence\":\"medium\",\"reason\":\"Job B has strong domain alignment and at least one weak direct stack match (React/TypeScript/Node.js), while Job A has weak domain alignment and no direct critical matches. Both have substantial prerequisite gaps, but B is the closer fit overall.\"}"}

@@ -37,7 +37,7 @@ function ScoringSkeleton({ label }: { label: string }) {
 
 // 피드 진입 8-상태 분기(F-018, DESIGN §7-4). meta(/api/v1/feed/meta)로 상태 결정.
 // ready/pending에서만 FeedList(items 커서 페이지네이션)로 위임 — 기존 FeedList 재사용.
-export function FeedView() {
+export function FeedView({ domain }: { domain?: string } = {}) {
   const [meta, setMeta] = useState<FeedMeta | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
@@ -188,7 +188,7 @@ export function FeedView() {
           포도가 아직 분석하지 못한 공고만 있어요.
         </p>
       )}
-      <FeedList />
+      <FeedList domain={domain} />
     </div>
   )
 }
