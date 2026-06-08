@@ -46,7 +46,12 @@ loadDotenv()
 
 const args = process.argv.slice(2)
 const WARM = args.includes('--warm')
-const SKIP_COMPOSE = args.includes('--no-compose') || process.env.E2E_SKIP_COMPOSE === '1'
+// E2E_BASE_URL이 설정되면 실배포 URL 대상(compose·migrate·worker 기동 생략).
+// 미설정이면 로컬 docker compose 오케스트레이션(기존 동작).
+const E2E_BASE_URL = process.env.E2E_BASE_URL ?? ''
+const REMOTE_MODE = E2E_BASE_URL !== ''
+const SKIP_COMPOSE =
+  REMOTE_MODE || args.includes('--no-compose') || process.env.E2E_SKIP_COMPOSE === '1'
 const TEARDOWN = args.includes('--down')
 
 const API_PORT = process.env.PORT ?? '3001'
@@ -66,7 +71,8 @@ const SQS_STATUS_QUEUE_URL =
   process.env.SQS_STATUS_QUEUE_URL ??
   'http://localhost:4566/000000000000/scoring-status-queue'
 
-const base = `http://localhost:${API_PORT}`
+// REMOTE_MODE: E2E_BASE_URL로 로컬 포트 구성 우회.
+const base = REMOTE_MODE ? E2E_BASE_URL.replace(/\/$/, '') : `http://localhost:${API_PORT}`
 const FEED_URL = `${base}/api/v1/feed`
 const COVERAGE_URL = `${base}/api/v1/coverage`
 const RESUMES_URL = `${base}/api/v1/resumes`
@@ -145,7 +151,8 @@ function warmCacheEntries() {
   return readdirSync(LLM_CACHE_DIR).filter((f) => f.endsWith('.json')).length
 }
 
-if (!WARM && warmCacheEntries() === 0) {
+// REMOTE_MODE에서는 캐시 검사 불필요 — 실배포 worker가 자체 LLM 호출.
+if (!REMOTE_MODE && !WARM && warmCacheEntries() === 0) {
   fail(
     `웜캐시 비어있음(${LLM_CACHE_DIR}). 무키 E2E는 커밋된 웜캐시가 필요하다.\n` +
       `      OPENAI_API_KEY 보유 상태에서 \`pnpm e2e:warm\` 1회 → \`git add ai/worker/fixtures/llm_cache\`.`,
@@ -172,6 +179,12 @@ const keyEnv = { OPENAI_API_KEY: WARM ? (process.env.OPENAI_API_KEY ?? '') : '' 
 // ─── 메인 ─────────────────────────────────────────────────────────────────────
 
 async function main() {
+  if (REMOTE_MODE) {
+    log(`REMOTE_MODE — E2E_BASE_URL=${E2E_BASE_URL} (로컬 인프라 기동 생략)`)
+    await runRemoteSmoke()
+    return
+  }
+
   // phase 1: 인프라 기동(Postgres + LocalStack SQS)
   if (!SKIP_COMPOSE) {
     run(`docker compose ${COMPOSE.join(' ')} up -d`)
@@ -316,6 +329,86 @@ async function main() {
     log(`웜캐시 생성됨: ${warmCacheEntries()}개 → \`git add ai/worker/fixtures/llm_cache\` 후 커밋`)
   }
   log('✓ 멀티유저 E2E 통과 — 2-user OAuth 우회 → 업로드 → 큐 채점 → 격리 피드 → 지원 기록 → PII 0')
+  finishAndExit(0)
+}
+
+// ─── REMOTE_MODE smoke ──────────────────────────────────────────────────────
+// 실배포 URL 대상 smoke: api/health 확인 → 사용자 A·B 가입 → 이력서 업로드 → 채점 enqueue →
+// done 폴링(최대 60초, 큐 경유 worker 처리) → 피드 점수 행 assert → 멀티유저 격리.
+// PII 스캔·crawl·migrate 등 로컬 서버 의존 단계는 생략(실배포 infra에서 처리).
+
+async function runRemoteSmoke() {
+  // 1. api health 확인
+  await waitFor(
+    'remote api health',
+    async () => {
+      try {
+        return (await fetch(`${base}/api/v1/health`)).ok
+      } catch {
+        return false
+      }
+    },
+    { tries: 10, gapMs: 3000 },
+  )
+
+  // 2. 사용자 A·B 가입 → 업로드 → score enqueue
+  const fixture = readFileSync(PII_FIXTURE, 'utf8')
+  const session = {}
+  for (const key of ['A', 'B']) {
+    const u = USERS[key]
+    const sres = await fetch(TEST_SESSION_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: u.id }),
+    })
+    if (!sres.ok) fail(`[remote] test-session 실패 user=${u.id} → ${sres.status}`)
+    const cookie = cookieFrom(sres)
+    if (!cookie) fail(`[remote] test-session 쿠키 미발급 user=${u.id}`)
+
+    const upRes = await fetch(RESUMES_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: cookie },
+      body: JSON.stringify({ text: fixture }),
+    })
+    if (!upRes.ok) fail(`[remote] 업로드 실패 user=${u.id} → ${upRes.status}`)
+    const resumeId = (await upRes.json()).data.resume_id
+
+    const scRes = await fetch(`${RESUMES_URL}/${resumeId}/score`, {
+      method: 'POST',
+      headers: { Cookie: cookie },
+    })
+    if (scRes.status !== 202) {
+      fail(`[remote] score enqueue 실패 user=${u.id} resume=${resumeId} → ${scRes.status} (202 기대)`)
+    }
+    const jobId = (await scRes.json()).data.job_id
+    session[key] = { ...u, cookie, resumeId, jobId }
+    log(`[remote] user ${key}: login + upload(resume=${resumeId}) + enqueue(job=${jobId})`)
+  }
+
+  // 3. 큐 드레인 폴링(최대 60초 — 실 SQS→ECS worker 처리 시간)
+  for (const key of ['A', 'B']) {
+    const s = session[key]
+    await waitFor(
+      `[remote] user ${key} scoring-job ${s.jobId} done`,
+      async () => {
+        const res = await fetch(`${SCORING_JOBS_URL}/${s.jobId}`, { headers: { Cookie: s.cookie } })
+        if (!res.ok) return false
+        const st = (await res.json()).data.status
+        if (st === 'failed') fail(`[remote] user ${key} scoring-job ${s.jobId} failed`)
+        return st === 'done'
+      },
+      { tries: 40, gapMs: 1500 },
+    )
+    log(`[remote] user ${key}: scoring-job done`)
+  }
+
+  // 4. 피드 점수 행 + 멀티유저 격리 assert
+  for (const key of ['A', 'B']) {
+    await assertUserFeed(session[key], key)
+  }
+  await assertIsolation(session.A, session.B)
+
+  log('✓ [remote] smoke 통과 — 가입→업로드→채점(큐 경유)→피드→격리')
   finishAndExit(0)
 }
 

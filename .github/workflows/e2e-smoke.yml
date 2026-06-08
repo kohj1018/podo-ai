@@ -1,11 +1,24 @@
 name: e2e-smoke
 
-# fresh-clone E2E 졸업 게이트 (graduation §5 #3 / M2 stabilize learning #2).
-# 무키(OPENAI_API_KEY 미주입) — 커밋된 웜캐시(ai/worker/fixtures/llm_cache)로 외부 호출 0회.
-# 웜캐시가 비어있으면 e2e.mjs가 명확한 에러로 실패한다(키 보유자가 `pnpm e2e:warm` 1회 후 커밋).
+# T-086: post-deploy smoke(실배포 URL 대상). deploy-api/deploy-worker가 배포 후
+# workflow_call로 호출한다(순환 없음 — pre-deploy gate는 schema-contract, T-084 소유).
+# workflow_call: inputs.base_url 로 실배포 API URL 주입.
+# workflow_dispatch / pull_request: E2E_SKIP_COMPOSE=1 + LocalStack 서비스로 로컬 CI 겸용.
 
 on:
+  workflow_call:
+    inputs:
+      base_url:
+        description: "배포된 API base URL (예: https://api.podo.ai)"
+        required: true
+        type: string
   workflow_dispatch:
+    inputs:
+      base_url:
+        description: "배포된 API base URL (비워두면 로컬 LocalStack 모드)"
+        required: false
+        default: ""
+        type: string
   pull_request:
     paths:
       - 'ai/**'
@@ -16,8 +29,10 @@ on:
       - '.github/workflows/e2e-smoke.yml'
 
 jobs:
-  e2e-smoke:
+  smoke:
     runs-on: ubuntu-latest
+    # workflow_call(실배포 URL 있음)이면 LocalStack 서비스 불필요 — 조건부 서비스는 GHA 미지원.
+    # pull_request / workflow_dispatch(base_url 비어있음) = 로컬 LocalStack 모드에서만 사용.
     services:
       postgres:
         image: pgvector/pgvector:pg16
@@ -32,8 +47,7 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-      # LocalStack SQS — 멀티유저 큐 채점 경로(T-052, ADR-106 A-INFRA). 큐는 아래 step에서 생성
-      # (GH service는 init 스크립트 미실행). M6에서 실 AWS SQS로 엔드포인트만 교체.
+      # LocalStack SQS — 로컬 CI(pull_request) 전용. REMOTE_MODE 시 미사용(스크립트가 건너뜀).
       localstack:
         image: localstack/localstack:3
         env:
@@ -48,19 +62,19 @@ jobs:
     env:
       DATABASE_URL: postgresql://podo:podo@localhost:5432/podo
       E2E_SKIP_COMPOSE: '1'
-      # SQS 엔드포인트·큐 URL(LocalStack). worker(boto3)/api(AWS SDK) 공통.
+      # workflow_call 시 E2E_BASE_URL 주입 → REMOTE_MODE 활성화.
+      E2E_BASE_URL: ${{ inputs.base_url }}
       SQS_ENDPOINT_URL: http://localhost:4566
       SQS_QUEUE_URL: http://localhost:4566/000000000000/scoring-queue
       SQS_STATUS_QUEUE_URL: http://localhost:4566/000000000000/scoring-status-queue
       AWS_ACCESS_KEY_ID: test
       AWS_SECRET_ACCESS_KEY: test
       AWS_DEFAULT_REGION: us-east-1
-      # 캐시 키 핀 — 커밋된 웜캐시(ai/worker/fixtures/llm_cache)를 생성한 값과 일치해야
-      # cache hit. 재생성 시 이 3값 + 웜캐시를 함께 갱신(cache.py make_key 구성요소).
       OPENAI_MODEL: gpt-5.4-mini
       PROMPT_VERSION: v1
       SCHEMA_VERSION: v1
-      # NOTE: OPENAI_API_KEY 의도적 미주입 — 무키 재현성을 게이트로 강제(웜캐시 경로).
+      # NOTE: OPENAI_API_KEY 의도적 미주입 — 무키 재현성(로컬 모드). 실배포 REMOTE_MODE에서는
+      # worker가 Secrets Manager 주입 키로 LLM 호출하므로 클라이언트 측 키 불필요.
     steps:
       - uses: actions/checkout@v4
       - name: Install uv
@@ -74,9 +88,10 @@ jobs:
           cache: pnpm
       - name: Install JS deps
         run: pnpm install --frozen-lockfile
-      - name: Create SQS queues (LocalStack service has no init hook)
+      - name: Create SQS queues (LocalStack — 로컬 CI 전용, REMOTE_MODE 시 스크립트가 건너뜀)
+        if: ${{ inputs.base_url == '' || inputs.base_url == null }}
         run: |
           aws --endpoint-url=http://localhost:4566 sqs create-queue --queue-name scoring-queue
           aws --endpoint-url=http://localhost:4566 sqs create-queue --queue-name scoring-status-queue
-      - name: Run fresh-clone multiuser E2E (keyless — committed warm cache)
-        run: node scripts/e2e.mjs --no-compose
+      - name: Run e2e smoke (E2E_BASE_URL 설정 시 REMOTE_MODE, 미설정 시 로컬 LocalStack 모드)
+        run: pnpm e2e:smoke

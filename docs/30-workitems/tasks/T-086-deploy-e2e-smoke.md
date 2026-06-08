@@ -1,7 +1,7 @@
 # T-086-deploy-e2e-smoke
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 technical-enabler
@@ -29,10 +29,10 @@ technical-enabler
 - 알림 발송 smoke — 비범위.
 
 ## 4-1. 변경 예정 파일/경로
-- `.github/workflows/e2e-smoke.yml`
-- `.github/workflows/schema-contract.yml`
-- `scripts/e2e.mjs` (E2E_BASE_URL 분기 추가 — 기존 재사용)
-- `package.json`(루트, `e2e:smoke` script 추가)
+- `.github/workflows/e2e-smoke.yml` — `on: workflow_call`(inputs.base_url) 추가(post-deploy 호출 가능) + `E2E_BASE_URL: ${{ inputs.base_url }}` 주입 + SQS 큐 생성 step을 로컬모드(base_url 빈값)로 조건화 + `pnpm e2e:smoke` 실행. pull_request 로컬 게이트 유지
+- `.github/workflows/schema-contract.yml` — node/pnpm setup + **`prisma migrate deploy`**(누락된 마이그레이션 step 추가 — 빈 DB에서 pytest 실패 방지) + `pytest test_schema_contract.py -v`
+- `scripts/e2e.mjs` — `E2E_BASE_URL` 분기(REMOTE_MODE): 설정 시 compose/migrate/worker 기동 생략 + `base=E2E_BASE_URL` + `runRemoteSmoke()`(health→가입→업로드→채점 enqueue→done 폴링→피드+격리 assert). 미설정 시 기존 로컬 동작 불변
+- `package.json`(루트) — `e2e:smoke` script 추가(`node scripts/e2e.mjs`)
 
 ## 5. 완료 조건
 배포 환경 URL에서 smoke 시나리오(가입→업로드→채점→피드)가 멀티유저 격리와 함께 `scripts/e2e.mjs`로 통과하고, schema-contract CI가 green이며, **schema-contract가 pre-deploy gate(T-084), e2e-smoke가 post-deploy 검증**으로 동작한다(순환 없음).
