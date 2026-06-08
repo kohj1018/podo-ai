@@ -92,6 +92,20 @@ def llm_cache_put(key: str, response: str) -> None:
         pass
 
 
+def get_cache_adapter() -> "CacheAdapter":
+    """환경변수에 따라 캐시 어댑터를 선택한다 (T-088 expand 단계).
+
+    USE_POSTGRES_CACHE=1 → PostgresCacheAdapter(DATABASE_URL) (멀티 인스턴스 공유, GS-1)
+    그 외 → CacheAdapter(인메모리 기본값 — 로컬 개발).
+    PostgresCacheAdapter가 CacheAdapter를 상속하므로 순환 import 회피용 지연 import.
+    """
+    if os.environ.get("USE_POSTGRES_CACHE") == "1":
+        from worker.cache_postgres import PostgresCacheAdapter
+
+        return PostgresCacheAdapter(os.environ.get("DATABASE_URL", ""))
+    return CacheAdapter()
+
+
 class CacheAdapter:
     """캐시 저장 어댑터 — 인터페이스 고정, 구현은 인메모리(MVP).
 

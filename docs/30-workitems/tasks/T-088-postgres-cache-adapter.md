@@ -1,7 +1,7 @@
 # T-088-postgres-cache-adapter
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 migration
@@ -35,11 +35,13 @@ migration
 - 다중 worker 인스턴스 실행 — F-027 후속(미분해)(F-027 후속).
 
 ## 4-1. 변경 예정 파일/경로
-- `podo/apps/api/prisma/migrations/` (신규 migration)
-- `ai/worker/src/worker/cache_postgres.py` (신규)
-- `ai/worker/src/worker/cache.py` (어댑터 선택 분기 추가)
-- `ai/tests/test_cache_postgres.py` (신규)
-- `ai/tests/test_cache_gss1.py` (신규 또는 수정)
+- `podo/apps/api/prisma/migrations/20260608140000_add_llm_cache/migration.sql` (신규) — `llm_cache` 테이블(cache_key PK·response JSONB·model_version·prompt_version·created_at)
+- `podo/apps/api/prisma/schema.prisma` — `LlmCache` 모델 추가(migration↔schema drift 방지; Prisma=DDL SSOT §3-2)
+- `ai/worker/src/worker/cache_postgres.py` (신규) — `PostgresCacheAdapter(CacheAdapter)` get/put/refresh(namespace 재사용) + graceful fallback + 메타 컬럼
+- `ai/worker/src/worker/cache.py` — `get_cache_adapter()` factory(`USE_POSTGRES_CACHE` 플래그, 순환 import 회피 지연 import)
+- `ai/tests/test_cache_postgres.py` (신규) — AC-1 7 테스트(mock psycopg, 항상 실행): 히트·미스·graceful fallback·put silent·다른 키·어댑터 선택
+- `ai/tests/test_cache_gss1.py` (신규) — AC-2 GS-1 멀티인스턴스 + refresh(DATABASE_URL 게이트)
+- `ai/tests/test_schema_contract.py` — `test_AC_3_llm_cache_columns_exist`(AC-3, DB 게이트)
 
 ## 5. 완료 조건
 `USE_POSTGRES_CACHE=1` 환경변수 설정 시 worker가 Postgres llm_cache 테이블에서 캐시를 조회하고, 동일 입력에 대해 인스턴스와 무관하게 동일 결과를 반환하며(GS-1), DB 장애 시 cache miss로 재계산한다.

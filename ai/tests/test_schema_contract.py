@@ -185,6 +185,23 @@ def test_AC_1_embedding_tables_and_vector_columns_exist() -> None:
     assert re_hnsw, "resume_embeddings HNSW 인덱스 누락 (T-064)"
 
 
+def test_AC_3_llm_cache_columns_exist() -> None:
+    """T-088 AC-3 — llm_cache 테이블 + 컬럼 존재 검증(공유 캐시 마이그레이션 적용)."""
+    lc = _columns("llm_cache")
+    for col in (
+        "cache_key",
+        "response",
+        "model_version",
+        "prompt_version",
+        "created_at",
+    ):
+        assert col in lc, f"llm_cache.{col} 누락 (T-088 공유 캐시)"
+    # response = jsonb (동일 키 → 동일 JSONB 응답, GS-1 멀티인스턴스)
+    assert lc.get("response") == "jsonb", (
+        f"llm_cache.response != jsonb: {lc.get('response')}"
+    )
+
+
 def test_AC_4_application_events_table_exists() -> None:
     """T-050 AC-4 — application_events 테이블 + user_id FK 존재 검증(지원/즐겨찾기 기록)."""
     ae = _columns("application_events")

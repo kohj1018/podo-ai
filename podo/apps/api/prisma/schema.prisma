@@ -43,6 +43,18 @@ model CrawlRun {
   @@map("crawl_runs")
 }
 
+// worker 소유 (§3-2) — 공유 LLM 응답 캐시(T-088, F-027). 디스크 .cache/llm → Postgres JSONB.
+// 동일 cache_key → 동일 response(GS-1 멀티인스턴스 재현성). NestJS 읽기 금지(worker 내부 캐시).
+model LlmCache {
+  cache_key      String   @id
+  response       Json
+  model_version  String
+  prompt_version String
+  created_at     DateTime @default(now())
+
+  @@map("llm_cache")
+}
+
 // crawler 소유 (§3-2) — 소스별 현재 수집 상태 스냅샷(coverage 패널 서빙, T-063).
 // crawl_runs(런 히스토리)와 역할 분리: 이쪽은 전 tier 소스 + 정적 status 포함 현재 스냅샷.
 // status taxonomy: active/blocked/captcha/login-required/no-korea-jobs/unsupported.
