@@ -1,7 +1,7 @@
 # T-065-candidate-prefilter-and-coarse-deep-split
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 technical-enabler
@@ -44,14 +44,18 @@ T-064가 영속한 `job_embeddings`를 읽어 **하이브리드 합집합(벡터
 - api/feed 직접 vector 쿼리 — 금지(ADR-108 D3 위반).
 
 ## 4-1. 변경 예정 파일/경로
-- `podo/apps/api/prisma/migrations/` (coarse_candidates 신규 migration)
+- `podo/apps/api/prisma/migrations/20260608120000_add_coarse_candidates/migration.sql` (coarse_candidates 신규 migration)
+- `podo/apps/api/prisma/schema.prisma` (CoarseCandidate 모델 추가)
 - `ai/worker/src/worker/prefilter.py` (신설)
-- `ai/worker/src/worker/scoring_runner.py` (신설 또는 기존 확장)
+- `ai/worker/src/worker/scoring_runner.py` (신설)
 - `ai/worker/src/worker/coarse_materialize.py` (신설)
 - `ai/worker/tests/test_prefilter.py` (신설)
 - `ai/worker/tests/test_scoring_runner.py` (신설)
 - `podo/apps/api/src/feed/feed.controller.ts` (coarse 섹션 추가)
+- `podo/apps/api/src/feed/feed.service.ts` (getCoarseFeed 추가 — AC-3 NestJS 서비스 계층)
+- `podo/apps/api/test/feed_coarse.spec.ts` (신설 — AC-3 api 테스트)
 - `podo/apps/web/components/CoarseSection.tsx` (신설)
+- `podo/apps/web/test/coarse_section.spec.tsx` (신설 — AC-3 web 테스트)
 
 ## 5. 완료 조건
 채점이 후보 K개에만 LLM deep 분석을 수행하고, 후보 밖 공고는 coarse projection(fit_level 없음, 유사도순)에 materialize되어 피드에 별도 섹션으로 노출된다. 동일 입력 2회 채점 결과 변동 0.

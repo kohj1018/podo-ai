@@ -25,6 +25,7 @@ model JobPosting {
   fetched_at         DateTime           @default(now())
   recommendations    Recommendation[]
   application_events ApplicationEvent[]
+  coarse_candidates  CoarseCandidate[]
 
   @@map("job_postings")
 }
@@ -104,9 +105,28 @@ model User {
   created_at          DateTime           @default(now())
   resumes             Resume[]
   application_events  ApplicationEvent[]
+  coarse_candidates   CoarseCandidate[]
 
   @@unique([provider, provider_account_id])
   @@map("users")
+}
+
+// worker 소유 (§3-2) — 후보 밖 공고 coarse projection(T-065, ADR-108 D3).
+// fit_level 없음 — 유사도 rank만(피드 coarse 섹션 배지 없이 노출). resume_id 범위(M5-repair-38).
+model CoarseCandidate {
+  job_posting_id    Int
+  resume_id         Int
+  user_id           String?
+  similarity_rank   Float
+  cache_key_version String
+  scored_at         DateTime   @default(now())
+  job_posting       JobPosting @relation(fields: [job_posting_id], references: [id], onDelete: Cascade)
+  resume            Resume     @relation(fields: [resume_id], references: [id], onDelete: Cascade)
+  user              User?      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@id([job_posting_id, resume_id])
+  @@index([resume_id])
+  @@map("coarse_candidates")
 }
 
 // api 소유 — 실 이력서 업로드 메타(M3: masked·source·upload_format 추가).
@@ -123,6 +143,7 @@ model Resume {
   ranking_runs  RankingRun[]
   scoring_jobs  ScoringJob[]
   domains       ResumeDomains?
+  coarse_candidates CoarseCandidate[]
 
   @@map("resumes")
 }

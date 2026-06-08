@@ -18,6 +18,17 @@ export interface FeedPage {
   nextCursor: number | null
 }
 
+// T-065 coarse 섹션 항목 — 후보 밖(deep 분석 전) 공고. **fit_level 없음**(ADR-108 D3·Guardrail 1).
+export interface CoarseItem {
+  posting: unknown
+  similarity_rank: number
+}
+
+export interface CoarsePage {
+  items: CoarseItem[]
+  nextCursor: number | null
+}
+
 // 이력서 도메인 자동 분류 결과(T-066 worker 산출 — read-only 서빙, T-067 직군 탭 소비).
 export interface ResumeDomainsDto {
   primary_domains: string[]
@@ -190,6 +201,40 @@ export class FeedService {
     }
 
     const nextCursor = recs.length === take ? recs[recs.length - 1].rank_position : null
+    return { items, nextCursor }
+  }
+
+  // T-065 coarse 섹션 — 후보 밖 공고를 유사도 rank 순으로 서빙(read-only, fit_level 없음).
+  // resume_id 범위(현재 run — 이력서 교체 시 이전 coarse 미혼입, M5-repair-38). deep와 별도 cursor.
+  // vector 쿼리 0줄 — worker가 materialize한 coarse_candidates를 읽기만 한다(ADR-108 D3).
+  async getCoarseFeed(cursor: number, userId?: string, take = 20): Promise<CoarsePage> {
+    const resume = userId
+      ? await this.prisma.resume.findFirst({
+          where: { user_id: userId },
+          orderBy: [{ created_at: 'desc' }, { id: 'desc' }],
+          select: { id: true },
+        })
+      : null
+    if (!resume) {
+      return { items: [], nextCursor: null }
+    }
+
+    const offset = cursor < 0 ? 0 : cursor
+    const rows = await this.prisma.coarseCandidate.findMany({
+      where: { resume_id: resume.id },
+      // 결정적 순서: 유사도 desc → job_posting_id asc(tie-break).
+      orderBy: [{ similarity_rank: 'desc' }, { job_posting_id: 'asc' }],
+      skip: offset,
+      take,
+      include: { job_posting: true },
+    })
+
+    const items: CoarseItem[] = rows.map((r) => ({
+      posting: r.job_posting,
+      similarity_rank: r.similarity_rank,
+      // fit_level 의도적 부재 — coarse는 deep 분석 전(거짓 점수 금지, Guardrail 1).
+    }))
+    const nextCursor = rows.length === take ? offset + take : null
     return { items, nextCursor }
   }
 }
