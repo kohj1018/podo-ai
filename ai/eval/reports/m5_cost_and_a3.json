@@ -1,0 +1,19 @@
+{
+  "cost": {
+    "n_tokens": 614,
+    "k_tokens": 232,
+    "n_calls": 20,
+    "k_calls": 8,
+    "ratio": 0.3778501628664495
+  },
+  "a3": {
+    "tau": 1.0,
+    "n_pairs": 10,
+    "n_concordant": 10,
+    "n_discordant": 0,
+    "violation_rate": 0.0,
+    "n_obvious_pairs": 4,
+    "n_obvious_violations": 0,
+    "verdict": "PROCEED"
+  }
+}

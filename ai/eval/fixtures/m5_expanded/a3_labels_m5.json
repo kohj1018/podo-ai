@@ -1,0 +1,11 @@
+{
+  "_note": "T-069 A-3 τ 수기 랭킹 라벨 placeholder. 합성 기본값(완전 일치 → PROCEED). 실 판정은 창업자가 확대 JD를 직접 상대 랭킹해 human_order(선호순)·model_ranking(저장 산출 랭킹)을 채운 뒤 `python -m eval.run_a3_m5` 실행. A-3는 선택 게이트(M5 §5) — 졸업 비차단.",
+  "human_order": ["jd-toss-be", "jd-naver-fe", "jd-kakao-data", "jd-coupang-fs", "jd-daangn-be"],
+  "model_ranking": {
+    "jd-toss-be": 1,
+    "jd-naver-fe": 2,
+    "jd-kakao-data": 3,
+    "jd-coupang-fs": 4,
+    "jd-daangn-be": 5
+  }
+}
