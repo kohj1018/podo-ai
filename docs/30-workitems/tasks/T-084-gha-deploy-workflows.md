@@ -1,7 +1,7 @@
 # T-084-gha-deploy-workflows
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 technical-enabler
@@ -30,8 +30,9 @@ GitHub Actions `deploy-api`·`deploy-worker` 워크플로를 실가동한다. T-
 - blue-green vs rolling 전략 확정 — 열린 질문(단순성 우선 rolling 가정).
 
 ## 4-1. 변경 예정 파일/경로
-- `.github/workflows/deploy-api.yml`
-- `.github/workflows/deploy-worker.yml`
+- `.github/workflows/deploy-api.yml` (skeleton → 실 배포 로직, T-084 완료)
+- `.github/workflows/deploy-worker.yml` (skeleton → 실 배포 로직, T-084 완료)
+- `docs/30-workitems/tasks/T-084-gha-deploy-workflows.md` (이 파일)
 - (`e2e-smoke.yml`는 T-086 소유 — 본 task 미변경)
 
 ## 5. 완료 조건
