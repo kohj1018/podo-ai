@@ -96,7 +96,6 @@ export default function HomePage() {
         </output>
       ) : (
         <div className="flex flex-col gap-4 py-4">
-          <CoveragePanel />
           {domains.length > 0 ? (
             <DomainTabBar
               domains={domains}
@@ -108,6 +107,8 @@ export default function HomePage() {
           <FeedView domain={active} />
           {/* 피드 최하단 보조 진입(접힘) — deep 분석 전 공고(T-091, IA §2-A-1 ⑥). coarse 0이면 미렌더. */}
           <CoarseSection />
+          {/* 커버리지 투명성 footer — 최하단(친근한 chip, mockup §footer). */}
+          <CoveragePanel />
         </div>
       )}
     </AuthGate>

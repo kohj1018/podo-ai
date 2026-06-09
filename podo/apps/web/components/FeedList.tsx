@@ -84,6 +84,18 @@ export function FeedList({ domain, resurface }: { domain?: string; resurface?: b
     <main style={{ maxWidth: '430px', margin: '0 auto', padding: '4px 16px 72px' }}>
       {/* 마감 임박(closing_at ≤7일) 분리 섹션 — 추천 리스트 위. items 소유자(FeedList)에서 렌더(T-090 §3-3). */}
       <DeadlineSection items={items} />
+      {/* 오늘의 추천 섹션 헤더 — 적합도(deep 랭킹) 순. items 있을 때만(빈/에러 분기와 분리). */}
+      {items.length > 0 ? (
+        <div
+          data-testid="recommend-header"
+          style={{ display: 'flex', alignItems: 'baseline', gap: '8px', margin: '4px 2px 10px' }}
+        >
+          <h2 style={{ fontWeight: 800, fontSize: '16px', color: 'var(--ink)', margin: 0 }}>
+            오늘의 추천
+          </h2>
+          <span style={{ fontSize: '12px', color: 'var(--muted)' }}>적합도 높은 순</span>
+        </div>
+      ) : null}
       {/* 신규 공고 arrival 모션(stagger) + reduced-motion 분기는 ArrivalList가 담당(T-048). */}
       <ArrivalList
         items={items}

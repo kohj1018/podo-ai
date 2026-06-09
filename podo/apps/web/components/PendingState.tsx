@@ -9,10 +9,16 @@ export function PendingState({ url }: { url?: string }) {
       className="rounded-2xl p-4"
       style={{ border: '1px dashed var(--line-strong)', color: 'var(--ink)' }}
     >
-      <PodoMascot size={28} />{' '}
-      <span style={{ color: 'var(--faint)' }}>포도가 아직 이 공고를 분석하지 못했어요</span>
+      <div className="flex items-center gap-2">
+        <PodoMascot size={28} />
+        <span style={{ fontWeight: 600 }}>이 공고는 점수를 보류했어요</span>
+      </div>
+      <p className="mt-1 text-sm" style={{ color: 'var(--faint)' }}>
+        JD에서 근거를 충분히 못 찾았거든요 — 틀린 점수보다 정직한 게 낫잖아요. 원문은 그대로
+        보여드릴게요.
+      </p>
       {url ? (
-        <p className="mt-1 text-sm">
+        <p className="mt-2 text-sm">
           <a
             href={url}
             target="_blank"

@@ -72,7 +72,7 @@ describe('a11y — ARIA roles/labels + band ink (AC-1)', () => {
     cleanup()
     vi.unstubAllGlobals()
 
-    // degraded → role=alert
+    // degraded → 친근한 footer(region 유지, 알람 아님)
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue({
@@ -81,7 +81,10 @@ describe('a11y — ARIA roles/labels + band ink (AC-1)', () => {
       }),
     )
     render(<CoveragePanel />)
-    await waitFor(() => expect(screen.getByRole('alert')).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByTestId('coverage-panel').getAttribute('data-state')).toBe('degraded'),
+    )
+    expect(screen.queryByRole('alert')).toBeNull()
   })
 
   it('test_AC_1_resume_upload_aria_busy_on_loading', async () => {

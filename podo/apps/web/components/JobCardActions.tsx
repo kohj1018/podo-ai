@@ -31,6 +31,7 @@ export function JobCardActions({
     setToast({ text, seq: seqRef.current })
   }
   const [skipped, setSkipped] = useState(false)
+  const [applied, setApplied] = useState(false)
   const [busy, setBusy] = useState(false)
 
   async function record(action: Action): Promise<boolean> {
@@ -50,14 +51,15 @@ export function JobCardActions({
     }
   }
 
+  // 지원하기는 공고를 피드에서 제거하지 않는다(사용자 결정) — 원본 채널로 이동 + 기록 + "지원함" 표시만.
+  // 서버엔 applied로 기록되므로 다음 피드 로드에선 정리됨(CLEARED_ACTIONS). 실패해도 카드 유지(복원 불필요).
   async function apply() {
     if (url) window.open(url, '_blank', 'noopener') // 원본 채널 이동(자동지원 아님)
-    onProcessed?.(jobId) // 낙관적 정리
     const ok = await record('applied')
     if (ok) {
+      setApplied(true)
       notify('지원 기록됐어요')
     } else {
-      onRestore?.(jobId) // 롤백
       notify(FAIL_MSG)
     }
   }
@@ -99,11 +101,17 @@ export function JobCardActions({
       <button
         type="button"
         data-testid="action-apply"
-        disabled={busy}
+        disabled={busy || applied}
         onClick={() => void apply()}
-        style={{ ...btn, background: 'var(--grape-600)', color: 'var(--surface)', border: 'none' }}
+        style={{
+          ...btn,
+          background: applied ? 'var(--coverage-on-bg)' : 'var(--grape-600)',
+          color: applied ? 'var(--band-5-ink)' : 'var(--surface)',
+          border: 'none',
+          cursor: applied ? 'default' : 'pointer',
+        }}
       >
-        지원하기
+        {applied ? '지원함 ✓' : '지원하기'}
       </button>
       <button
         type="button"

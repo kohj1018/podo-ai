@@ -53,7 +53,6 @@ export function JobCard({
     <article
       data-testid="job-card"
       aria-label={`${posting.company} ${posting.title}`}
-      className="flex items-start gap-4"
       style={{
         color: 'var(--ink)',
         background: 'var(--surface)',
@@ -63,47 +62,68 @@ export function JobCard({
         boxShadow: 'var(--shadow-card)',
       }}
     >
-      {held ? null : <FitScoreRing level={fit_level} />}
-
-      <div className="flex-1">
-        <div className="flex items-center gap-2 text-xs uppercase tracking-wide">
-          <span>{posting.source}</span>
-          {posting.role_family ? <span>· {posting.role_family}</span> : null}
-          {/* crawler(단일 writer)가 쓰는 실제 값은 한글: "신규"/"유지"/"마감". */}
-          {posting.diff_status === '신규' ? (
-            <span data-testid="diff-new" style={{ color: 'var(--band-5-ink)' }}>
-              · NEW
-            </span>
-          ) : null}
-          {posting.diff_status === '마감' ? (
-            <span data-testid="diff-closed" style={{ color: 'var(--band-2-ink)' }}>
-              · 마감
-            </span>
-          ) : null}
-        </div>
-        <h2 className="font-semibold">{posting.title}</h2>
-        <p className="text-sm">{posting.company}</p>
-
-        {held ? (
-          <div className="mt-2">
-            <PendingState url={posting.url} />
+      {/* 헤더: 회사·직무(좌) + fit 링·강추 배지(우, mockup §추천). fit 링은 1~5 정직 표기(가짜 % 금지). */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 text-xs uppercase tracking-wide">
+            <span>{posting.source}</span>
+            {posting.role_family ? <span>· {posting.role_family}</span> : null}
+            {/* crawler(단일 writer)가 쓰는 실제 값은 한글: "신규"/"유지"/"마감". */}
+            {posting.diff_status === '신규' ? (
+              <span data-testid="diff-new" style={{ color: 'var(--band-5-ink)' }}>
+                · NEW
+              </span>
+            ) : null}
+            {posting.diff_status === '마감' ? (
+              <span data-testid="diff-closed" style={{ color: 'var(--band-2-ink)' }}>
+                · 마감
+              </span>
+            ) : null}
           </div>
-        ) : (
-          <>
-            <div className="mt-2">
-              <PassBand level={fit_level} />
-            </div>
-            {days !== null ? <DeadlineRow daysLeft={days} /> : null}
-            <EvidenceBlock evidence={evidence} jobId={posting.id} />
-            <JobCardActions
-              jobId={posting.id}
-              url={posting.url}
-              onProcessed={onProcessed}
-              onRestore={onRestore}
-            />
-          </>
+          <h2 className="font-semibold">{posting.title}</h2>
+          <p className="text-sm">{posting.company}</p>
+        </div>
+
+        {held ? null : (
+          <div className="flex shrink-0 flex-col items-center gap-1">
+            <FitScoreRing level={fit_level} />
+            {fit_level !== null && fit_level >= 5 ? (
+              <span
+                data-testid="podo-pick"
+                style={{
+                  padding: '2px 8px',
+                  borderRadius: '999px',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  background: 'var(--grape-100)',
+                  color: 'var(--grape-700)',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                podo 강추!
+              </span>
+            ) : null}
+          </div>
         )}
       </div>
+
+      {held ? (
+        <div className="mt-2">
+          <PendingState url={posting.url} />
+        </div>
+      ) : (
+        <div className="mt-3">
+          <PassBand level={fit_level} />
+          {days !== null ? <DeadlineRow daysLeft={days} /> : null}
+          <EvidenceBlock evidence={evidence} jobId={posting.id} />
+          <JobCardActions
+            jobId={posting.id}
+            url={posting.url}
+            onProcessed={onProcessed}
+            onRestore={onRestore}
+          />
+        </div>
+      )}
     </article>
   )
 }

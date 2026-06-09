@@ -108,10 +108,10 @@ describe('피드 세로 IA 순서 (AC-2)', () => {
     const deadline = screen.getByTestId('deadline-section')
     const firstCard = screen.getAllByTestId('job-card')[0]
 
-    // 커버리지 → 탭 → greeting → 마감 임박 → 추천(첫 카드)
-    expect(isAfter(coverage, tablist)).toBe(true)
+    // 탭 → greeting → 마감 임박 → 추천(첫 카드) → 커버리지 footer(최하단)
     expect(isAfter(tablist, greeting)).toBe(true)
     expect(isAfter(greeting, deadline)).toBe(true)
     expect(isAfter(deadline, firstCard)).toBe(true)
+    expect(isAfter(firstCard, coverage)).toBe(true)
   })
 })

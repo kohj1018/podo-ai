@@ -30,15 +30,40 @@ export function GreetingCard({
       <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '16px 18px' }}>
         {/* 포도 마스코트 — '도착' Lottie(T-099). 에셋 미조달/reduced-motion/로드실패 시 정적 마스코트 fallback. */}
         <PodoLottie src="/podo-arrival.lottie" size={52} />
-        <div>
-          <p style={{ fontWeight: 700, margin: 0, fontSize: '18px' }}>
-            포도가 오늘의 자리를 골라왔어요!
+        <div style={{ flex: 1 }}>
+          <p style={{ fontWeight: 800, margin: 0, fontSize: '18px' }}>포지션 도착! 🍇</p>
+          <p style={{ margin: '2px 0 10px', color: 'var(--muted)', fontSize: '13px' }}>
+            밤새 둘러보고 맞는 자리를 골라왔어요.
           </p>
-          <p style={{ margin: '4px 0 0', color: 'var(--muted)', fontSize: '13px' }}>
-            <span data-testid="new-count">신규 {newCount}건</span>
-            {' · '}
-            <span data-testid="expiring-count">마감 임박 {expiringCount}건</span>
-          </p>
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+            <span
+              data-testid="new-count"
+              style={{
+                padding: '4px 10px',
+                borderRadius: '999px',
+                fontSize: '12px',
+                fontWeight: 700,
+                background: 'var(--grape-100)',
+                color: 'var(--grape-700)',
+              }}
+            >
+              신규 {newCount}건
+            </span>
+            <span
+              data-testid="expiring-count"
+              style={{
+                padding: '4px 10px',
+                borderRadius: '999px',
+                fontSize: '12px',
+                fontWeight: 700,
+                background: 'var(--coverage-on-bg)',
+                color: 'var(--band-2-ink)',
+                opacity: expiringCount > 0 ? 1 : 0.5,
+              }}
+            >
+              마감 임박 {expiringCount}건
+            </span>
+          </div>
         </div>
       </div>
     </section>

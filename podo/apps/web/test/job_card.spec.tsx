@@ -77,10 +77,10 @@ describe('JobCard EvidenceBlock toggle (AC-2)', () => {
     fireEvent.click(toggle) // 버튼 활성(키보드 Enter/Space와 동일 동작)
     expect(toggle.getAttribute('aria-expanded')).toBe('true')
 
-    // JD 인용 + 이력서↔JD 매핑 렌더
+    // JD 요구사항 + 충족(✓) 렌더 — 이력서 원문(evidence_quotes)은 미표시(PII 보호)
     const block = screen.getByTestId('evidence-block')
     expect(block.getAttribute('id')).toBe(toggle.getAttribute('aria-controls'))
-    expect(screen.getByText(/React 18 프로젝트 3년/)).toBeTruthy()
+    expect(screen.queryByText(/React 18 프로젝트 3년/)).toBeNull()
     expect(screen.getByText(/React 개발 경험/)).toBeTruthy()
   })
 })

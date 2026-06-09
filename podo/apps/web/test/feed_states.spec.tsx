@@ -81,10 +81,11 @@ describe('CoveragePanel degraded (AC-2)', () => {
     )
 
     const panel = screen.getByTestId('coverage-panel')
-    expect(panel.getAttribute('role')).toBe('alert')
-    expect(panel.textContent).toContain('수집 실패')
-    // "전부 수집" 거짓 인상 금지
+    // 친근한 footer — 알람(role=alert·"수집 실패") 아님, 미수집은 정직하게 고지(Fail#3 유지)
+    expect(panel.getAttribute('role')).not.toBe('alert')
+    expect(panel.textContent).not.toContain('수집 실패')
     expect(panel.textContent).not.toContain('전부')
+    expect(screen.getByTestId('coverage-uncollected')).toBeTruthy()
   })
 })
 

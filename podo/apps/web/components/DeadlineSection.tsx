@@ -32,12 +32,14 @@ export function DeadlineSection({ items }: { items: FeedItem[] }) {
         boxShadow: 'var(--shadow-soft)',
       }}
     >
-      <h2
-        className="text-sm font-semibold"
-        style={{ color: 'var(--band-2-ink)', marginBottom: '8px' }}
-      >
-        ⏰ 마감 임박
-      </h2>
+      <div style={{ marginBottom: '8px' }}>
+        <h2 className="text-sm font-semibold" style={{ color: 'var(--band-2-ink)', margin: 0 }}>
+          🔥 마감 임박
+        </h2>
+        <p style={{ fontSize: '12px', color: 'var(--muted)', margin: '2px 0 0' }}>
+          놓치기 전에 먼저
+        </p>
+      </div>
       <ul
         style={{
           listStyle: 'none',

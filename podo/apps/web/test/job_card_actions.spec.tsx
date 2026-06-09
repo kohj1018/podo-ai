@@ -8,7 +8,7 @@ afterEach(() => {
 })
 
 describe('JobCardActions 지원하기 (AC-1)', () => {
-  it('test_AC_1_apply_opens_link_records_and_clears', async () => {
+  it('test_AC_1_apply_opens_link_records_no_remove', async () => {
     const openMock = vi.fn()
     vi.stubGlobal('open', openMock)
     const fetchMock = vi.fn().mockResolvedValue({ ok: true })
@@ -18,14 +18,17 @@ describe('JobCardActions 지원하기 (AC-1)', () => {
     render(<JobCardActions jobId={7} url="https://toss.test/7" onProcessed={onProcessed} />)
     fireEvent.click(screen.getByTestId('action-apply'))
 
-    // 원본 채널 새 탭 + 낙관적 정리(onProcessed)
+    // 원본 채널 새 탭
     expect(openMock).toHaveBeenCalledWith('https://toss.test/7', '_blank', 'noopener')
-    expect(onProcessed).toHaveBeenCalledWith(7)
 
     // applied 기록 POST + 성공 Toast
     await waitFor(() =>
       expect(screen.getByTestId('action-toast').textContent).toContain('지원 기록됐어요'),
     )
+    // 지원하기는 카드를 제거하지 않는다(사용자 결정) — onProcessed 미호출 + 버튼 "지원함"
+    expect(onProcessed).not.toHaveBeenCalled()
+    expect(screen.getByTestId('action-apply').textContent).toContain('지원함')
+
     const [u, init] = fetchMock.mock.calls[0]
     expect(String(u)).toContain('/api/v1/applications')
     expect(JSON.parse((init as { body: string }).body)).toEqual({

@@ -7,10 +7,9 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-// T-063 AC-3: 소스 혼합 상태(일부 blocked·login-required)가 사유별 status로 명시되고
-// "N/M 소스 수집 중" 요약이 표시되며 "전부 수집" 거짓 인상이 없다(Fail #3).
-describe('CoveragePanel partial-failure display (AC-3)', () => {
-  it('test_AC_3_coverage_panel_partial_failure_display', async () => {
+// 친근한 수집 footer — 활성 채널 chip + "그 외 채널 미수집"(알람 X) + "미수집은 추천 제외" 정직 고지(Fail#3 유지).
+describe('CoveragePanel friendly footer (AC-3)', () => {
+  it('test_AC_3_partial_failure_compact_honest', async () => {
     const cov = {
       channels: [
         {
@@ -31,34 +30,27 @@ describe('CoveragePanel partial-failure display (AC-3)', () => {
     await waitFor(() =>
       expect(screen.getByTestId('coverage-panel').getAttribute('data-state')).toBe('degraded'),
     )
-
     const panel = screen.getByTestId('coverage-panel')
-    // degraded → role=alert(투명 경고)
-    expect(panel.getAttribute('role')).toBe('alert')
-    // 사유별 status 명시
-    expect(panel.textContent).toContain('로그인 필요')
-    expect(panel.textContent).toContain('차단')
-    // "N/M 소스 수집 중" 요약(active 1 / 전체 3)
-    expect(panel.textContent).toContain('1/3 소스 수집 중')
-    // 거짓 완전성 0 — "전부" 인상 금지
-    expect(panel.textContent).not.toContain('전부')
-    // 수집된 소스도 마지막 성공 시각 노출
-    expect(panel.textContent).toContain('마지막 성공')
+
+    // 알람 아님 — role=alert·"수집 실패"·차단 나열 없음(UX 보호)
+    expect(panel.getAttribute('role')).not.toBe('alert')
+    expect(panel.textContent).not.toContain('수집 실패')
+    expect(panel.textContent).not.toContain('차단')
+
+    // 활성 채널 chip(당근) + "그 외 채널 미수집" + 정직 고지(Fail#3)
+    expect(screen.getAllByTestId('coverage-chip-active').length).toBe(1)
+    expect(panel.textContent).toContain('당근')
+    expect(screen.getByTestId('coverage-uncollected')).toBeTruthy()
+    expect(panel.textContent).toContain('미수집 채널은 추천에 포함되지 않아요')
   })
 
-  it('test_AC_3_all_active_no_false_degraded', async () => {
-    // 모두 active → ready(region) + "2/2 소스 수집 중"
+  it('test_AC_3_all_active_no_uncollected_chip', async () => {
     const cov = {
       channels: [
+        { name: 'toss', tier: '1', status: 'active', last_success_at: '2026-06-07T01:00:00.000Z' },
         {
           name: 'daangn',
           tier: '3',
-          status: 'active',
-          last_success_at: '2026-06-07T01:00:00.000Z',
-        },
-        {
-          name: 'coupang',
-          tier: '1',
           status: 'active',
           last_success_at: '2026-06-07T02:00:00.000Z',
         },
@@ -70,8 +62,8 @@ describe('CoveragePanel partial-failure display (AC-3)', () => {
 
     render(<CoveragePanel />)
     await waitFor(() => expect(screen.getByRole('region', { name: '수집 현황' })).toBeTruthy())
-    const panel = screen.getByTestId('coverage-panel')
-    expect(panel.getAttribute('data-state')).toBe('ready')
-    expect(panel.textContent).toContain('2/2 소스 수집 중')
+    // 전부 활성 → active chip 2개, "그 외 채널 미수집" 없음
+    expect(screen.getAllByTestId('coverage-chip-active').length).toBe(2)
+    expect(screen.queryByTestId('coverage-uncollected')).toBeNull()
   })
 })
