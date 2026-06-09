@@ -1,7 +1,7 @@
 # T-090-deadline-section-and-feed-ia
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 feature
@@ -24,6 +24,13 @@ feature
 - CoarseSection 마운트(T-091) · 검색/정렬.
 
 ## 4-1. 변경 예정 파일/경로
+- `podo/apps/web/components/DeadlineSection.tsx` (신규 — 마감 임박 섹션, DeadlineRow 재사용)
+- `podo/apps/web/components/FeedList.tsx` (DeadlineSection을 ArrivalList 위에 삽입)
+- `podo/apps/web/components/CoveragePanel.tsx` (compact 1줄 strip + 펼침 토글, degraded 자동 펼침)
+- `podo/apps/web/test/deadline_section.spec.tsx` (신규 — AC-1)
+- `podo/apps/web/test/feed_ia.spec.tsx` (신규 — AC-2 세로 순서, HomePage 통합)
+- `podo/apps/web/test/coverage_compact.spec.tsx` (신규 — AC-3)
+- `podo/apps/web/test/evidence_coverage.spec.tsx` (compact strip 동작에 맞춰 토글 후 상세 단언으로 갱신)
 
 ## 5. 완료 조건
 마감 임박 공고가 추천과 분리된 섹션으로 위에 뜨고(데이터 시), 커버리지가 compact strip이며, 피드 세로 순서가 IA를 따른다.

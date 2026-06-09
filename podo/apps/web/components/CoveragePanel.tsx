@@ -51,11 +51,21 @@ function activeCount(channels: ChannelCoverage[]): number {
   return channels.filter((c) => c.status === 'active' || c.status === 'success').length
 }
 
+// 가장 최근 성공 시각(HH:MM). 없으면 null.
+function lastCollected(channels: ChannelCoverage[]): string | null {
+  const times = channels
+    .map((c) => c.last_success_at)
+    .filter((t): t is string => Boolean(t))
+    .sort()
+  return times.length > 0 ? times[times.length - 1] : null
+}
+
 // 커버리지 투명성 패널 — "전부 수집" 인상 차단(Fail #3 / Charter G3). 상시 노출.
-// 실패를 삼키지 않고 노출(REV-M2-UI-001). 소스별 status를 사유와 함께 + "N/M 소스 수집 중" 요약.
+// 기본은 compact 1줄 strip(피로 최소 IA §2-A-1) + 펼침 토글로 채널 상세. degraded면 자동 펼침 + 경고(role=alert).
 export function CoveragePanel() {
   const [cov, setCov] = useState<Coverage | null>(null)
   const [error, setError] = useState(false)
+  const [expanded, setExpanded] = useState(false)
 
   useEffect(() => {
     let alive = true
@@ -104,20 +114,25 @@ export function CoveragePanel() {
   const summary =
     total > 0 ? `${activeCount(cov.channels)}/${total} 소스 수집 중` : '등록된 소스 없음'
 
-  // 소스별 status 리스트(active=수집 중·시각, 그 외=사유 라벨). 공통 렌더.
-  const sourceList = (
-    <ul>
-      {cov.channels.map((c) => (
-        <li key={c.name}>
-          {c.name}
-          {c.tier ? ` (T${c.tier})` : ''}: {statusLabel(c.status)}
-          {c.last_success_at ? ` · 마지막 성공 ${hhmm(c.last_success_at)}` : ''}
-        </li>
-      ))}
-    </ul>
+  // 소스별 status 리스트(active=수집 중·시각, 그 외=사유 라벨). 펼침 시 노출.
+  const detail = (
+    <div data-testid="coverage-detail">
+      <ul>
+        {cov.channels.map((c) => (
+          <li key={c.name}>
+            {c.name}
+            {c.tier ? ` (T${c.tier})` : ''}: {statusLabel(c.status)}
+            {c.last_success_at ? ` · 마지막 성공 ${hhmm(c.last_success_at)}` : ''}
+          </li>
+        ))}
+      </ul>
+      {cov.uncollected.length > 0 ? (
+        <p style={{ color: 'var(--faint)' }}>미수집: {cov.uncollected.join(', ')}</p>
+      ) : null}
+    </div>
   )
 
-  // degraded(수집 실패/미수집/차단/로그인 등) → danger + role=alert. "전부 수집" 거짓 인상 차단.
+  // degraded(수집 실패/미수집/차단/로그인 등) → danger + role=alert + 자동 펼침. "전부 수집" 거짓 인상 차단.
   if (cov.degraded) {
     return (
       <section
@@ -129,14 +144,13 @@ export function CoveragePanel() {
       >
         <h2 className="font-medium">수집 실패</h2>
         <p>{summary} · 일부 공고가 누락될 수 있어요.</p>
-        {sourceList}
-        {cov.uncollected.length > 0 ? (
-          <p style={{ color: 'var(--faint)' }}>미수집: {cov.uncollected.join(', ')}</p>
-        ) : null}
+        {detail}
       </section>
     )
   }
 
+  // ready — compact 1줄 strip + 펼침 토글. region(aria-label) 유지.
+  const last = lastCollected(cov.channels)
   return (
     <section
       data-testid="coverage-panel"
@@ -149,12 +163,29 @@ export function CoveragePanel() {
         color: 'var(--band-5-ink)',
       }}
     >
-      <h2 className="font-medium">수집 현황</h2>
-      <p>{summary}</p>
-      {sourceList}
-      {cov.uncollected.length > 0 ? (
-        <p style={{ color: 'var(--faint)' }}>미수집: {cov.uncollected.join(', ')}</p>
-      ) : null}
+      <button
+        type="button"
+        data-testid="coverage-toggle"
+        aria-expanded={expanded}
+        onClick={() => setExpanded((v) => !v)}
+        className="flex w-full items-center justify-between text-left"
+        style={{
+          background: 'none',
+          border: 'none',
+          padding: 0,
+          color: 'inherit',
+          cursor: 'pointer',
+        }}
+      >
+        <span>
+          📡 {summary}
+          {last ? ` · 마지막 ${hhmm(last)}` : ''}
+        </span>
+        <span aria-hidden="true" style={{ color: 'var(--faint)' }}>
+          {expanded ? '▲' : '▼'}
+        </span>
+      </button>
+      {expanded ? <div className="mt-2">{detail}</div> : null}
     </section>
   )
 }

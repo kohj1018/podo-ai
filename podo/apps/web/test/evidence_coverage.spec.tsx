@@ -65,8 +65,13 @@ describe('CoveragePanel (AC-2)', () => {
     }
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => cov }))
     render(<CoveragePanel />)
-    await waitFor(() => expect(screen.getByTestId('coverage-panel').textContent).toContain('toss'))
+    // T-090: 기본 compact strip → 채널 상세는 펼침 토글 후 노출.
+    await waitFor(() =>
+      expect(screen.getByTestId('coverage-panel').getAttribute('data-state')).toBe('ready'),
+    )
+    fireEvent.click(screen.getByTestId('coverage-toggle'))
     const panel = screen.getByTestId('coverage-panel')
+    expect(panel.textContent).toContain('toss')
     expect(panel.textContent).toContain('daangn') // 수집/미수집 채널
     expect(panel.textContent).toContain('마지막 성공') // 마지막 성공 시각
     expect(panel.textContent).toContain('미수집') // 미수집 명시

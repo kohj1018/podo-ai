@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ArrivalList } from './ArrivalList'
+import { DeadlineSection } from './DeadlineSection'
 import { type FeedItem, JobCard } from './JobCard'
 
 interface FeedPage {
@@ -76,6 +77,8 @@ export function FeedList({ domain }: { domain?: string }) {
 
   return (
     <main style={{ maxWidth: '430px', margin: '0 auto', padding: '4px 16px 72px' }}>
+      {/* 마감 임박(closing_at ≤7일) 분리 섹션 — 추천 리스트 위. items 소유자(FeedList)에서 렌더(T-090 §3-3). */}
+      <DeadlineSection items={items} />
       {/* 신규 공고 arrival 모션(stagger) + reduced-motion 분기는 ArrivalList가 담당(T-048). */}
       <ArrivalList
         items={items}
