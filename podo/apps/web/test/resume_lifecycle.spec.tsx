@@ -137,3 +137,33 @@ describe('Score failure no nav (AC-3)', () => {
     expect(localStorage.getItem('podo_active_resume_id')).toBe('60')
   })
 })
+
+// QA-M7-005 회귀 — 채점 실패 후 새 이력서 제출 시 이전 score-error 메시지 잔류 제거.
+describe('Score error cleared on re-submit (QA-M7-005 repair)', () => {
+  it('test_score_error_cleared_on_resubmit', async () => {
+    const fetchMock = vi.fn((url: string | URL) => {
+      const u = String(url)
+      if (u.includes('/score')) {
+        return Promise.resolve({ ok: false, status: 500, json: async () => ({}) })
+      }
+      return Promise.resolve({ ok: true, json: async () => uploadResp(70) })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<ResumeUpload onNavigateFeed={vi.fn()} />)
+    fireEvent.change(screen.getByTestId('file-input'), { target: { files: [txtFile()] } })
+    fireEvent.click(screen.getByText('업로드'))
+    await waitFor(() =>
+      expect(screen.getByTestId('start-analysis-btn')).toHaveProperty('disabled', false),
+    )
+
+    // 채점 실패 → score-error 노출
+    fireEvent.click(screen.getByTestId('start-analysis-btn'))
+    await waitFor(() => expect(screen.getByTestId('score-error')).toBeTruthy())
+
+    // 새 이력서 제출(재업로드) → score-error 잔류 제거
+    fireEvent.change(screen.getByTestId('file-input'), { target: { files: [txtFile()] } })
+    fireEvent.click(screen.getByText('업로드'))
+    await waitFor(() => expect(screen.queryByTestId('score-error')).toBeNull())
+  })
+})

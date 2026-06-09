@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Toast } from './Toast'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3001'
@@ -22,7 +22,14 @@ export function JobCardActions({
   onProcessed?: (jobId: number) => void
   onRestore?: (jobId: number) => void
 }) {
-  const [toast, setToast] = useState<string | null>(null)
+  // toast를 {text, seq}로 — 동일 메시지 연속 알림도 seq 변경으로 재렌더 + Toast key 재마운트해
+  // auto-dismiss 후 동일 메시지가 다시 뜬다(QA-M7-003: 연속 동일 실패 시 두 번째 toast 누락 회귀 차단).
+  const [toast, setToast] = useState<{ text: string; seq: number } | null>(null)
+  const seqRef = useRef(0)
+  function notify(text: string) {
+    seqRef.current += 1
+    setToast({ text, seq: seqRef.current })
+  }
   const [skipped, setSkipped] = useState(false)
   const [busy, setBusy] = useState(false)
 
@@ -48,10 +55,10 @@ export function JobCardActions({
     onProcessed?.(jobId) // 낙관적 정리
     const ok = await record('applied')
     if (ok) {
-      setToast('지원 기록됐어요')
+      notify('지원 기록됐어요')
     } else {
       onRestore?.(jobId) // 롤백
-      setToast(FAIL_MSG)
+      notify(FAIL_MSG)
     }
   }
 
@@ -61,21 +68,21 @@ export function JobCardActions({
     const ok = await record(next ? 'skipped' : 'unskip')
     if (!ok) {
       setSkipped(!next) // 롤백
-      setToast(FAIL_MSG)
+      notify(FAIL_MSG)
       return
     }
     if (next) {
       onProcessed?.(jobId)
-      setToast('스킵했어요')
+      notify('스킵했어요')
     } else {
       onRestore?.(jobId)
-      setToast('되돌렸어요')
+      notify('되돌렸어요')
     }
   }
 
   async function favorite() {
     const ok = await record('favorite')
-    setToast(ok ? '즐겨찾기에 담았어요' : FAIL_MSG)
+    notify(ok ? '즐겨찾기에 담았어요' : FAIL_MSG)
   }
 
   const btn = {
@@ -116,8 +123,8 @@ export function JobCardActions({
       >
         즐겨찾기
       </button>
-      {/* 공용 Toast(role=status, aria-live=polite) — 인라인 markup 대체(T-100, 행동 불변). */}
-      <Toast message={toast} testId="action-toast" />
+      {/* 공용 Toast(role=status, aria-live=polite) — 인라인 markup 대체(T-100). key=seq로 동일 메시지 재노출. */}
+      <Toast key={toast?.seq} message={toast?.text ?? null} testId="action-toast" />
     </div>
   )
 }

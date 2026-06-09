@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { JobCardActions } from '../components/JobCardActions'
 import { Toast } from '../components/Toast'
@@ -6,6 +6,33 @@ import { Toast } from '../components/Toast'
 afterEach(() => {
   cleanup()
   vi.unstubAllGlobals()
+})
+
+// QA-M7-003 회귀 — auto-dismiss 후 동일 메시지를 새 key로 다시 set하면 재노출(JobCardActions notify seq 메커니즘).
+function Harness({ msg, seq }: { msg: string; seq: number }) {
+  return (
+    <div>
+      <Toast key={seq} message={msg} testId="t" />
+    </div>
+  )
+}
+
+describe('Toast re-show after dismiss (QA-M7-003 repair)', () => {
+  it('test_toast_reshows_same_message_on_new_key', () => {
+    vi.useFakeTimers()
+    const { rerender } = render(<Harness msg="저장 실패" seq={1} />)
+    expect(screen.getByTestId('t')).toBeTruthy()
+
+    act(() => {
+      vi.advanceTimersByTime(3500)
+    })
+    expect(screen.queryByTestId('t')).toBeNull() // 자동 dismiss
+
+    // 동일 메시지지만 seq(key) 변경 → 재마운트 → 다시 노출
+    rerender(<Harness msg="저장 실패" seq={2} />)
+    expect(screen.getByTestId('t')).toBeTruthy()
+    vi.useRealTimers()
+  })
 })
 
 // T-100 AC-1 — 지원/스킵/즐겨찾기 피드백이 공용 Toast(role=status, aria-live=polite)로 동일 동작.

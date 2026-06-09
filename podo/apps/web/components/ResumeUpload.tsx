@@ -77,6 +77,7 @@ export function ResumeUpload({ onNavigateFeed }: { onNavigateFeed?: (path: strin
   // 공통 제출 — 파일(FormData) 또는 텍스트({text} JSON) 모두 기존 POST /api/v1/resumes 경로.
   async function submitResume(payload: { file: File } | { text: string }) {
     setUploadError(false)
+    setScoreError(false) // 새 제출 시 이전 채점 실패 메시지 잔류 제거(QA-M7-005)
     setUploading(true)
     try {
       let res: Response
