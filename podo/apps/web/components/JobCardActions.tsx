@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { Toast } from './Toast'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3001'
 
@@ -115,12 +116,8 @@ export function JobCardActions({
       >
         즐겨찾기
       </button>
-      {/* <output>은 암묵 role=status(aria-live polite) — biome useSemanticElements 정합. */}
-      {toast ? (
-        <output data-testid="action-toast" style={{ color: 'var(--muted)' }}>
-          {toast}
-        </output>
-      ) : null}
+      {/* 공용 Toast(role=status, aria-live=polite) — 인라인 markup 대체(T-100, 행동 불변). */}
+      <Toast message={toast} testId="action-toast" />
     </div>
   )
 }

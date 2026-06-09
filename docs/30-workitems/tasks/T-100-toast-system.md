@@ -1,7 +1,7 @@
 # T-100-toast-system
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 refactor
@@ -20,6 +20,9 @@ refactor
 - Toast 큐/스택 라이브러리. 신규 알림 채널.
 
 ## 4-1. 변경 예정 파일/경로
+- `podo/apps/web/components/Toast.tsx` (신규 — output role=status + aria-live=polite + 자동 dismiss)
+- `podo/apps/web/components/JobCardActions.tsx` (인라인 toast → <Toast/> 치환, 행동 불변)
+- `podo/apps/web/test/toast.spec.tsx` (신규 — AC-1)
 
 ## 5. 완료 조건
 지원/스킵/즐겨찾기 피드백이 공용 Toast(role=status)로 표시되며 기존 동작이 동일하다.
