@@ -149,23 +149,33 @@ resource "aws_iam_policy" "worker_secrets" {
 
 resource "aws_iam_policy" "worker_sqs_consume" {
   name        = "podo-${var.env}-worker-sqs-consume"
-  description = "worker: SQS ReceiveMessage/DeleteMessage — scoring queue 소비"
+  description = "worker: scoring 큐 소비(Receive/Delete) + status 큐 신호(Send)"
 
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [{
-      Effect = "Allow"
-      Action = [
-        "sqs:ReceiveMessage",
-        "sqs:DeleteMessage",
-        "sqs:GetQueueAttributes",
-        "sqs:GetQueueUrl"
-      ]
-      Resource = [
-        aws_sqs_queue.scoring.arn,
-        aws_sqs_queue.scoring_status.arn,
-      ]
-    }]
+    Statement = [
+      {
+        Sid    = "ConsumeScoringQueue"
+        Effect = "Allow"
+        Action = [
+          "sqs:ReceiveMessage",
+          "sqs:DeleteMessage",
+          "sqs:GetQueueAttributes"
+        ]
+        Resource = [aws_sqs_queue.scoring.arn]
+      },
+      {
+        # worker는 처리 상태(running/done/failed)를 status 큐로 emit한다(_emit_status).
+        # SendMessage 누락 시 첫 _emit_status에서 AccessDenied → 채점 시작도 못 하고 crash.
+        Sid    = "EmitStatusQueue"
+        Effect = "Allow"
+        Action = [
+          "sqs:SendMessage",
+          "sqs:GetQueueAttributes"
+        ]
+        Resource = [aws_sqs_queue.scoring_status.arn]
+      },
+    ]
   })
 }
 
