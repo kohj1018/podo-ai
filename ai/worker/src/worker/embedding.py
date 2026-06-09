@@ -26,7 +26,12 @@ _EMBEDDING_MODEL = "text-embedding-3-small"
 # 모듈 레벨 클라이언트 — patch 지점(테스트가 worker.embedding.openai_client로 교체).
 # 무키 import 안전: OpenAI 생성자가 빈 키에 raise하므로 키 있을 때만 인스턴스화. 무키는
 # None → _call_embed가 명시 raise(호출자 try/except → N-path 폴백).
-openai_client: Any = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
+# timeout 필수 — 미설정 시 SDK 기본 600s로 무응답 호출이 워커를 행시킴.
+openai_client: Any = (
+    OpenAI(api_key=OPENAI_API_KEY, timeout=30.0, max_retries=2)
+    if OPENAI_API_KEY
+    else None
+)
 
 
 def _call_embed(text: str) -> list[float]:

@@ -49,7 +49,8 @@ def _openai_call(system: str, user: str, max_tokens: int, temperature: float) ->
 
     import openai
 
-    client = openai.OpenAI(api_key=OPENAI_API_KEY)
+    # timeout 필수 — 미설정 시 SDK 기본 600s로 무응답 호출이 워커를 행시킴.
+    client = openai.OpenAI(api_key=OPENAI_API_KEY, timeout=60.0, max_retries=2)
     messages = [
         {"role": "system", "content": system},
         {"role": "user", "content": user},
