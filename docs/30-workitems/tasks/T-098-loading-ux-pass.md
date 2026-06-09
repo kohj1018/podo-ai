@@ -1,7 +1,7 @@
 # T-098-loading-ux-pass
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 feature
@@ -23,6 +23,11 @@ feature
 - 신규 surface 기능. 데이터 로딩 성능 최적화.
 
 ## 4-1. 변경 예정 파일/경로
+- `podo/apps/web/components/AuthGate.tsx` (로딩 텍스트 → shimmer skeleton + aria-busy)
+- `podo/apps/web/components/CoveragePanel.tsx` (로딩 텍스트 → compact strip shimmer skeleton + aria-busy)
+- `podo/apps/web/components/ActivityList.tsx` (기존 shimmer 로딩에 aria-label 일관화)
+- `podo/apps/web/test/loading_ux.spec.tsx` (신규 — AC-1/AC-2)
+- (무변경) `globals.css` — .shimmer reduced-motion 분기 기존재, 신규 skeleton도 .shimmer 재사용이라 불필요
 
 ## 5. 완료 조건
 주요 로딩 지점이 가짜 점수 없이 일관된 로딩 UI를 보여주고 reduced-motion을 분기한다.

@@ -19,19 +19,21 @@ export function AuthGate({ children }: { children: ReactNode }) {
   if (status === 'authed') {
     return <>{children}</>
   }
-  // loading + guest(리다이렉트 진행 중) — 깜빡임 최소 placeholder. <output>=암묵 role=status.
+  // loading + guest(리다이렉트 진행 중) — skeleton(shimmer) placeholder. <output>=암묵 role=status + aria-busy.
+  // shimmer는 globals.css에서 reduced-motion 정적 분기(T-098 AC-2). 가짜 점수/preview 미표시.
   return (
     <output
       aria-live="polite"
-      style={{
-        display: 'block',
-        maxWidth: '430px',
-        margin: '0 auto',
-        padding: '48px 24px',
-        color: 'var(--muted)',
-      }}
+      aria-busy="true"
+      aria-label="불러오는 중"
+      data-testid="authgate-loading"
+      style={{ display: 'block', maxWidth: '430px', margin: '0 auto', padding: '48px 24px' }}
     >
-      불러오는 중…
+      <div
+        className="shimmer"
+        style={{ height: '16px', borderRadius: '8px', marginBottom: '10px' }}
+      />
+      <div className="shimmer" style={{ height: '16px', borderRadius: '8px', width: '60%' }} />
     </output>
   )
 }

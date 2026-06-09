@@ -99,13 +99,16 @@ export function CoveragePanel() {
   }
 
   if (!cov) {
+    // compact strip 로딩 skeleton(T-098) — shimmer 1줄. reduced-motion은 globals.css에서 정적 분기.
     return (
       <section
         data-testid="coverage-panel"
         data-state="loading"
-        className="mx-auto max-w-[430px] p-3 text-sm"
+        aria-busy="true"
+        aria-label="수집 현황 불러오는 중"
+        className="mx-auto max-w-[430px] rounded-xl border p-3"
       >
-        수집 현황 불러오는 중…
+        <div className="shimmer" style={{ height: '14px', borderRadius: '8px', width: '70%' }} />
       </section>
     )
   }

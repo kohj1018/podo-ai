@@ -60,6 +60,7 @@ export function ActivityList({ filter }: { filter: 'favorite' | 'applied' }) {
       <section
         data-testid="activity-loading"
         aria-busy="true"
+        aria-label="불러오는 중"
         style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}
       >
         <div className="shimmer" style={{ height: '56px', borderRadius: '16px' }} />
