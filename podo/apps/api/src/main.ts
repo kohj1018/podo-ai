@@ -23,7 +23,9 @@ async function bootstrap(): Promise<void> {
   app.use(rateLimit({ windowMs: 60_000, limit: 300, standardHeaders: true, legacyHeaders: false }))
 
   // httpOnly 쿠키 세션(express-session) + passport. DB 세션 테이블 없음(stateless 서명 쿠키, ADR-006 단순성).
-  // 쿠키: 로컬(web:3000↔api:3001 same-site)=lax, 프로덕션(Vercel↔AWS cross-site)=none+secure(M6 T-087).
+  // 쿠키 SameSite=Lax: web(www.podoai.xyz)·api(api.podoai.xyz)가 같은 site라 Lax로 충분하다.
+  // Lax는 최상위 내비게이션(OAuth 콜백)에서 저장되고 same-site fetch(/auth/me)에서 전송되며,
+  // None과 달리 Chrome 서드파티 쿠키 차단·bounce-tracking 대상이 아니다(교차 도메인일 때만 None 필요했음).
   const isProd = process.env.NODE_ENV === 'production'
   app.use(
     session({
@@ -36,7 +38,7 @@ async function bootstrap(): Promise<void> {
       proxy: isProd,
       cookie: {
         httpOnly: true,
-        sameSite: isProd ? 'none' : 'lax',
+        sameSite: 'lax', // same-site(www↔api.podoai.xyz) — None 불필요·서드파티 차단 회피
         secure: isProd,
         maxAge: 1000 * 60 * 60 * 24 * 7, // 7일
       },
