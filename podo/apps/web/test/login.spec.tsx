@@ -1,10 +1,18 @@
-import { cleanup, render, screen } from '@testing-library/react'
-import { NextRequest } from 'next/server'
-import { afterEach, describe, expect, it } from 'vitest'
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { AuthGate } from '../components/AuthGate'
 import { LoginButtons } from '../components/LoginButtons'
-import { middleware } from '../middleware'
+import { SessionProvider } from '../components/SessionProvider'
 
-afterEach(() => cleanup())
+// next/navigation의 useRouter().replace를 가로채 리다이렉트 호출을 검증(vi.hoisted로 mock 공유).
+const { replace } = vi.hoisted(() => ({ replace: vi.fn() }))
+vi.mock('next/navigation', () => ({ useRouter: () => ({ replace }) }))
+
+afterEach(() => {
+  cleanup()
+  vi.unstubAllGlobals()
+  replace.mockClear()
+})
 
 const HEX = /#[0-9a-fA-F]{3,6}/
 
@@ -39,20 +47,41 @@ describe('LoginButtons error (AC-2)', () => {
   })
 })
 
-describe('middleware 보호 라우트 (AC-3)', () => {
-  it('test_AC_3_middleware_redirects_unauthenticated_to_login', () => {
-    // 세션 쿠키 없는 요청 → /login 리다이렉트
-    const req = new NextRequest('http://localhost:3000/')
-    const res = middleware(req)
-    expect(res.status).toBe(307) // NextResponse.redirect
-    expect(res.headers.get('location')).toContain('/login')
+// AC-3 — 보호 라우트 클라이언트 가드(AuthGate). 교차 도메인이라 SSR 미들웨어 대신
+// 브라우저가 /auth/me를 직접 질의(credentials:'include')해 인증 여부를 판별한다.
+describe('AuthGate 보호 라우트 (AC-3)', () => {
+  it('test_AC_3_authgate_redirects_unauthenticated_to_login', async () => {
+    // /auth/me 401 → 미인증 → /login 리다이렉트, 보호 내용 미렌더
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 401 }))
+
+    render(
+      <SessionProvider>
+        <AuthGate>
+          <div>보호된 내용</div>
+        </AuthGate>
+      </SessionProvider>,
+    )
+
+    await waitFor(() => expect(replace).toHaveBeenCalledWith('/login'))
+    expect(screen.queryByText('보호된 내용')).toBeNull()
   })
 
-  it('test_AC_3_middleware_allows_authenticated', () => {
-    const req = new NextRequest('http://localhost:3000/')
-    req.cookies.set('connect.sid', 's:fake.sig')
-    const res = middleware(req)
-    // 세션 있으면 통과(redirect 아님)
-    expect(res.headers.get('location')).toBeNull()
+  it('test_AC_3_authgate_renders_children_when_authenticated', async () => {
+    // /auth/me 200 → 인증 → 보호 내용 렌더, 리다이렉트 없음
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({ ok: true, json: async () => ({ data: { userId: 'u1' } }) }),
+    )
+
+    render(
+      <SessionProvider>
+        <AuthGate>
+          <div>보호된 내용</div>
+        </AuthGate>
+      </SessionProvider>,
+    )
+
+    await waitFor(() => expect(screen.getByText('보호된 내용')).toBeTruthy())
+    expect(replace).not.toHaveBeenCalled()
   })
 })

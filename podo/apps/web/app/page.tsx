@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { AuthGate } from '../components/AuthGate'
 import { CoveragePanel } from '../components/CoveragePanel'
 import { DomainTabBar } from '../components/DomainTabBar'
 import { FeedView } from '../components/FeedView'
@@ -43,17 +44,19 @@ export default function HomePage() {
   }, [])
 
   return (
-    <div className="flex flex-col gap-4 py-4">
-      <CoveragePanel />
-      {domains.length > 0 ? (
-        <DomainTabBar
-          domains={domains}
-          active={active}
-          onChange={setActive}
-          confidence={confidence}
-        />
-      ) : null}
-      <FeedView domain={active} />
-    </div>
+    <AuthGate>
+      <div className="flex flex-col gap-4 py-4">
+        <CoveragePanel />
+        {domains.length > 0 ? (
+          <DomainTabBar
+            domains={domains}
+            active={active}
+            onChange={setActive}
+            confidence={confidence}
+          />
+        ) : null}
+        <FeedView domain={active} />
+      </div>
+    </AuthGate>
   )
 }
