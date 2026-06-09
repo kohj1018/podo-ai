@@ -70,6 +70,14 @@ describe('AuthController test-session 발급 + SessionGuard 통과 (AC-1)', () =
   })
 })
 
+// /auth/me — 인증 세션이면 userId 반환(web 클라이언트 가드 질의용). 비인증 401은 SessionGuard(AC-2)가 담당.
+describe('AuthController /auth/me 세션 확인', () => {
+  it('test_me_returns_userid_for_authenticated_session', () => {
+    const controller = new AuthController()
+    expect(controller.me({ user: { id: 'user-Z' } })).toEqual({ data: { userId: 'user-Z' } })
+  })
+})
+
 // AC-2 — 횡단 접근 차단: 비인증 401 + (DB) 타인 이력서 채점 403 + (DB) 피드 사용자 격리.
 describe('데이터 격리 — 횡단 접근 차단 (AC-2)', () => {
   it('test_AC_2_unauthenticated_blocked_401', () => {

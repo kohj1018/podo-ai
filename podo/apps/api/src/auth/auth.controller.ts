@@ -9,11 +9,15 @@ import {
   UseGuards,
 } from '@nestjs/common'
 import { AuthGuard } from '@nestjs/passport'
+import { SessionGuard } from './session.guard'
 
 // express 의존 타입 회피 — 컨트롤러가 실제로 쓰는 최소 표면만 선언(feed.spec 패턴 정합).
 interface SessionRequest {
   login(user: { id: string }, done: (err?: unknown) => void): void
   logout(done: (err?: unknown) => void): void
+}
+interface AuthedRequest {
+  user?: { id: string }
 }
 interface JsonResponse {
   status(code: number): { json(body: unknown): void }
@@ -46,6 +50,15 @@ export class AuthController {
   @UseGuards(AuthGuard('google'))
   googleCallback(@Res() res: JsonResponse): void {
     res.redirect(webRedirectOrigin())
+  }
+
+  // 현재 세션 인증 상태 — web 클라이언트 가드(AuthGate)용. web(Vercel)↔api 교차 도메인이라
+  // SSR이 api 세션 쿠키를 못 봐서, 브라우저가 credentials:'include'로 직접 질의한다.
+  // 인증 시 200 { data: { userId } }; 비인증은 SessionGuard가 401(UNAUTHENTICATED).
+  @Get('me')
+  @UseGuards(SessionGuard)
+  me(@Req() req: AuthedRequest): { data: { userId: string } } {
+    return { data: { userId: req.user?.id ?? '' } }
   }
 
   // 로그아웃 — 세션 무효화.
