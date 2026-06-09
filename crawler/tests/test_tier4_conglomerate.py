@@ -21,6 +21,17 @@ def _make_mock_client(fixture_data: dict, status_code: int = 200) -> MagicMock:
     return mock_client
 
 
+def _make_post_client(fixture_data: dict, status_code: int = 200) -> MagicMock:
+    """POST 응답(resp.json)을 반환하는 mock client — recruiter.co.kr 등 POST API용."""
+    mock_resp = MagicMock()
+    mock_resp.status_code = status_code
+    mock_resp.json.return_value = fixture_data
+    mock_resp.raise_for_status.return_value = None
+    mock_client = MagicMock()
+    mock_client.post.return_value = mock_resp
+    return mock_client
+
+
 # ---------------------------------------------------------------------------
 # AC-1: list-public custom/SaaS 소스 공고 upsert + 그룹 통합포털 계열사 구분
 # ---------------------------------------------------------------------------
@@ -131,30 +142,33 @@ def test_AC_1_tier4_registry_mapping():
 # AC-2: recruiter.co.kr 어댑터가 공고를 수집하고 T-076 재사용 가능
 # ---------------------------------------------------------------------------
 
+# JOBFLEX/JOBDA position-list API 응답 구조(라이브 확인): pagination + list[positionSn,title,...].
 _RECRUITER_FIXTURE = {
+    "pagination": {"page": 1, "size": 100, "totalCount": 1, "totalPages": 1},
     "list": [
         {
-            "rNo": "rcr-001",
+            "positionSn": 12345,
             "title": "Backend Engineer",
-            "url": "https://shinsegae.recruiter.co.kr/jobs/rcr-001",
-            "dueDate": "2026-07-31",
-            "description": "신세계 I&C 채용.",
+            "careerType": "CAREER",
+            "classificationCode": "수시",
+            "tagList": [{"tagName": "개발"}],
         }
-    ]
+    ],
 }
 
 
 def test_AC_2_recruiter_co_kr_adapter_shared():
     """AC-2: recruiter_co_kr 어댑터가 공고를 수집하고 다른 회사(slug만 변경) 재사용 가능."""
-    from crawler.adapters.custom_base import BaseCustomAdapter
+    from crawler.adapters.base import BaseCrawlerAdapter
     from crawler.adapters.recruiter_co_kr import RecruiterCoKrAdapter
 
-    assert issubclass(RecruiterCoKrAdapter, BaseCustomAdapter)
+    assert issubclass(RecruiterCoKrAdapter, BaseCrawlerAdapter)
 
-    # 신세계 I&C 수집
-    client = _make_mock_client(_RECRUITER_FIXTURE)
+    # 신세계 I&C 수집 (POST position-list API mock)
     adapter = RecruiterCoKrAdapter(
-        company="shinsegae-inc", slug="shinsegae", client=client
+        company="shinsegae-inc",
+        slug="shinsegae",
+        client=_make_post_client(_RECRUITER_FIXTURE),
     )
     jobs = adapter.fetch_jobs(location="KR")
     assert isinstance(jobs, list)
@@ -168,8 +182,9 @@ def test_AC_2_recruiter_co_kr_adapter_shared():
         assert "raw_text" in job
 
     # kt-ds 재사용(slug만 변경)
-    client2 = _make_mock_client(_RECRUITER_FIXTURE)
-    adapter2 = RecruiterCoKrAdapter(company="kt-ds", slug="ktds", client=client2)
+    adapter2 = RecruiterCoKrAdapter(
+        company="kt-ds", slug="ktds", client=_make_post_client(_RECRUITER_FIXTURE)
+    )
     jobs2 = adapter2.fetch_jobs(location="KR")
     assert isinstance(jobs2, list)
     assert len(jobs2) >= 1
@@ -193,9 +208,10 @@ def test_AC_2_tier5_recruiter_reuse():
     )
 
     for spec in tier5_recruiter:
-        client = _make_mock_client(_RECRUITER_FIXTURE)
         adapter = RecruiterCoKrAdapter(
-            company=spec.company, slug=spec.ats_slug, client=client
+            company=spec.company,
+            slug=spec.ats_slug,
+            client=_make_post_client(_RECRUITER_FIXTURE),
         )
         jobs = adapter.fetch_jobs(location="KR")
         assert isinstance(jobs, list), f"{spec.company}: must return list"
