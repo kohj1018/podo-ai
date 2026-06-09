@@ -44,3 +44,24 @@ def embed_new_jobs(conn: psycopg.Connection[tuple[Any, ...]]) -> int:
         count += 1
 
     return count
+
+
+def main() -> None:
+    """`python -m worker.embed_batch` — 미임베딩 JD를 일괄 임베딩·영속 후 커밋.
+
+    크롤 직후 호출 — 임베딩을 수집 시점에 미리 생성(채점 경로 부담↓).
+    OPENAI_API_KEY 필요. 미임베딩 JD 없으면 0(증분, LEFT JOIN skip).
+    """
+    from core import db
+
+    conn = db.connect()
+    try:
+        count = embed_new_jobs(conn)
+        conn.commit()
+    finally:
+        conn.close()
+    print(f"[embed] new_jobs_embedded={count}")
+
+
+if __name__ == "__main__":
+    main()

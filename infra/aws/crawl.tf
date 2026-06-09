@@ -20,10 +20,15 @@ resource "aws_ecs_task_definition" "crawl" {
     name      = "podo-crawl"
     image     = "${aws_ecr_repository.worker.repository_url}:latest" # worker 이미지 재사용
     essential = true
-    # worker 이미지의 기본 CMD(`python -m worker`)를 크롤 진입점으로 override.
-    command = ["uv", "run", "--no-dev", "--frozen", "python", "-m", "crawler"]
+    # 크롤(전체 레지스트리) 후 미임베딩 JD를 일괄 임베딩 — "수집 시점 임베딩"으로 채점 경로 부담 제거.
+    # &&: 크롤이 공고 수집에 성공(exit 0)했을 때만 임베딩. embed_batch는 OPENAI_API_KEY 필요.
+    command = [
+      "sh", "-c",
+      "uv run --no-dev --frozen python -m crawler && uv run --no-dev --frozen python -m worker.embed_batch",
+    ]
     secrets = [
       { name = "DATABASE_URL", valueFrom = aws_secretsmanager_secret.database_url.arn },
+      { name = "OPENAI_API_KEY", valueFrom = aws_secretsmanager_secret.openai_api_key.arn },
     ]
     logConfiguration = {
       logDriver = "awslogs"
