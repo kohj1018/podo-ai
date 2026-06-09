@@ -18,14 +18,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-import httpx
 import psycopg
 
 from core import db
 from crawler.fetch_jobs import fetch_daangn_jobs, fetch_toss_jobs
 from crawler.manual import parse_manual
 from crawler.persistence import RawJob, record_crawl_run, upsert_jobs
-from crawler.run_sources import record_source_crawl_status
+from crawler.run_sources import record_source_crawl_status, run_all_sources
 
 logger = logging.getLogger(__name__)
 
@@ -115,25 +114,32 @@ def exit_code_from_summary(summary: dict[str, dict[str, Any]]) -> int:
 
 
 def main() -> None:
-    """`python -m crawler` — fetch→영속 완주, 커밋. crawl은 OPENAI_API_KEY 불요.
+    """`python -m crawler` — 라이브는 registry_seed collectable 소스 순회(T-063).
 
-    CRAWL_FIXTURE 설정 시 라이브 fetch 대신 fixture 파일로 결정적 수집(E2E 재현).
+    CRAWL_FIXTURE 설정 시 라이브 대신 toss/daangn fixture로 결정적 수집(E2E 재현).
+    crawl은 LLM 무관(OPENAI_API_KEY 불요).
     """
+    fixture_path = os.environ.get("CRAWL_FIXTURE")
+    if fixture_path is None:
+        # 라이브 — collectable 전 소스(naver/kakao/samsung/금융/해외 등) 순회. 요청당
+        # REQUEST_TIMEOUT(15s) 캡 + 소스별 실패 격리(run_all_sources). conn은 내부 관리.
+        result = run_all_sources()
+        print(
+            f"[crawl] sources collected={result['collected']} failed={result['failed']}"
+        )
+        # 1건도 못 모으면 실패 간주(스케줄 fail 전파, Fail #3 조용한 실패 금지).
+        sys.exit(0 if result["collected"] > 0 else 1)
+
+    # fixture 모드(E2E 재현) — toss/daangn 결정적 수집(네트워크 무관).
     conn = db.connect()
     now = datetime.now(timezone.utc)
-    fixture_path = os.environ.get("CRAWL_FIXTURE")
-    client = None if fixture_path else httpx.Client()
     summary: dict[str, dict[str, Any]] = {}
     try:
-        fixture_jobs = load_fixture(fixture_path) if fixture_path else None
-        summary = crawl(conn, client, now=now, fixture_jobs=fixture_jobs)
+        summary = crawl(conn, None, now=now, fixture_jobs=load_fixture(fixture_path))
         conn.commit()
     finally:
-        if client is not None:
-            client.close()
         conn.close()
 
-    # stdout 요약(수집 수·실패 여부) — cron 로그/커버리지 가시성(§3-3).
     total_new = sum(s["new"] for s in summary.values())
     total_closed = sum(s["closed"] for s in summary.values())
     failed = [ch for ch, s in summary.items() if s.get("status") != "success"]
@@ -143,7 +149,6 @@ def main() -> None:
     )
     code = exit_code_from_summary(summary)
     if code != 0:
-        # non-zero exit → GHA job fail 표시(조용한 실패 금지, Fail #3).
         print(f"[crawl] FAILED channels={failed}", file=sys.stderr)
     sys.exit(code)
 
