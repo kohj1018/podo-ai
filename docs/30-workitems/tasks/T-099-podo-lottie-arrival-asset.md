@@ -1,7 +1,7 @@
 # T-099-podo-lottie-arrival-asset
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 feature
@@ -23,6 +23,10 @@ feature
 - 앰비언트 루프·신규 장식 모션(DESIGN §9 금지).
 
 ## 4-1. 변경 예정 파일/경로
+- `podo/apps/web/components/GreetingCard.tsx` (PodoLottie에 src="/podo-arrival.lottie" 연결)
+- `podo/apps/web/test/podo_lottie.spec.tsx` (신규 — AC-1)
+- `podo/apps/web/test/vitest.setup.tsx` (신규) + `podo/apps/web/vitest.config.ts` (setupFiles — dotLottie jsdom 스텁, src 활성 귀결)
+- (생략) `podo/apps/web/public/podo-arrival.lottie` — 에셋 미조달, 정적 fallback 유지(§3-1·§8 비차단)
 
 ## 5. 완료 조건
 인사 카드(GreetingCard)에서 `.lottie` '도착' 모션이 1회 재생되고, reduced-motion/로드 실패 시 기존 정적 마스코트 fallback이 그대로 동작한다.

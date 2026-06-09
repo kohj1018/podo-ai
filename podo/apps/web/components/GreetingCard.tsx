@@ -28,8 +28,8 @@ export function GreetingCard({
       {/* fenced 그라데이션 인사 strip(§2-4 허용 3곳 중 1곳). */}
       <div aria-hidden="true" style={{ height: '5px', background: 'var(--brand-gradient)' }} />
       <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '16px 18px' }}>
-        {/* 포도 마스코트 — PodoLottie(정적 포스터=마스코트 PNG, lottie 에셋은 후속). */}
-        <PodoLottie size={52} />
+        {/* 포도 마스코트 — '도착' Lottie(T-099). 에셋 미조달/reduced-motion/로드실패 시 정적 마스코트 fallback. */}
+        <PodoLottie src="/podo-arrival.lottie" size={52} />
         <div>
           <p style={{ fontWeight: 700, margin: 0, fontSize: '18px' }}>
             포도가 오늘의 자리를 골라왔어요!
