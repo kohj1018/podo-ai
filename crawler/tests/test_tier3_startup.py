@@ -20,6 +20,17 @@ def _make_mock_client(fixture_data: dict, status_code: int = 200) -> MagicMock:
     return mock_client
 
 
+def _make_html_client(html: str, status_code: int = 200) -> MagicMock:
+    """HTML 본문(resp.text)을 반환하는 mock client — greeting 등 페이지 파싱용."""
+    mock_resp = MagicMock()
+    mock_resp.status_code = status_code
+    mock_resp.text = html
+    mock_resp.raise_for_status.return_value = None
+    mock_client = MagicMock()
+    mock_client.get.return_value = mock_resp
+    return mock_client
+
+
 # ---------------------------------------------------------------------------
 # AC-1: Tier3 custom 8사 어댑터 → BaseCustomAdapter 상속 + RawJob upsert
 # ---------------------------------------------------------------------------
@@ -138,17 +149,14 @@ def test_AC_2_greeting_workday_shared_adapter():
         f"Expected 2 Tier3 workday sources, got {len(tier3_workday)}"
     )
 
-    greeting_fixture = {
-        "data": [
-            {
-                "id": "g-001",
-                "title": "Software Engineer",
-                "url": "https://kurly.career.greetinghr.com/jobs/g-001",
-                "location": "서울",
-                "description": "백엔드 개발자.",
-            }
-        ]
-    }
+    # greetinghr 페이지 임베디드 openings 구조(HTML) — 새 어댑터는 resp.text 파싱.
+    greeting_html = (
+        'x"state":{"data":[{"openingId":1,"title":"Software Engineer",'
+        '"openingJobPosition":{"openingJobPositions":[{'
+        '"workspaceField":{"field":"개발"},'
+        '"workspacePlace":{"place":"서울"}}]}}],'
+        '"status":"success"},"queryKey":["openings"]}'
+    )
     workday_fixture = {
         "jobPostings": [
             {
@@ -163,7 +171,7 @@ def test_AC_2_greeting_workday_shared_adapter():
 
     # 그리팅 어댑터로 각 slug 수집
     for spec in tier3_greeting:
-        client = _make_mock_client(greeting_fixture)
+        client = _make_html_client(greeting_html)
         adapter = GreetingAdapter(company=spec.ats_slug, client=client)
         jobs = adapter.fetch_jobs(location="KR")
         assert isinstance(jobs, list), f"greeting {spec.company}: must return list"

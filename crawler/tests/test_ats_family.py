@@ -18,33 +18,44 @@ FIXTURES_DIR = Path(__file__).parent / "fixtures"
 # ---------------------------------------------------------------------------
 
 
-def test_AC_1_greeting_fetch_returns_rawjob_list():
-    """AC-1 (greeting): fixture 기반 fetch_jobs() → RawJob list + 필수 키 보유."""
-    from crawler.adapters.greeting import GreetingAdapter
+# greetinghr careers 페이지의 React Query dehydrate 구조 모사(HTML 임베디드 openings JSON).
+_GREETING_HTML = (
+    '<html><body>x"state":{"data":[{"openingId":111,"title":"백엔드 엔지니어",'
+    '"openingJobPosition":{"openingJobPositions":[{'
+    '"workspaceField":{"field":"개발"},'
+    '"workspaceOccupation":{"occupation":"백엔드"},'
+    '"workspacePlace":{"place":"서울특별시 강남구","location":"역삼"},'
+    '"jobPositionCareer":{"careerType":"EXPERIENCED"},'
+    '"jobPositionEmployment":{"employmentType":"FULL_TIME_WORKER"}}]}}],'
+    '"status":"success"},"queryKey":["openings"],"queryHash":"h"}</body></html>'
+)
 
-    fixture_data = json.loads(
-        (FIXTURES_DIR / "greeting_jobs.json").read_text(encoding="utf-8")
-    )
+
+def _greeting_mock_client() -> MagicMock:
     mock_resp = MagicMock()
     mock_resp.status_code = 200
-    mock_resp.json.return_value = fixture_data
+    mock_resp.text = _GREETING_HTML
     mock_resp.raise_for_status.return_value = None
-
     mock_client = MagicMock()
     mock_client.get.return_value = mock_resp
+    return mock_client
 
-    adapter = GreetingAdapter(company="bbank", client=mock_client)
+
+def test_AC_1_greeting_fetch_returns_rawjob_list():
+    """AC-1 (greeting): 페이지 임베디드 openings 파싱 → RawJob list + 필수 키 보유."""
+    from crawler.adapters.greeting import GreetingAdapter
+
+    adapter = GreetingAdapter(company="bbank", client=_greeting_mock_client())
     jobs = adapter.fetch_jobs()
 
     assert isinstance(jobs, list)
-    assert len(jobs) >= 1
+    assert len(jobs) == 1
+    assert jobs[0]["url"] == "https://bbank.career.greetinghr.com/ko/o/111"
+    assert jobs[0]["title"] == "백엔드 엔지니어"
     for job in jobs:
         assert isinstance(job, dict)
-        assert "job_id" in job
-        assert "company" in job
-        assert "title" in job
-        assert "url" in job
-        assert "raw_text" in job
+        for key in ("job_id", "company", "title", "url", "raw_text"):
+            assert key in job
 
 
 def test_AC_1_lever_fetch_returns_rawjob_list():
@@ -194,12 +205,12 @@ def test_AC_2_location_filter_greeting_korea_only():
     """AC-2 (greeting): location="KR" → 한국 공고만 반환(greeting은 한국 전용 ATS)."""
     from crawler.adapters.greeting import GreetingAdapter
 
-    client = _make_mock_client(FIXTURES_DIR / "greeting_jobs.json")
-    adapter = GreetingAdapter(company="bbank", client=client)
+    adapter = GreetingAdapter(company="bbank", client=_greeting_mock_client())
     jobs = adapter.fetch_jobs(location="KR")
 
-    # greeting은 한국 스타트업 전용 → 모든 공고가 한국으로 간주됨
+    # greeting은 한국 스타트업 전용 → 파싱된 공고 모두 반환(별도 location 필터 없음)
     assert isinstance(jobs, list)
+    assert len(jobs) == 1
 
 
 def test_AC_2_location_filter_workday_korea_only():
