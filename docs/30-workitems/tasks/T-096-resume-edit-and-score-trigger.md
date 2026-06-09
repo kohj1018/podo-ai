@@ -1,7 +1,7 @@
 # T-096-resume-edit-and-score-trigger
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 feature
@@ -23,6 +23,8 @@ feature
 - 마스킹본 → 원문 복원 prefill(불가 — raw 미저장).
 
 ## 4-1. 변경 예정 파일/경로
+- `podo/apps/web/components/ResumeUpload.tsx` (handleStartAnalysis res.ok 검사 + scoredRef 중복 채점 방지 + edit-guidance + score-error 재시도)
+- `podo/apps/web/test/resume_lifecycle.spec.tsx` (신규 — AC-1/AC-2/AC-3)
 
 ## 5. 완료 조건
 이력서를 수정하면 새 버전 생성 + 채점 1회가 돌고, 피드 재진입·탐색은 재채점하지 않는다.
