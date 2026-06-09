@@ -247,18 +247,43 @@
 ## M7
 
 > T-102 골든패스 통합 스윕(2026-06-10). 로그인 → /resume 입력 → 제출 → 채점 → 피드 분석결과 경로.
+>
+> **`/stabilize-milestone M7` qa 위임 결과(2026-06-10).** 대상: T-090~T-102(UI/UX 완성 — 피드 섹션·마이페이지/네비·resume 2-모드 재설계·로딩UX·모션/폴리시·골든패스 하더닝). qa·reviewer subagent 3종이 모두 *탐색만 하고 finding 미출력*(M1/M2/M3/M5 budget-exhaustion 패턴 재발) + 본 harness에 SendMessage 부재로 재개 불가 → **메인 세션이 직접 코드 실독으로 qa 수행**(M5 선례). 통합 validate exit 0(TS 111 passed[web 79/api 32] / Python 246 passed, 29 skip · mypy --strict 93 files green) 위에서 *lint/type/unit이 못 잡는* thesis 보호·격리·PII·낙관적UI·상태 정직성 정합 점검. **코드결함 P0 0건 → graduation §5(QA_FINDINGS P0) 충족.** finding 전수 기록(ADR-046#d3).
 
 ### P0
 - 없음. 골든패스 위 P0(401/403/CORS/stale run/score 무중단 실패) 발견 0.
+- (stabilize 직접 점검) thesis 보호·격리·PII 불변식 모두 충족 — CoarseSection/DeadlineSection은 fit_level/유사도 수치 *미렌더*(회사·직무만, ADR-108 D3), held→PendingState(가짜 점수 0). feed/applications 전 쿼리 user_id 스코프 + deleteAction 소유권 403(applications.service.ts:55-63). resume 2-모드(파일+직접작성 폼)는 *기존* `POST /api/v1/resumes` 마스킹 경로 재사용(ResumeUpload.tsx:78-115) → raw PII 미저장·스키마/워커/프롬프트 무변경(GS-1/GS-2 구조 보존, §2-H). 데이터 손실·유출·thesis 파괴급 결함 0.
 
 ### P1
-- 없음. 알려진 P1(score POST 실패 미이동 / redirect 루프·경쟁)은 각각 **T-096:AC-3** · **T-097:AC-1**에서 회귀 테스트와 함께 이미 수정됨(중복 회피).
+- 없음. 알려진 P1(score POST 실패 미이동 / redirect 루프·경쟁)은 각각 **T-096:AC-3** · **T-097:AC-1**에서 회귀 테스트와 함께 이미 수정됨(중복 회피). stabilize 직접 점검에서도 신규 P1 코드결함 0.
 
 ### P2
 - **[QA-M7-001 · 수정됨]** 신규(이력서 없음) 사용자 진입 시 `feed/meta` 로드 전 피드(CoveragePanel/온보딩)가 잠깐 깜빡인 뒤 `/resume`로 리다이렉트. → `app/page.tsx`에 `ready`(meta-loaded) 게이트 추가로 결정 전 skeleton만 노출(피드 미렌더) → 깜빡임 제거. 회귀: `test/golden_path.spec.tsx > test_AC_2_new_user_no_feed_flash`(coverage-panel 미노출).
+- **QA-M7-002** | P2 | [관측됨] | linked: T-090,T-050,M4-carryover | status: open (repair 2026-06-10 Reject-context) | `podo/apps/web/components/FeedList.tsx:96` (← `JobCardActions.tsx:46-55`)
+  - 발견: `FeedList`가 `JobCard`에 `onRestore={() => void 0}`(no-op)를 전달하는데 `onProcessed`는 카드를 `items`에서 제거한다. `apply()`는 `onProcessed`(낙관적 제거)→`record('applied')` 순이라, record 네트워크 실패 시 `onRestore`가 no-op이라 **카드가 제거된 채 복원 안 됨** + "기록에 실패…다시 시도" toast만 노출(재시도할 카드는 사라짐). 서버엔 미기록이라 reload 시 자가치유(transient session UI↔server 불일치).
+  - 근거: QA-M4-002(M4 당시 onRestore 정상 결선)의 *재발* — M7 FeedList 재작성(T-090) 시 복원 로직이 no-op으로 떨어짐. skip 경로는 안전(onProcessed가 성공 시에만 호출). 단위/타입 미포착(네트워크 실패 경로 + prop 결선은 RTL mock-fetch가 성공 케이스만 단언).
+  - 결정/권장: `FeedList`가 제거 전 item을 보관 후 `onRestore`에서 재삽입하거나, apply는 record 성공 *후* `onProcessed` 호출로 순서 교환. `/repair-workitem T-090` 후보(낮음).
+  - **repair-workitem 2026-06-10 [optimistic-rollback]: Reject-context** — git 실확인 결과 onRestore no-op은 **c344d30(M2 JobCardActions 도입)부터 존재**, M7(T-090)이 도입한 회귀 *아님*(stabilize 근거의 "M7 재작성 시 떨어짐" 오귀속 정정 — T-090은 DeadlineSection 삽입만, JobCard prop 블록 미변경). 버그 자체는 real(자가치유 P2)이나, 정확한 수정은 F-019(M2) 낙관적-UI 설계(apply onProcessed 순서 + job_card_actions.spec 타이밍 단언) 변경 필요 → M7 repair 범위 밖. **QA-M4-002 carryover로 dedicated fix 이연(open 유지)**.
+- **QA-M7-003** | P2 | [관측됨] | linked: T-100 | status: **resolved (repair 2026-06-10)** | `podo/apps/web/components/Toast.tsx:18-26`
+  - 발견: `Toast`의 `useEffect` deps가 `[message, durationMs]`라, 동일 문자열 메시지를 연속 set하면(예: 같은 액션 2회 연속 실패 → 동일 `FAIL_MSG`) React가 동일 state로 bail-out → useEffect 미재실행 → 첫 auto-dismiss 후 **두 번째 동일 toast가 다시 안 뜸**. 다른 메시지가 끼어들면 정상.
+  - 근거: 메시지 문자열 동일성에 의존 — 단위 테스트는 단일 set만 검증. UX 피드백 누락(데이터 무결성 아님).
+  - 결정/권장: 메시지에 단조 증가 nonce/key를 부여하거나 set 시 강제 reset. 낮은 우선순위.
+  - **repair-workitem 2026-06-10 [toast-reshow]: Adopt** — T-100 auto-dismiss 도입의 회귀(기존 인라인 `<output>`은 persist라 무관)로 확인. `JobCardActions`에 `notify(text)`(monotonic `seqRef`) 도입 → `setToast({text, seq})`로 동일 메시지도 새 객체 + `<Toast key={toast.seq}>` 재마운트 → auto-dismiss 후 재노출. 회귀: `test/toast.spec.tsx > test_toast_reshows_same_message_on_new_key`. 기존 job_card_actions 3건 green(행동 보존).
+- **QA-M7-004** | P2 | [관측됨] | linked: T-050,T-094,M4-carryover(QA-M4-005) | status: open (repair 2026-06-10 Reject-context) | `podo/apps/api/src/applications/applications.service.ts:4` · `components/ActivityList.tsx`
+  - 발견: `ApplicationAction`에 `'unfavorite'` 타입이 정의되나 즐겨찾기 뷰(`ActivityList`)·`JobCardActions` 어디에도 해제 버튼이 없음 — **dead type 잔존**(QA-M4-005 "M5 즐겨찾기 페이지에서 구현 또는 제거" 권고가 M7 활동뷰 신설에도 미반영).
+  - 결정/권장: 즐겨찾기 목록에 unfavorite 액션 추가 또는 타입 제거. 낮은 우선순위.
+  - **repair-workitem 2026-06-10 [dead-type]: Reject-context** — grep 실확인: `'unfavorite'`는 type union(T-050) + feed.service 주석("favorite/unfavorite/unskip는 제외 대상 아님")에만 존재(예약 action, UI 없음). 무해. 두 해소안 모두 M7 repair 범위 밖 — **UI 추가=새 기능(repair 금지)**, **타입 제거=백엔드 ApplicationAction 정리(M4 carryover, M7 task AC 무관)**. 별도 결정(M5 권고 미반영분)으로 open 유지.
+- **QA-M7-005** | P2 | [관측됨] | linked: T-095,T-096 | status: **resolved (repair 2026-06-10)** | `podo/apps/web/components/ResumeUpload.tsx:78-115`
+  - 발견: `submitResume`가 `uploadError`만 reset하고 `scoreError`는 reset 안 함 → 채점 트리거 실패(scoreError=true) 후 새 이력서를 업로드하면 새 preview 로딩 중에도 이전 "분석 요청에 실패했어요" 메시지가 잠깐 잔류(cosmetic).
+  - 결정/권장: `submitResume` 진입 시 `setScoreError(false)` 추가. 사소.
+  - **repair-workitem 2026-06-10 [stale-error]: Adopt** — 권장대로 `submitResume` 진입에 `setScoreError(false)` 추가(uploadError와 대칭). 회귀: `test/resume_lifecycle.spec.tsx > test_score_error_cleared_on_resubmit`(채점 실패 → 재업로드 시 score-error 미노출).
 
 ### 관찰 메모
 - **credentials:'include' 전수 확인**: 전 M7 web→api fetch(ActivityList·CoveragePanel·CoarseSection·FeedList·FeedView·JobCardActions·ResumeUpload(upload/score)·SessionProvider·page.tsx feed/meta·LogoutButton)가 credentials:'include' 충족 — 교차출처 세션 쿠키 누락 0([[web-fetch-credentials-include]] 회귀 없음).
+- **8-상태 매트릭스 완결성(FeedView.tsx)**: loading·error(role=alert·재시도)·no-resume(Onboarding fallback)·scoring-failed·scoring(queued/running skeleton)·all-processed·empty+재노출버튼(T-092 실 트리거)·pending(allHeld 배너)·ready 9분기 전부 구현 + 가짜 점수 0(shimmer만)·reduced-motion 정적 분기(globals.css). 정직한 빈/저조 상태 일급(Fail#3 보호).
+- **CoveragePanel 에러 표면화 확인**: `.catch(()=>setError(true))` + data-state="error" "⚠ 수집 현황을 불러오지 못했습니다" 노출 — M2 [REV-M2-UI-001] silent `.catch(()=>{})` 거짓완전성이 M7에서 정직하게 해소됨(ActivityList·FeedList·FeedView 동형 — 전 신규 뷰가 error/empty/loading 일급).
+- **resume 채점 트리거 lifecycle(T-096)**: `scoredRef`로 동일 resume_id 중복 채점 차단(정확히 1회) + append-only(매 업로드 새 resume_id → 편집=재채점) + score 실패 시 미이동·active id 미갱신(stale run 방지). 결정성·격리 정합.
+- **CoarseSection error-swallow는 허용**: `.catch(()=>setPage(빈))`은 보조 footer(접힘)라 에러→숨김이 거짓완전성 아님(커버리지/상태 패널과 달리 "완전성" 주장 표면 아님). CoveragePanel과 의도적 차등.
 - **E2E 경계(해석 확정)**: 본 프로젝트는 Playwright 미도입. UI 골든패스는 `test/golden_path.spec.tsx`(mock-fetch 통합: 로그인 게이트 → 직접작성 폼 → 표준 헤딩 마크다운 제출 → 마스킹 preview → 분석 시작 → 채점 1회 → 피드 적합도 배지)로 키리스 게이트 내 검증. **full-stack 종단(실 docker/DB/worker/큐)은 `scripts/e2e.mjs`(login→upload→score→격리 피드→PII)** 가 담당 — M7은 UI 중심 변경이라 그 API 골든패스 무변경. 사용자 환경에서 `pnpm e2e`(웜캐시) 실행으로 종단 재확인 권장(비차단).
 - **stale run / coarse 격리**: M5(M5-repair-38)에서 active resume 교체 시 이전 run·coarse 미혼입을 `getFeed`(현재 run 한정)·`getCoarseFeed`(resume_id 범위)로 이미 차단. M7은 해당 경로 무변경 → 회귀 위험 낮음(실 교체 시나리오 종단 확인은 warm e2e).
 

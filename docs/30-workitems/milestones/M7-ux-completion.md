@@ -125,8 +125,11 @@ draft
 - Lottie `.lottie` 에셋 조달(제작 vs LottieFiles) — 미조달 시 정적 fallback 유지(차단 아님).
 - (이연) 알림 기능은 별도 후속 마일스톤.
 
-## 8. 회고 (stabilize 자동 채움)
-- 목표 달성도: <정량/정성 1줄>
-- scope creep 사례: <있으면 1줄, 없으면 "없음">
-- 비목표(charter §5) 위반 사례: <있으면 1줄>
-- 핵심 학습 3개 이내
+## 8. 회고 (stabilize 자동 채움 — /stabilize-milestone M7, 2026-06-10)
+- **목표 달성도**: 13/13 task done · 6 feature(F-028~033) · 통합 validate exit 0(TS 111/Python 246, mypy strict green) · AC 28/28(100%) · FAC 17/17 · 코드결함 P0 0 → **졸업 가능 YES**. 두 축 달성: ① 핵심 온보딩 플로우(로그인→resume 2-모드 입력→제출→피드)를 ready-게이트·8-상태·정직한 빈/에러로 매끄럽게 + 골든패스 버그 스윕(T-102), ② 명세(DESIGN "Podo Buddy")·API에 준비된 surface(마감 섹션·CoarseSection·마이페이지/네비·즐겨찾기/지원기록 뷰) 화면 완성. *잔여(외부검증)*: full-stack `pnpm e2e`(docker)는 본 세션 미실행(Docker Desktop 미가동) — UI 골든패스는 golden_path.spec.tsx로 green, backend 무변경. 사용자 웜캐시 1회 권장(비차단).
+- **scope creep 사례**: 없음. M7 변경 파일은 전부 `podo/`(web + api 2파일) — `ai/`·`worker/`·`crawler/`·prisma schema 0변경으로 "거의 순수 프론트·알고리즘 무변경"(§2-C·§2-H) 약속 준수. 마감 섹션 `closing_at` 크롤러 수집은 §7 결정(권장 b)대로 *이연* — UI는 만들되 데이터 없으면 정직한 빈/숨김(미구현을 가짜로 메우지 않음).
+- **비목표(charter §5) 위반 사례**: 없음. 알림(0)·공고 검색/정렬(0)·다중 이력서 관리(단일 활성 `podo_active_resume_id` 유지, 편집=교체)·자동지원(JobCardActions=원본 채널 새 탭, Charter §5 "자동지원 아님")·다채널 비목표 전부 미접촉. resume 재설계도 구조화 데이터 모델·section-aware 추출 미도입(§4 비범위 준수).
+- **핵심 학습(3)**:
+  1. **resume 재설계를 "폼→표준 헤딩 마크다운→기존 단일 blob 흐름"으로 한 결정이 GS-1/GS-2를 0-touch로 보존** — 대규모 UI 변경인데도 캐시 키·골든페어·추출 프롬프트·스키마 무변경. 표준 한글 헤딩(## 경력/## 기술스택)이라 기존 `parse_resume.py` 결정적 파싱이 *그대로* 동작(오히려 더 깔끔). "구조화 영속을 피하면 알고리즘과 안 닿는다"가 실증됨.
+  2. **stabilize의 qa/reviewer subagent 위임이 또 budget-exhaustion**(qa·reviewer-code·reviewer-design 3종 모두 탐색만·finding 미출력 — M1/M2/M3/M5에 이어 5번째) + **본 harness에 SendMessage 부재로 재개 불가** → 메인 세션 직접 코드 실독으로 fallback(M5 선례). 반복되는 패턴 → §4 instruction 후보: 대형 changeset의 위임은 *파일 분할 위임* 또는 *메인 직접 수행*을 디폴트로 명문화 권장.
+  3. **반복 권고가 milestone 작업으로 흡수되는 개선 신호**: [Dependency] 4회(M2~M5) 부채가 `next` bump으로 high 8→0 종료(잔여 qs moderate만) + REV-M2-UI-001(silent `.catch` 거짓완전성)이 M7 전 신규 뷰(FeedView·CoveragePanel·ActivityList·FeedList)의 error/empty/loading 일급화로 정착. 단 QA-M4-002(onRestore 낙관적UI 복원)·QA-M4-005(unfavorite dead type)는 P2 carryover로 미해소 — UI 재작성 시 이전 보정이 무음 회귀할 수 있음(다음 라운드 회수).

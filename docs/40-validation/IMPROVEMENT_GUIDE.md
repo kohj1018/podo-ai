@@ -121,7 +121,36 @@ Telemetry — M5 (초판 졸업 NO → 재grade YES, Fix round 2821a79)
 - Cross-stabilize 회귀 신호: 4종 — [Dependency](M2→M3→M4→M5 4회, next/NestJS bump deferred) · **[E2E/wiring-gap]**(M2-E2E-001·M3-E2E-001·M5 3회째 — 신기능이 running 경로 미배선 + 웜캐시 미재생성으로 무키 E2E red; **본 라운드 Fix로 회수**, 단 *분해 단계*에서 반복되는 patterned drift는 §4 instruction 후보로 잔존) · [Status-channel](REV-M4-003/010 carryover) · [Doc-status-draft](M1~M5). **개선 신호**: 초판 P0를 동일-세션 Fix round가 즉시 회수(M2/M3 동형 — report-only stabilize가 surface→main-session 코드→재grade YES 3회째 작동).
 ```
 
+> **M6 stabilize gap(절차 관찰)**: 본 §0·§Telemetry에 M6 항목 부재 — **M6(배포)는 `/stabilize-milestone` 정식 졸업 패스 없이 프로덕션 배포([[prod-deploy-podoai]], podoai.xyz LIVE)**. QA_FINDINGS/IMPROVEMENT_GUIDE에 `## M6`/`### M6` 요약 없음(§5 repair-log만 존재). M7은 prod-LIVE M6 위에 빌드. cross-stabilize 회귀 grep의 기준선이 M1~M5라 M6 P1 carryover는 누락 가능(휴리스틱 한계 명시).
+
+### M7 — /stabilize-milestone (2026-06-10)
+- **졸업 가능: YES** (E2E full-stack는 infra-gated/user-run 잔여 — UI 골든패스 green + backend 무변경) — 13/13 task done · 통합 validate exit 0(TS 111 passed[web 79/api 32] / Python 246 passed, 29 skip · mypy --strict 93 files green · biome no-fixes=tree clean) · AC 매핑 28/28(100%, ❌ 0) · FAC 17/17(100%) · **QA_FINDINGS 코드결함 P0 0** · thesis 보호·격리·PII 불변식 직접 점검 충족. graduation §5 항목:
+  - **§5 #1 task done** — 13/13 ✓. **§5 #2 핵심 플로우 E2E** — UI 골든패스(로그인→resume 입력[파일+직접작성 폼]→제출→피드)는 `test/golden_path.spec.tsx`(mock-fetch 통합, validate 내 green) + new_user_redirect·resume_lifecycle·resume_form spec로 키리스 게이트 내 검증. **full-stack `pnpm e2e`(docker/DB/worker/큐)는 본 세션 미실행 — Docker Desktop 미가동**. backend API 골든패스는 M7 무변경(마지막 full-stack green = M5 재grade) → **사용자 웜캐시 환경 `pnpm e2e` 1회 = 외부검증 잔여**(M7 QA_FINDINGS 관찰 메모 "E2E 경계" 해석 정합·비차단). **§5 #3 알고리즘 불변식** — resume 2-모드 재설계가 *기존* `{text}` POST 마스킹 경로 재사용(스키마/워커/프롬프트 무변경, §2-H) + M7 변경 파일에 ai/worker/crawler 0(전부 podo/ web+api) → GS-1/GS-2 구조 보존 ✓. **§5 #4 thesis 보호** — CoarseSection/DeadlineSection fit 점수/밴드 0(미렌더)·held→PendingState·커버리지 상시 ✓. **§5 #5 로딩/상태** — 전 신규 뷰 8-상태 일급·reduced-motion 분기·가짜 점수 0 ✓. **§5 #6 DESIGN** — raw hex 0·brand gradient 3곳 fence 정합 ✓. **§5 #7 버그 스윕** — QA_FINDINGS(M7) P0 0(T-102 통합 스윕) ✓.
+- **qa/reviewer 위임:** qa·reviewer(code)·reviewer(design) subagent 3종을 Agent 도구로 spawn했으나 **3종 모두 탐색만 하고 finding 블록 미출력**(M1 qa·M2/M3·M5 budget-exhaustion 패턴 재발, 27/23/28 tool_uses 후 preamble만 반환) + **본 harness에 SendMessage 도구 부재**(deferred 검색 0건)로 재개 불가 → **메인 세션이 직접 코드 실독으로 qa·reviewer 수행**(M5 선례, 13개 web/api 핵심 파일 정독). finding 전수: [QA_FINDINGS ## M7](QA_FINDINGS.md)(P0 0/P1 0/P2 4 신규+QA-M7-001 수정됨) + 아래 §1·§2(reviewer P2 3 + design P2 1).
+- **reviewer(code): P0 0 / P1 0 / P2 3** — 핵심 = fetch+`credentials:'include'`+`API_BASE` 패턴이 ~9 컴포넌트 중복(REV-M7-002, rule-of-3 초과 → 공용 `apiFetch` 헬퍼로 *blind-spot 불변식* 중앙화 권장) · `daysUntil` 2중 정의(REV-M7-001, JobCard↔DeadlineSection, 2 copies=rule-of-3 미만 accept-with-note) · `include_recent_processed` flag 의미(REV-M7-003, `Boolean(string)` — `7d` 값은 장식, 7일 윈도우는 service 하드코딩). **아키텍처 경계 위반 0** — feed/applications service는 read/record만(스코어링 계산 api 유입 0), coarse는 materialized 테이블 read-only(vector SQL 0, ADR-108 D3 보존), resume 재설계는 `{text}` 경로 재사용(GS-1 무영향). **reviewer(design): P0 0 / P1 0 / P2 1** — 컴포넌트 인벤토리 drift(DSN-M7-001, 저신뢰 휴리스틱): DeadlineSection·ResumeForm·ActivityList·AppHeader가 DESIGN §7 Components 미등재(§7-2가 DeadlineRow·Toast, §7-3가 CoarseSection은 언급) → DESIGN §7 갱신 권장. brand gradient fence·8-상태·reduced-motion·center-align·정직한 에러 전부 정합(위반 0).
+- **Dependency hygiene:** `pnpm audit --prod`(podo/) → **5건 (moderate 5)** — `qs`(DoS, NestJS→express 경유)만. **M2~M5 22건(high 8/moderate 12/low 2)에서 `next` high 8 advisories 전부 해소**(next bump 반영) → high 0. `pip-audit`(uv export→PyPI 30pkg, 로컬 editable 제외) → **No known vulnerabilities found** ✅. **4회 연속(M2→M5) 재등장하던 [Dependency] P1이 M7에서 실질 해소** — 잔여는 qs moderate만(NestJS bump 시 닫힘) → 아래 §1 P1(약).
+- **Deterministic preflight:** ADR-ref — ADR-105/106/107/108(project)·ADR-006/009(boilerplate) 전부 resolve. **ADR-110 미존재** — 단 milestone §2-A-1·#119·F-028:76이 모두 "신설 권장"으로 *forward-ref*(citation 아님, 피드 IA 결정은 milestone §2-A-1이 SSOT) → 아래 §1 P2 [ADR-ref-project]+[ADR-candidate]. FAC↔AC unmapped 0(F-028~033 = 17/17). raw-hex: 컴포넌트/app .tsx 0 · globals.css 23건은 `:root` 토큰 instantiation 층(5-2 제외 동형, M2~M5 동일). brand gradient 3곳 fence 정합(AppHeader "ai" 워드마크=fence#1 · FitScoreRing arc=#2 · GreetingCard strip=#3 — 4번째 위치 0, §2-4 준수). markdown-link-check 미설치 → Doc-link 외부검사 **skip**. docs/00-meta mode-label: M7 미변경 → skip. ARCH §7-x `### Don'ts` 부재 → 5-4 grep skip(문서화된 milestone-level gap — 소유권/read-only 경계는 per-task validate + 본 reviewer code surface가 커버). 컴포넌트 인벤토리 drift(5-3) → 위 design P2.
+- **DISCOVERY↔Charter staleness:** mtime drift 없음(Charter=DISCOVERY 동일 2026-06-07 21:19:10). Insight backlog **0 open**(§15) → 미반영 인사이트 신호 0. DISCOVERY/Charter/DESIGN `## 0. Status`=draft(M1~M5 동일 권고, 비차단). M7은 charter 무변경(UI-only) → 신규 drift 0.
+
+```
+Telemetry — M7
+- Tasks: 13 / 13 (100%)
+- AC↔테스트 매핑: 28 / 28 (100%)
+- FAC coverage: 17 / 17 (100%)
+- Evidence Bundle 신뢰도: High 11 / Medium 2 (T-101 정적 CSS 감사·T-102 full-stack E2E 미실행) / Low 0
+- Validate exit code: 0 (TS 111 passed[web 79/api 32] / Python 246 passed, 29 skip · mypy --strict green)
+- E2E: full-stack `pnpm e2e` 본 세션 미실행(Docker Desktop 미가동) · UI 골든패스 golden_path.spec.tsx green(validate 내) · backend 무변경 → 사용자 웜캐시 1회 외부검증 잔여
+- Findings: P0 0 / P1 1 ([Dependency] moderate 5 — 실질 해소, qs만) / P2 ~10
+- Cross-stabilize 회귀 신호: 2종(약) — [Dependency](M2~M5 4회 → **M7 실질 해소**, next high 0·qs moderate만 잔여) · [Doc-status-draft](M1~M5→M7, 비차단). + (P2 패턴 carryover, P1-grep 비대상) QA-M4-002→QA-M7-002(onRestore 낙관적UI)·QA-M4-005→QA-M7-004(unfavorite dead type). **개선 신호**: REV-M2-UI-001(silent .catch 거짓완전성)이 M7 전 신규 뷰에서 error/empty/loading 일급화로 정착 + [Dependency] 4회 부채가 next bump으로 끊김.
+```
+
 ## 1. 우선순위
+
+### M7
+1. (P0 후속) **없음** — graduation §5 코드결함 P0 0, 졸업 가능 YES. **잔여(외부검증만): 사용자 웜캐시 환경 `pnpm e2e`(full-stack docker) green 1회**(본 세션 Docker Desktop 미가동으로 미실행 — backend 골든패스는 M7 무변경이라 회귀 위험 낮음).
+2. (P1, 약) **[Dependency]** — `pnpm audit` moderate 5(qs via NestJS→express). **next high 8은 M7에서 해소**(4회 연속 P1 부채 실질 종료) → 잔여는 NestJS bump 시 qs 닫힘. 별도 bump task(낮음).
+3. (P2) **[ADR-ref-project]+[ADR-candidate] ADR-110(피드 IA)** — milestone §2-A-1 피드 정보구조 결정(피로 최소 IA·중요 UX 결정)을 "신설 권장"만 하고 ADR 미작성. 결정은 §2-A-1이 SSOT라 *동작은 정합*이나, "중요한 UX 결정은 ADR" 정책(WORKFLOW §6) 미충족. **architect ADR-110 신설 권장** 또는 milestone §2-A-1을 SSOT로 명문 확정. (forward-ref라 졸업 비차단.)
+4. (P2) **reviewer/qa P2 묶음** — REV-M7-002(공용 `apiFetch` 헬퍼로 credentials:'include' 중앙화 — [[web-fetch-credentials-include]] blind-spot 하더닝) · QA-M7-002(onRestore no-op 낙관적UI 복원, FeedList.tsx:96) · QA-M7-003(Toast 동일메시지 재표시) · QA-M7-004(unfavorite dead type) · QA-M7-005(scoreError reset) · DSN-M7-001(DESIGN §7 인벤토리 갱신) · REV-M7-001(daysUntil 2중) · [Doc-status-draft]. 전부 비차단 — 다음 라운드 `/plan-workitem` 회수 또는 `/repair-workitem T-090/T-100` 선택.
 
 ### M5
 1. (P0 후속) ✅ **CLOSED (커밋 `2821a79` + 재grade 2026-06-08 YES)** — **M5-WIRING-001 코어 비용레버 배선**: `__main__.run()`이 `embed_new_jobs`(무키 skip)+`run_full_scoring`(임베딩 없으면 N-path 폴백) 호출. repo grep으로 `run_full_scoring`이 이제 `__main__.py`에서 호출됨 확정. (배선 위치=worker run() lazy embed로 결정 — architect ADR은 미신설이나 동작은 정합; ARCH §7-3 본문 보강은 §4 ADR 후보로 잔존.)
@@ -171,6 +200,26 @@ Telemetry — M5 (초판 졸업 NO → 재grade YES, Fix round 2821a79)
 5. (P2) WHY 주석·네이밍·crawler 내결함성 정리 (REV-M1-004~008, QA-M1-003~006 → QA_FINDINGS).
 
 ## 2. 즉시 수정할 항목
+
+### M7
+
+> `/stabilize-milestone M7`(2026-06-10) reviewer(code+design) 결과 — subagent budget-exhaustion으로 메인 세션 직접 수행. 전부 P2(behavior-preserving / doc-trace / 저신뢰 휴리스틱). P0/P1 코드결함 0. (qa P2는 [QA_FINDINGS ## M7](QA_FINDINGS.md) owning.)
+
+- **REV-M7-002** | P2 | [관측됨] [Clean-Code: Duplication] | linked: T-090,T-093,T-094,T-095 | status: open | `podo/apps/web/components/*.tsx` (~9 파일)
+  - 발견: `const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3001'` + `fetch(..., { credentials: 'include' })` 패턴이 9+ 컴포넌트(FeedList·FeedView·CoveragePanel·CoarseSection·ActivityList·JobCardActions·ResumeUpload·page.tsx 등)에 복제. rule-of-3 초과.
+  - 근거: `credentials:'include'`는 [[web-fetch-credentials-include]]가 명시한 *유닛/E2E 미포착 blind-spot* — 새 fetch 추가 시 누락 1건이면 교차출처 쿠키 미전송으로 401. 중앙 헬퍼가 불변식을 구조적으로 강제.
+  - 권장: `lib/api.ts`에 `apiFetch(path, init)`(API_BASE prefix + `credentials:'include'` 고정) 단일화 → 컴포넌트는 path만. 신규 fetch가 자동으로 쿠키 포함. (behavior-preserving 리팩토링.)
+- **REV-M7-001** | P2 | [관측됨] [Clean-Code: Duplication] | linked: T-090 | status: open | `components/JobCard.tsx:30` · `components/DeadlineSection.tsx:5`
+  - 발견: `daysUntil(closingAt)`(closing_at ISO → D-day) 함수가 두 곳에 verbatim 복제(DeadlineSection 주석이 "JobCard.daysUntil 동일 파생" 시인). 2 copies — rule-of-3 미만.
+  - 권장: `lib/deadline.ts` 단일 `daysUntil` → 두 곳 import(마감 임박 정렬·D-day 표시 drift 방지). accept-with-note(2 copies라 강제 아님).
+- **REV-M7-003** | P2 | [관측됨] | linked: T-092 | status: open | `podo/apps/api/src/feed/feed.controller.ts:29,37`
+  - 발견: `include_recent_processed` 쿼리 파라미터를 `Boolean(string)` flag로 해석 — 클라이언트가 보내는 `7d` 값은 *장식*이고 실제 7일 윈도우는 `feed.service.ts:178`에 하드코딩. `?include_recent_processed=false`/`=0`도 true로 평가됨(임의 비빈 문자열=true).
+  - 근거: flag semantics라 현 클라이언트(`=7d`)엔 무해하나, 값-의존 오해 소지 + ARCH §7-1 DTO/ValidationPipe 컨벤션과 거리(REV-M3-001 carryover 맥락).
+  - 권장: boolean DTO(`@Transform`)로 명시하거나 주석으로 "presence=flag, 값 무시" 명문화. 낮음.
+- **DSN-M7-001** | P2 | [관측됨] [Design-inventory-drift] (저신뢰 휴리스틱) | linked: T-090,T-093,T-094 | status: open | `docs/20-system/DESIGN.md` §7 ↔ `components/`
+  - 발견: 신규/변경 컴포넌트 중 **DeadlineSection·ResumeForm·ActivityList·AppHeader**가 DESIGN §7 Components 인벤토리에 미등재(§7-2가 DeadlineRow·Toast, §7-3가 CoarseSection 패턴은 언급). M4 [Design-inventory] P2(JobCardActions/LoginButton 미등재)와 동형 패턴.
+  - 근거: 5-3 free-form 키워드 매칭 휴리스틱 — false positive 가능(일부는 §7 상위 컴포넌트가 포괄). 단 마이페이지/네비/활동뷰는 신규 surface라 §7 등록이 자연스러움.
+  - 권장: DESIGN §7에 신규 컴포넌트 등재(또는 §7-3 패턴 하위로 명시). 비차단 doc-sync.
 
 ### M1
 (P0 없음.)
