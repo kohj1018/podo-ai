@@ -10,9 +10,9 @@ import { AllExceptionsFilter } from './common/error.filter'
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule)
-  // ALB가 TLS를 종단하고 컨테이너엔 HTTP로 전달한다. trust proxy가 없으면 req.secure=false라
-  // express-session이 secure 쿠키(SameSite=None;Secure)를 아예 안 내보내 세션이 누락된다(매 요청 401).
-  // 1 = 첫 홉(ALB)만 신뢰 → X-Forwarded-Proto:https를 읽어 secure 연결로 인식.
+  // ALB가 TLS를 종단하고 컨테이너엔 HTTP로 전달한다(X-Forwarded-* 부착). 1 = 첫 홉(ALB)만 신뢰.
+  // 용도는 express-rate-limit의 실제 클라이언트 IP 식별(미설정 시 ALB IP 한 버킷). secure 쿠키 발급은
+  // NestJS에선 이 설정이 req.secure에 안 먹어, 아래 express-session의 proxy 옵션이 XFP를 직접 읽어 처리한다.
   app.set('trust proxy', 1)
   app.useGlobalFilters(new AllExceptionsFilter()) // 단일 envelope { error: { code, message } } (ARCH §7-1)
 
@@ -30,6 +30,10 @@ async function bootstrap(): Promise<void> {
       secret: process.env.SESSION_SECRET ?? 'dev-insecure-session-secret',
       resave: false,
       saveUninitialized: false,
+      // proxy: ALB TLS 종단 → 컨테이너는 HTTP라 req.secure=false. proxy:true면 express-session이
+      // X-Forwarded-Proto:https를 직접 읽어 secure 연결로 인식 → secure 쿠키를 실제로 내보낸다.
+      // (이게 없으면 secure:true 쿠키가 "not secured"로 생략돼 prod에서 세션 쿠키 누락 → 매 요청 401.)
+      proxy: isProd,
       cookie: {
         httpOnly: true,
         sameSite: isProd ? 'none' : 'lax',
