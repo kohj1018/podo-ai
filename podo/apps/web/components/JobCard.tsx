@@ -69,14 +69,15 @@ export function JobCard({
         <div className="flex items-center gap-2 text-xs uppercase tracking-wide">
           <span>{posting.source}</span>
           {posting.role_family ? <span>· {posting.role_family}</span> : null}
-          {posting.diff_status === 'new' ? (
+          {/* crawler(단일 writer)가 쓰는 실제 값은 한글: "신규"/"유지"/"마감". */}
+          {posting.diff_status === '신규' ? (
             <span data-testid="diff-new" style={{ color: 'var(--band-5-ink)' }}>
               · NEW
             </span>
           ) : null}
-          {posting.diff_status === 'expiring' ? (
-            <span data-testid="diff-expiring" style={{ color: 'var(--band-2-ink)' }}>
-              · 마감 임박
+          {posting.diff_status === '마감' ? (
+            <span data-testid="diff-closed" style={{ color: 'var(--band-2-ink)' }}>
+              · 마감
             </span>
           ) : null}
         </div>

@@ -120,9 +120,10 @@ export class FeedService {
     })
 
     let new_count = 0
-    let expiring_count = 0
     let total_pending_count = 0
     let visible_count = 0
+    // expiring("마감 임박")은 crawler가 closing_at을 수집하지 않아 현재 미산출 → 항상 0(정직한 미구현).
+    const expiring_count = 0
     for (const r of recs) {
       if (excluded.has(r.job_posting.id)) {
         continue
@@ -131,10 +132,10 @@ export class FeedService {
       if (r.status === 'held') {
         total_pending_count++
       }
-      if (r.job_posting.diff_status === 'new') {
+      // crawler(단일 writer)가 쓰는 실제 값은 한글: "신규"/"유지"/"마감"(crawler/persistence.py).
+      // expiring("마감 임박")은 crawler가 closing_at을 수집하지 않아 미산출 → 항상 0(정직한 미구현).
+      if (r.job_posting.diff_status === '신규') {
         new_count++
-      } else if (r.job_posting.diff_status === 'expiring') {
-        expiring_count++
       }
     }
 
