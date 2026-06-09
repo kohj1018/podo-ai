@@ -43,23 +43,34 @@ export function FeedView({ domain }: { domain?: string } = {}) {
   const [error, setError] = useState(false)
   const [resurface, setResurface] = useState(false) // 신규 적은 날 최근 7일 재노출(T-092)
 
-  const load = useCallback(async () => {
-    setLoading(true)
+  // quiet=true면 로딩 skeleton 깜빡임 없이 조용히 갱신(폴링용).
+  const load = useCallback(async (quiet = false) => {
+    if (!quiet) setLoading(true)
     setError(false)
     try {
       const res = await fetch(`${API_BASE}/api/v1/feed/meta`, { credentials: 'include' })
       if (!res.ok) throw new Error(`meta ${res.status}`)
       setMeta((await res.json()) as FeedMeta)
     } catch {
-      setError(true) // 실패를 삼키지 않음(REV-M2-UI-001)
+      // 폴링(quiet) 중 일시적 실패는 다음 주기에 재시도 — skeleton 유지(에러 화면 깜빡임 방지).
+      if (!quiet) setError(true) // 초기 로드 실패는 삼키지 않음(REV-M2-UI-001)
     } finally {
-      setLoading(false)
+      if (!quiet) setLoading(false)
     }
   }, [])
 
   useEffect(() => {
     void load()
   }, [load])
+
+  // 채점 진행 중(queued/running)에는 주기적으로 meta를 재조회해 worker 완료 시 자동 전환.
+  // (없으면 "분석 중" skeleton에서 영구 정지 — 사용자가 수동 새로고침해야 결과를 봄.)
+  const scoringStatus = meta?.scoring_status
+  useEffect(() => {
+    if (scoringStatus !== 'queued' && scoringStatus !== 'running') return
+    const t = setInterval(() => void load(true), 3500)
+    return () => clearInterval(t)
+  }, [scoringStatus, load])
 
   // 1) loading
   if (loading) {
