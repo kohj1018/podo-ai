@@ -1,7 +1,7 @@
 # T-092-recent-unprocessed-resurface
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 feature
@@ -22,6 +22,12 @@ feature
 - "7일" 외 기간 선택 UI. 마감 섹션·coarse(T-090/091).
 
 ## 4-1. 변경 예정 파일/경로
+- `podo/apps/api/src/feed/feed.service.ts` (getFeed에 includeRecentProcessed 인자 + 7일 컷오프)
+- `podo/apps/api/src/feed/feed.controller.ts` (include_recent_processed 쿼리 → service 전달)
+- `podo/apps/web/components/FeedList.tsx` (resurface prop → &include_recent_processed=7d)
+- `podo/apps/web/components/FeedView.tsx` (empty-state 재노출 버튼 + resurface state)
+- `podo/apps/api/test/feed.spec.ts` (fake-prisma AC-2 단위 테스트 추가)
+- `podo/apps/web/test/feed_resurface.spec.tsx` (신규 — AC-1)
 
 ## 5. 완료 조건
 신규 적은 날 EmptyState에서 버튼을 누르면 최근 7일 미처리(+최근 처리분) 공고가 피드에 재노출된다.

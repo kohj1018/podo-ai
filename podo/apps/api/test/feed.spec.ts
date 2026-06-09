@@ -173,3 +173,67 @@ describe('Feed read-only (static, AC-3)', () => {
     expect(src).not.toMatch(/\.(create|createMany|update|updateMany|delete|deleteMany|upsert)\(/)
   })
 })
+
+// T-092 AC-2 — include_recent_processed=7d면 최근 7일 처리분이 재노출되고, 7일보다 오래된 처리는 계속 제외.
+// fake Prisma로 getFeed의 제외 로직을 결정적으로 검증(DB 불필요 — 키리스 게이트 실행).
+describe('FeedService include_recent_processed (AC-2)', () => {
+  const REC1 = {
+    job_posting_id: 1,
+    job_posting: { id: 1 },
+    fit_level: 5,
+    rank_position: 0,
+    status: 'scored',
+    run: { result: { e: 1 } },
+  }
+  const REC2 = {
+    job_posting_id: 2,
+    job_posting: { id: 2 },
+    fit_level: 4,
+    rank_position: 1,
+    status: 'scored',
+    run: { result: { e: 1 } },
+  }
+
+  function makeService(captured: { processedWhere?: Record<string, unknown> }) {
+    const prisma = {
+      rankingRun: { findFirst: async () => ({ id: 99 }) },
+      // job1=최근 처리, job2=오래된 처리. created_at 필터(includeRecentProcessed) 있으면 오래된 것만 제외.
+      applicationEvent: {
+        findMany: async ({ where }: { where: Record<string, unknown> }) => {
+          captured.processedWhere = where
+          return where.created_at
+            ? [{ job_posting_id: 2 }]
+            : [{ job_posting_id: 1 }, { job_posting_id: 2 }]
+        },
+      },
+      recommendation: {
+        findMany: async ({ where }: { where: { job_posting_id?: { notIn?: number[] } } }) => {
+          const excluded = where.job_posting_id?.notIn ?? []
+          return [REC1, REC2].filter((r) => !excluded.includes(r.job_posting_id))
+        },
+      },
+    }
+    return new FeedService(prisma as unknown as PrismaService)
+  }
+
+  it('test_AC_2_include_recent_processed', async () => {
+    const captured: { processedWhere?: Record<string, unknown> } = {}
+    const service = makeService(captured)
+
+    // 기본(플래그 없음): job1·job2 모두 처리완료 → 제외 → 빈 피드.
+    const base = await service.getFeed(-1, 'u1')
+    expect(base.items).toHaveLength(0)
+    expect(captured.processedWhere?.created_at).toBeUndefined()
+
+    // include_recent_processed: 최근 처리(job1) 재노출, 오래된 처리(job2)는 계속 제외.
+    const resurfaced = await service.getFeed(-1, 'u1', 20, undefined, true)
+    expect(resurfaced.items).toHaveLength(1)
+    expect((resurfaced.items[0].posting as { id: number }).id).toBe(1)
+
+    // 컷오프는 ~7일 전(now - 7d). lt 방향(오래된 것 제외) 검증.
+    const cutoff = (captured.processedWhere?.created_at as { lt: Date }).lt
+    const daysAgo = (Date.now() - cutoff.getTime()) / (24 * 60 * 60 * 1000)
+    expect(daysAgo).toBeGreaterThan(6.9)
+    expect(daysAgo).toBeLessThan(7.1)
+  })
+})

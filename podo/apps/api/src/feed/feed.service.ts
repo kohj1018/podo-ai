@@ -152,7 +152,13 @@ export class FeedService {
   // worker 산출 recommendations를 current run 한정 + rank_position 커서로 서빙(read-only).
   // userId 주어지면 그 사용자 이력서의 run으로 범위 격리(멀티유저, T-042). 미지정 시 전역(하위호환).
   // domain(직군) 필터: 주어지면 job_postings.role_family = domain 공고만(T-067 직군 탭).
-  async getFeed(cursor: number, userId?: string, take = 20, domain?: string): Promise<FeedPage> {
+  async getFeed(
+    cursor: number,
+    userId?: string,
+    take = 20,
+    domain?: string,
+    includeRecentProcessed = false,
+  ): Promise<FeedPage> {
     // (a) current run = (해당 사용자) 최신 ranking_runs (run 간 stale 혼입 차단 — cross-LLM P1)
     const currentRun = await this.prisma.rankingRun.findFirst({
       where: userId ? { resume: { user_id: userId } } : undefined,
@@ -168,8 +174,14 @@ export class FeedService {
     // 즐겨찾기·되돌리기(favorite/unfavorite/unskip)는 제외 대상 아님(최신 action 기준 upsert 1행).
     let excludedJobIds: number[] = []
     if (userId) {
+      // includeRecentProcessed(T-092): 최근 7일 내 처리분은 제외 해제(재노출). 7일보다 오래된 처리만 계속 제외.
+      const recentCutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
       const processed = await this.prisma.applicationEvent.findMany({
-        where: { user_id: userId, action: { in: CLEARED_ACTIONS } },
+        where: {
+          user_id: userId,
+          action: { in: CLEARED_ACTIONS },
+          ...(includeRecentProcessed ? { created_at: { lt: recentCutoff } } : {}),
+        },
         select: { job_posting_id: true },
       })
       excludedJobIds = processed.map((p) => p.job_posting_id)

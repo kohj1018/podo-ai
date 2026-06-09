@@ -41,6 +41,7 @@ export function FeedView({ domain }: { domain?: string } = {}) {
   const [meta, setMeta] = useState<FeedMeta | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
+  const [resurface, setResurface] = useState(false) // 신규 적은 날 최근 7일 재노출(T-092)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -153,6 +154,25 @@ export function FeedView({ domain }: { domain?: string } = {}) {
         </section>
       )
     }
+    // 재노출 모드 — "다시 보기" 클릭 시 최근 7일 미처리(+최근 처리분) 공고 피드(T-092 AC-2).
+    if (resurface) {
+      return (
+        <div>
+          <p
+            data-testid="resurface-banner"
+            style={{
+              maxWidth: '430px',
+              margin: '8px auto 0',
+              padding: '0 16px',
+              color: 'var(--muted)',
+            }}
+          >
+            최근 7일 미처리 공고를 다시 보여드려요.
+          </p>
+          <FeedList domain={domain} resurface />
+        </div>
+      )
+    }
     return (
       <section
         data-testid="feed-empty-state"
@@ -161,6 +181,22 @@ export function FeedView({ domain }: { domain?: string } = {}) {
         <PodoMascot size={52} />
         <p style={{ fontWeight: 600 }}>오늘은 신규가 적어요</p>
         <p style={{ color: 'var(--muted)' }}>최근 7일 미처리 공고를 다시 볼 수 있어요.</p>
+        <button
+          type="button"
+          data-testid="resurface-button"
+          onClick={() => setResurface(true)}
+          style={{
+            marginTop: '12px',
+            padding: '8px 16px',
+            borderRadius: '12px',
+            border: '1px solid var(--line-strong)',
+            background: 'var(--surface)',
+            color: 'var(--grape-700)',
+            cursor: 'pointer',
+          }}
+        >
+          최근 7일 미처리 다시 보기
+        </button>
       </section>
     )
   }
