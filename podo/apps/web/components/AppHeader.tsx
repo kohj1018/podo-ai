@@ -21,7 +21,18 @@ export function AppHeader() {
         margin: '0 auto',
       }}
     >
-      <span style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700 }}>
+      <a
+        href="/"
+        aria-label="피드 홈"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          fontWeight: 700,
+          color: 'inherit',
+          textDecoration: 'none',
+        }}
+      >
         <img src="/podo-mascot.png" alt="" width={24} height={24} style={{ display: 'block' }} />
         <span>
           포도{' '}
@@ -36,8 +47,18 @@ export function AppHeader() {
             ai
           </span>
         </span>
-      </span>
-      <LogoutButton />
+      </a>
+      {/* 전역 네비(T-093) — 마이페이지 진입 + 로그아웃. 링크 시맨틱·키보드 도달. */}
+      <nav aria-label="주요 메뉴" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <a
+          href="/me"
+          data-testid="nav-mypage"
+          style={{ color: 'var(--grape-700)', textDecoration: 'none', fontWeight: 600 }}
+        >
+          마이페이지
+        </a>
+        <LogoutButton />
+      </nav>
     </header>
   )
 }

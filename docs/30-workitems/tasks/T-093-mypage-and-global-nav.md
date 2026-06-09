@@ -1,7 +1,7 @@
 # T-093-mypage-and-global-nav
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 feature
@@ -22,6 +22,10 @@ feature
 - 프로필/계정 설정 편집.
 
 ## 4-1. 변경 예정 파일/경로
+- `podo/apps/web/app/me/page.tsx` (신규 — 계정 허브: 이력서수정/즐겨찾기/지원기록/로그아웃 진입)
+- `podo/apps/web/components/AppHeader.tsx` (마이페이지 /me 네비 링크 + nav 시맨틱, 로고 anchor화)
+- `podo/apps/web/test/mypage.spec.tsx` (신규 — AC-1/AC-3)
+- `podo/apps/web/test/app_header_nav.spec.tsx` (신규 — AC-2 + guest 숨김)
 
 ## 5. 완료 조건
 헤더 네비로 마이페이지에 가고, 마이페이지에서 이력서 수정·즐겨찾기·지원기록·로그아웃에 진입한다.
