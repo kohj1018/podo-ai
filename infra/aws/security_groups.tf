@@ -85,6 +85,16 @@ resource "aws_security_group" "worker" {
     description = "HTTPS outbound: OpenAI, AWS API(SQS/Secrets/ECR)"
   }
 
+  # worker는 채점 결과를 RDS에 기록한다(consume_loop→db.connect). VPC 내부 RDS(5432)로의 egress 필요.
+  # 누락 시 DB 연결 timeout → worker 크래시 루프 → SQS 미소비("분석 중" 멈춤). 443-only가 5432를 막았던 버그.
+  egress {
+    from_port   = 5432
+    to_port     = 5432
+    protocol    = "tcp"
+    cidr_blocks = [aws_vpc.main.cidr_block]
+    description = "Postgres to RDS (in-VPC)"
+  }
+
   tags = { Name = "podo-${var.env}-worker-sg" }
 }
 
