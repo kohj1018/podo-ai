@@ -1,7 +1,7 @@
 # T-102-golden-path-hardening
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 bugfix
@@ -29,6 +29,10 @@ bugfix
 - 신규 기능. 골든패스 밖 surface 버그(별 finding).
 
 ## 4-1. 변경 예정 파일/경로
+- `podo/apps/web/app/page.tsx` (ready 게이트 — 신규 사용자 피드 깜빡임 제거, QA-M7-001)
+- `podo/apps/web/test/golden_path.spec.tsx` (신규 — AC-1 UI 골든패스 통합 + AC-2 깜빡임 회귀)
+- `docs/40-validation/QA_FINDINGS.md` (M7 섹션 — 스윕 결과·credentials 전수·E2E 경계)
+- (비변경) `scripts/e2e.mjs` — 기존 API-레벨 full-stack 골든패스 E2E(사용자 `pnpm e2e` 종단 확인)
 
 ## 5. 완료 조건
 골든패스가 E2E로 무중단 통과하고, 식별된 P0/P1이 수정되거나 명시 이연된다.
@@ -54,6 +58,8 @@ bugfix
 ## 8. 메모
 - repair-plan 2026-06-10 [default] P1 Plan-sizing: Adopt — bugfix 스윕이라 write_set은 진단 후 확장(임의 source 파일). 아래 9 write_set은 *시드*이며, implement가 `## 4-1`에 실제 변경 파일을 채우고 QA_FINDINGS(M7)를 갱신한다(미고침은 명시 이연).
 - 이미 알려진 버그는 별 task로 분리 처리(중복 회피): **score POST 실패 미이동=T-096:AC-3** · **redirect 루프/경쟁=T-097:AC-1**. T-102는 *통합 후 새로 드러나는* 골든패스 결함 발굴·수정 담당.
+- **해석 확정: AC-1 = 프론트 통합 골든패스 테스트(vitest) + 기존 `scripts/e2e.mjs`(API-레벨 골든패스 E2E)** (사용자 결정 2026-06-10). 근거: 본 프로젝트에 **Playwright 미도입**(의존성·config·e2e/ 부재)이고, 실 골든패스 E2E는 `scripts/e2e.mjs`(login→upload→score→피드→격리→PII, 무키 웜캐시)가 이미 담당하며 M7 변경은 UI 중심(+feed param 1·applications include 1)이라 그 API 골든패스가 무변경. 따라서 (a) UI 골든패스(로그인 게이트→이력서 입력 2모드→제출→채점→피드 렌더)를 mock-fetch 통합 테스트(`test/golden_path.spec.tsx`)로 키리스 게이트 내 검증, (b) full-stack 종단 검증은 사용자가 docker/웜캐시 환경에서 `pnpm e2e` 실행으로 확인. 통합 스윕 발견은 QA_FINDINGS(M7) 기록.
+- 통합 스윕 결과(2026-06-10): ① credentials:'include' — 전 M7 web→api fetch 충족(누락 0, 회귀 없음). ② 알려진 버그(score 실패·redirect 루프)는 T-096/T-097 커버. ③ **신규 발견(P2): 신규(이력서 없음) 사용자 진입 시 meta 로드 전 피드/온보딩 깜빡임** → page.tsx에 meta-loaded 게이트 추가로 수정(깜빡임 제거, 회귀 테스트 포함).
 
 ## 9. 의존성
 - depends_on: [T-090, T-091, T-092, T-093, T-094, T-095, T-096, T-097, T-098, T-099, T-100, T-101]

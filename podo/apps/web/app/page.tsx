@@ -29,6 +29,7 @@ export default function HomePage() {
   const [confidence, setConfidence] = useState<string | undefined>(undefined)
   const [active, setActive] = useState('all')
   const [redirecting, setRedirecting] = useState(false)
+  const [ready, setReady] = useState(false) // meta 로드 완료 — 결정 전 피드 깜빡임 차단(T-102)
 
   useEffect(() => {
     let alive = true
@@ -36,23 +37,26 @@ export default function HomePage() {
     fetch(`${API_BASE}/api/v1/feed/meta`, { credentials: 'include' })
       .then((r) => (r.ok ? r.json() : null))
       .then((m: FeedMeta | null) => {
-        if (!alive || !m) {
+        if (!alive) {
           return
         }
         // 이력서 없음 → /resume 직행(인라인 온보딩 동선 약함). /resume엔 본 판정 없음 → 루프 방지.
-        if (m.has_resume === false) {
+        // has_resume 결정 전까지 ready=false로 피드를 그리지 않음(신규 사용자 깜빡임 제거, T-102).
+        if (m?.has_resume === false) {
           setRedirecting(true)
           router.replace('/resume')
           return
         }
-        if (!m.resume_domains) {
-          return
+        if (m?.resume_domains) {
+          const rd = m.resume_domains
+          setDomains([...(rd.primary_domains ?? []), ...(rd.secondary_domains ?? [])])
+          setConfidence(rd.confidence)
         }
-        const rd = m.resume_domains
-        setDomains([...(rd.primary_domains ?? []), ...(rd.secondary_domains ?? [])])
-        setConfidence(rd.confidence)
+        setReady(true)
       })
-      .catch(() => {})
+      .catch(() => {
+        if (alive) setReady(true) // meta 실패 시 피드로 진입(FeedView가 자체 에러 처리)
+      })
     return () => {
       alive = false
     }
@@ -74,6 +78,21 @@ export default function HomePage() {
           }}
         >
           이력서를 작성하러 갈게요…
+        </output>
+      ) : !ready ? (
+        // meta 로드 전 — has_resume 결정 전이라 피드 대신 skeleton(신규 사용자 피드 깜빡임 제거, T-102).
+        <output
+          aria-live="polite"
+          aria-busy="true"
+          aria-label="불러오는 중"
+          data-testid="feed-gate-loading"
+          style={{ display: 'block', maxWidth: '430px', margin: '0 auto', padding: '24px 16px' }}
+        >
+          <div
+            className="shimmer"
+            style={{ height: '64px', borderRadius: '16px', marginBottom: '12px' }}
+          />
+          <div className="shimmer" style={{ height: '88px', borderRadius: '16px' }} />
         </output>
       ) : (
         <div className="flex flex-col gap-4 py-4">

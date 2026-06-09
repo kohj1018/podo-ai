@@ -244,6 +244,24 @@
 - **커버리지 어댑터(T-062/070-076) 심층 미감사**: qa/reviewer subagent 보고 부재로 어댑터 family 중복·게이트 엣지를 본 세션에서 심층 audit하지 못함. per-task validation(test_ats_family·test_custom_adapters·test_tier2~5 전부 green) + 본 stabilize validate green이 보조 커버. 다음 라운드 reviewer 회수 권장.
 - **M4 carryover**: QA-M4-001(delete-after-failed)·REV-M4-003/010(status 채널) = QA-M5-003으로 영향도 상승(E2E 차단 유발). QA-M4-004(seed user_id 비대칭)·REV-M4-002(seed shim)는 M5에서 미해소(여전히 `_ensure_seed_resume` 잔존).
 
+## M7
+
+> T-102 골든패스 통합 스윕(2026-06-10). 로그인 → /resume 입력 → 제출 → 채점 → 피드 분석결과 경로.
+
+### P0
+- 없음. 골든패스 위 P0(401/403/CORS/stale run/score 무중단 실패) 발견 0.
+
+### P1
+- 없음. 알려진 P1(score POST 실패 미이동 / redirect 루프·경쟁)은 각각 **T-096:AC-3** · **T-097:AC-1**에서 회귀 테스트와 함께 이미 수정됨(중복 회피).
+
+### P2
+- **[QA-M7-001 · 수정됨]** 신규(이력서 없음) 사용자 진입 시 `feed/meta` 로드 전 피드(CoveragePanel/온보딩)가 잠깐 깜빡인 뒤 `/resume`로 리다이렉트. → `app/page.tsx`에 `ready`(meta-loaded) 게이트 추가로 결정 전 skeleton만 노출(피드 미렌더) → 깜빡임 제거. 회귀: `test/golden_path.spec.tsx > test_AC_2_new_user_no_feed_flash`(coverage-panel 미노출).
+
+### 관찰 메모
+- **credentials:'include' 전수 확인**: 전 M7 web→api fetch(ActivityList·CoveragePanel·CoarseSection·FeedList·FeedView·JobCardActions·ResumeUpload(upload/score)·SessionProvider·page.tsx feed/meta·LogoutButton)가 credentials:'include' 충족 — 교차출처 세션 쿠키 누락 0([[web-fetch-credentials-include]] 회귀 없음).
+- **E2E 경계(해석 확정)**: 본 프로젝트는 Playwright 미도입. UI 골든패스는 `test/golden_path.spec.tsx`(mock-fetch 통합: 로그인 게이트 → 직접작성 폼 → 표준 헤딩 마크다운 제출 → 마스킹 preview → 분석 시작 → 채점 1회 → 피드 적합도 배지)로 키리스 게이트 내 검증. **full-stack 종단(실 docker/DB/worker/큐)은 `scripts/e2e.mjs`(login→upload→score→격리 피드→PII)** 가 담당 — M7은 UI 중심 변경이라 그 API 골든패스 무변경. 사용자 환경에서 `pnpm e2e`(웜캐시) 실행으로 종단 재확인 권장(비차단).
+- **stale run / coarse 격리**: M5(M5-repair-38)에서 active resume 교체 시 이전 run·coarse 미혼입을 `getFeed`(현재 run 한정)·`getCoarseFeed`(resume_id 범위)로 이미 차단. M7은 해당 경로 무변경 → 회귀 위험 낮음(실 교체 시나리오 종단 확인은 warm e2e).
+
 ## 일반
 
 ### P0
