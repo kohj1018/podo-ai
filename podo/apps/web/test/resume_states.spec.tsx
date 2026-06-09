@@ -69,8 +69,9 @@ describe('ResumeUpload 상태 매트릭스 (AC-2)', () => {
 
     render(<ResumeUpload />)
 
-    const textarea = screen.getByRole('textbox')
-    fireEvent.change(textarea, { target: { value: '이력서 내용' } })
+    // T-095: 파일 모드(기본)에서 유효 .txt 업로드 → 로딩 진입.
+    const file = new File(['이력서 내용'], 'resume.txt', { type: 'text/plain' })
+    fireEvent.change(screen.getByTestId('file-input'), { target: { files: [file] } })
     fireEvent.click(screen.getByText('업로드'))
 
     // 로딩 중 skeleton 존재

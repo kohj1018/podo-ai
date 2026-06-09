@@ -92,7 +92,9 @@ describe('a11y — ARIA roles/labels + band ink (AC-1)', () => {
     vi.stubGlobal('fetch', vi.fn().mockReturnValue(pending))
 
     render(<ResumeUpload />)
-    fireEvent.change(screen.getByRole('textbox'), { target: { value: '이름: 홍길동' } })
+    // T-095: 파일 모드(기본)에서 .txt 업로드 → 로딩 진입.
+    const file = new File(['이름: 홍길동'], 'resume.txt', { type: 'text/plain' })
+    fireEvent.change(screen.getByTestId('file-input'), { target: { files: [file] } })
     fireEvent.click(screen.getByText('업로드'))
 
     // 업로드 중 skeleton에 aria-busy (DSN-M3-002)

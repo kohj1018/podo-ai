@@ -22,7 +22,7 @@ export default function ResumePage() {
             marginBottom: '24px',
           }}
         >
-          이력서 업로드
+          이력서 작성
         </h1>
         <ResumeUpload />
       </main>

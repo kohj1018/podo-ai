@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react'
 import { MaskingPreview } from './MaskingPreview'
+import { ResumeForm } from './ResumeForm'
 
 interface EvidenceSummary {
   skills: number
@@ -24,6 +25,8 @@ interface PreviewState {
   resumeId: number
 }
 
+type Mode = 'file' | 'form'
+
 // 허용 확장자 목록
 const ALLOWED_EXTENSIONS = ['.txt', '.md']
 // 클라이언트 사이드 파일 크기 상한: 100KB
@@ -31,13 +34,11 @@ const MAX_FILE_SIZE = 100 * 1024
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3001'
 
-// /resume 업로드 영역 — FeedList 패턴(API_BASE 환경변수) 차용.
-// 파일 drag/drop(.txt/.md) + textarea paste 양쪽 지원.
-// 업로드 후 T-034 응답(masked_preview + evidence_summary)을 MaskingPreview에 전달.
-// T-041: 비허용 포맷 안내 + 100KB 초과 client pre-check + 로딩 skeleton + error toast.
-// T-039: "분석 시작" onClick — score 트리거 후 feed 이동(onNavigateFeed). 주입 없으면 no-op.
+// /resume 입력 — 두 모드(T-095 §2-C): ① 파일 업로드(.txt/.md) ② 직접 작성 폼(항목→표준 헤딩 마크다운).
+// 두 모드 모두 *기존* 단일 blob 흐름(POST /api/v1/resumes)에 태운다 — 알고리즘·스키마 무변경(§2-H).
+// 업로드 후 T-034 응답(masked_preview + evidence_summary)을 MaskingPreview에 전달 → "분석 시작"(T-039).
 export function ResumeUpload({ onNavigateFeed }: { onNavigateFeed?: (path: string) => void } = {}) {
-  const [pasteText, setPasteText] = useState('')
+  const [mode, setMode] = useState<Mode>('file')
   const [preview, setPreview] = useState<PreviewState | null>(null)
   const [uploading, setUploading] = useState(false)
   const [fileError, setFileError] = useState<string | null>(null)
@@ -69,18 +70,15 @@ export function ResumeUpload({ onNavigateFeed }: { onNavigateFeed?: (path: strin
     setFileError(null)
   }
 
-  async function handleUpload() {
-    const file = fileInputRef.current?.files?.[0]
-    const hasInput = file || pasteText.trim()
-    if (!hasInput) return
-
+  // 공통 제출 — 파일(FormData) 또는 텍스트({text} JSON) 모두 기존 POST /api/v1/resumes 경로.
+  async function submitResume(payload: { file: File } | { text: string }) {
     setUploadError(false)
     setUploading(true)
     try {
       let res: Response
-      if (file) {
+      if ('file' in payload) {
         const form = new FormData()
-        form.append('file', file)
+        form.append('file', payload.file)
         res = await fetch(`${API_BASE}/api/v1/resumes`, {
           method: 'POST',
           body: form,
@@ -90,7 +88,7 @@ export function ResumeUpload({ onNavigateFeed }: { onNavigateFeed?: (path: strin
         res = await fetch(`${API_BASE}/api/v1/resumes`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: pasteText }),
+          body: JSON.stringify({ text: payload.text }),
           credentials: 'include',
         })
       }
@@ -112,9 +110,14 @@ export function ResumeUpload({ onNavigateFeed }: { onNavigateFeed?: (path: strin
     }
   }
 
+  function handleFileUpload() {
+    const file = fileInputRef.current?.files?.[0]
+    if (!file) return
+    void submitResume({ file })
+  }
+
   // T-039: score 트리거 → localStorage에 resume_id 저장 → feed 이동.
   // 해석 확정(§8): POST /api/v1/resumes/:id/score (T-037 확정 트리거).
-  // resume_id 전달: localStorage('podo_active_resume_id') — 단일 사용자 M3 단순 옵션.
   async function handleStartAnalysis() {
     if (!preview) return
     const { resumeId } = preview
@@ -124,47 +127,116 @@ export function ResumeUpload({ onNavigateFeed }: { onNavigateFeed?: (path: strin
     })
     localStorage.setItem('podo_active_resume_id', String(resumeId))
     // 실앱 기본 navigation: feed(/)로 이동(채점 후 fresh load). 테스트는 onNavigateFeed 주입으로 override.
-    // useRouter 대신 window.location — top-level hook이 없어 router context 없는 다른 spec을 깨지 않음.
     if (onNavigateFeed) onNavigateFeed('/')
     else window.location.assign('/')
   }
 
+  function tabStyle(active: boolean): React.CSSProperties {
+    return {
+      flex: 1,
+      padding: '8px 12px',
+      borderRadius: '12px',
+      border: active ? '1px solid var(--grape-600)' : '1px solid var(--line-strong)',
+      background: active ? 'var(--grape-100)' : 'var(--surface)',
+      color: active ? 'var(--grape-700)' : 'var(--muted)',
+      fontWeight: active ? 700 : 500,
+      cursor: 'pointer',
+    }
+  }
+
   return (
     <div>
-      {/* 파일 입력 — .txt/.md only. label 연결(a11y — DSN-M3-001 회수). */}
-      <label htmlFor="resume-file-input" style={{ display: 'block', marginBottom: '4px' }}>
-        이력서 파일 (.txt / .md)
-      </label>
-      <input
-        id="resume-file-input"
-        ref={fileInputRef}
-        data-testid="file-input"
-        type="file"
-        accept=".txt,.md"
-        aria-label="이력서 파일 업로드"
-        onChange={handleFileChange}
-        style={{ display: 'block', marginBottom: '8px' }}
-      />
+      {/* 모드 토글 — 파일 업로드 / 직접 작성(T-095). */}
+      <div
+        role="tablist"
+        aria-label="이력서 입력 방식"
+        style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}
+      >
+        <button
+          type="button"
+          role="tab"
+          data-testid="mode-file"
+          aria-selected={mode === 'file'}
+          onClick={() => setMode('file')}
+          style={tabStyle(mode === 'file')}
+        >
+          파일 업로드
+        </button>
+        <button
+          type="button"
+          role="tab"
+          data-testid="mode-form"
+          aria-selected={mode === 'form'}
+          onClick={() => setMode('form')}
+          style={tabStyle(mode === 'form')}
+        >
+          직접 작성
+        </button>
+      </div>
 
-      {/* 포맷/크기 안내 메시지 — AC-1 */}
-      {fileError && (
-        <p data-testid="format-error" style={{ color: 'var(--band-1-ink)', margin: '0 0 8px' }}>
-          {fileError}
-        </p>
+      {mode === 'file' ? (
+        <div>
+          {/* 파일 입력 — .txt/.md only. label 연결(a11y). 드롭존 안내 UI. */}
+          <label
+            htmlFor="resume-file-input"
+            style={{ display: 'block', marginBottom: '8px', fontWeight: 600, color: 'var(--ink)' }}
+          >
+            이력서 파일 (.txt / .md)
+          </label>
+          <div
+            style={{
+              border: '1px dashed var(--line-strong)',
+              borderRadius: '16px',
+              padding: '20px 16px',
+              background: 'var(--surface)',
+              marginBottom: '8px',
+            }}
+          >
+            <input
+              id="resume-file-input"
+              ref={fileInputRef}
+              data-testid="file-input"
+              type="file"
+              accept=".txt,.md"
+              aria-label="이력서 파일 업로드"
+              onChange={handleFileChange}
+              style={{ display: 'block' }}
+            />
+            <p style={{ color: 'var(--muted)', margin: '8px 0 0', fontSize: '13px' }}>
+              .txt 또는 .md 파일을 선택하세요 (최대 100KB).
+            </p>
+          </div>
+
+          {/* 포맷/크기 안내 메시지 — AC-1 */}
+          {fileError && (
+            <p data-testid="format-error" style={{ color: 'var(--band-1-ink)', margin: '0 0 8px' }}>
+              {fileError}
+            </p>
+          )}
+
+          <button
+            type="button"
+            onClick={handleFileUpload}
+            disabled={uploading}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '12px',
+              border: '1px solid var(--line-strong)',
+              background: 'var(--surface)',
+              color: 'var(--grape-700)',
+              cursor: uploading ? 'not-allowed' : 'pointer',
+            }}
+          >
+            업로드
+          </button>
+        </div>
+      ) : (
+        // 직접 작성 폼 — 제출 시 표준 헤딩 마크다운 조립 → {text} POST(기존 경로).
+        <ResumeForm
+          onSubmit={(markdown) => void submitResume({ text: markdown })}
+          disabled={uploading}
+        />
       )}
-
-      {/* paste 텍스트 영역 */}
-      <textarea
-        value={pasteText}
-        onChange={(e) => setPasteText(e.target.value)}
-        placeholder="이력서를 붙여넣거나 파일을 선택하세요"
-        rows={6}
-        style={{ display: 'block', width: '100%', marginBottom: '8px' }}
-      />
-
-      <button type="button" onClick={() => void handleUpload()} disabled={uploading}>
-        업로드
-      </button>
 
       {/* 에러 toast — 업로드 실패 */}
       {uploadError && (
@@ -173,40 +245,24 @@ export function ResumeUpload({ onNavigateFeed }: { onNavigateFeed?: (path: strin
         </p>
       )}
 
-      {/* 로딩 skeleton — AC-2.
-          shimmer 애니메이션은 @media (prefers-reduced-motion: reduce)에서 비활성.
-          CSS 클래스 방식으로 분기(globals.css 에 .shimmer 정의 필요 — T-041 범위).
-          가짜 점수/preview는 로딩 중 표시하지 않는다. */}
+      {/* 로딩 skeleton — 가짜 점수/preview 미표시. shimmer는 reduced-motion에서 정적(globals.css). */}
       {uploading && (
         <div data-testid="loading-skeleton" aria-busy="true" style={{ marginTop: '12px' }}>
           <div
             className="shimmer"
-            style={{
-              height: '16px',
-              borderRadius: '4px',
-              marginBottom: '8px',
-            }}
+            style={{ height: '16px', borderRadius: '4px', marginBottom: '8px' }}
           />
-          <div
-            className="shimmer"
-            style={{
-              height: '16px',
-              borderRadius: '4px',
-              width: '60%',
-            }}
-          />
+          <div className="shimmer" style={{ height: '16px', borderRadius: '4px', width: '60%' }} />
           <p style={{ color: 'var(--muted)', marginTop: '8px' }}>이력서 분석 중…</p>
         </div>
       )}
 
-      {/* 마스킹 preview — 응답 수신 후 표시, 로딩 중에는 미표시(AC-2) */}
+      {/* 마스킹 preview — 응답 수신 후 표시, 로딩 중에는 미표시 */}
       {!uploading && preview && (
         <MaskingPreview maskedText={preview.maskedText} evidenceSummary={preview.evidenceSummary} />
       )}
 
-      {/* "이 이력서로 분석 시작" — preview 수신 후 활성(T-039 클릭 핸들러 연결).
-          Button.primary — DESIGN §2-3 button.primary.bg=color.accent(grape-600 CSS 변수).
-          brand.gradient는 §2-4 FENCED(fit 링/로고/인사 strip만) — 버튼 사용 금지. */}
+      {/* "이 이력서로 분석 시작" — preview 수신 후 활성(T-039 클릭 핸들러). primary CTA 1개. */}
       <button
         type="button"
         data-testid="start-analysis-btn"

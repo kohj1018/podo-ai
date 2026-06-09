@@ -20,23 +20,24 @@ const MOCK_RESPONSE = {
   },
 }
 
-describe('ResumeUpload (AC-1)', () => {
-  it('test_AC_1_upload_renders_masking_preview_with_evidence_summary', async () => {
+function txtFile(content = '이름: 홍길동\n이메일: hong@test.com'): File {
+  return new File([content], 'resume.txt', { type: 'text/plain' })
+}
+
+// T-095 AC-1 — 파일 모드(기본): .txt/.md 업로드 → 기존 흐름(마스킹·preview)이 개선된 UI로 동작.
+describe('ResumeUpload file mode (AC-1)', () => {
+  it('test_AC_1_file_mode_flow', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => MOCK_RESPONSE }))
 
     render(<ResumeUpload />)
+    // 기본 파일 모드 — 파일 input 노출
+    expect(screen.getByTestId('file-input')).toBeTruthy()
 
-    // paste 텍스트 입력
-    const textarea = screen.getByRole('textbox')
-    fireEvent.change(textarea, { target: { value: '이름: 홍길동\n이메일: hong@test.com' } })
-
-    // 업로드 버튼 클릭
+    fireEvent.change(screen.getByTestId('file-input'), { target: { files: [txtFile()] } })
     fireEvent.click(screen.getByText('업로드'))
 
-    // 마스킹 preview 패널 표시
+    // 마스킹 preview + evidence 요약 표시
     await waitFor(() => expect(screen.getByTestId('masking-preview')).toBeTruthy())
-
-    // evidence 요약("스킬 N개, 경력 M건") 표시
     expect(screen.getByTestId('evidence-summary').textContent).toContain('스킬 2개')
     expect(screen.getByTestId('evidence-summary').textContent).toContain('경력 2건')
   })
@@ -51,7 +52,6 @@ describe('MaskingPreview (AC-2)', () => {
       />,
     )
 
-    // 플레이스홀더 강조 노드 존재
     const highlights = screen.getAllByTestId('placeholder-highlight')
     expect(highlights.length).toBeGreaterThanOrEqual(2)
 
@@ -63,9 +63,9 @@ describe('MaskingPreview (AC-2)', () => {
   })
 })
 
-describe('ResumeUpload 시작 버튼 (AC-3)', () => {
-  it('test_AC_3_start_button_disabled_until_response', async () => {
-    // 응답 지연 시뮬레이션 — fetch가 resolve되기 전까지 pending 유지
+// T-095 AC-3 — 두 모드 중 하나로 업로드 성공 시 MaskingPreview 표시 + "분석 시작" 활성.
+describe('ResumeUpload preview & start (AC-3)', () => {
+  it('test_AC_3_preview_and_start', async () => {
     let resolveFetch!: (v: unknown) => void
     const pendingFetch = new Promise((resolve) => {
       resolveFetch = resolve
@@ -78,17 +78,16 @@ describe('ResumeUpload 시작 버튼 (AC-3)', () => {
     const startBtn = screen.getByTestId('start-analysis-btn')
     expect(startBtn).toHaveProperty('disabled', true)
 
-    // paste 입력 후 업로드
-    fireEvent.change(screen.getByRole('textbox'), {
-      target: { value: '이름: 홍길동' },
-    })
+    // 파일 업로드
+    fireEvent.change(screen.getByTestId('file-input'), { target: { files: [txtFile()] } })
     fireEvent.click(screen.getByText('업로드'))
 
-    // 응답 대기 중에도 여전히 disabled
+    // 응답 대기 중에도 disabled
     expect(startBtn).toHaveProperty('disabled', true)
 
-    // fetch resolve — preview 수신 후 enabled
+    // fetch resolve → preview 수신 → 시작 활성
     resolveFetch({ ok: true, json: async () => MOCK_RESPONSE })
     await waitFor(() => expect(startBtn).toHaveProperty('disabled', false))
+    expect(screen.getByTestId('masking-preview')).toBeTruthy()
   })
 })

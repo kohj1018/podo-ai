@@ -1,7 +1,7 @@
 # T-095-resume-two-mode-redesign
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 feature
@@ -23,6 +23,12 @@ feature
 - 채점 트리거 lifecycle(T-096) · 편집 prefill(T-096).
 
 ## 4-1. 변경 예정 파일/경로
+- `podo/apps/web/components/ResumeUpload.tsx` (모드 토글 + 파일 모드 드롭존 UI + 공통 submitResume)
+- `podo/apps/web/components/ResumeForm.tsx` (신규 — 항목 폼 + assembleMarkdown 표준 헤딩 조립)
+- `podo/apps/web/app/resume/page.tsx` (헤딩 "이력서 작성")
+- `podo/apps/web/test/resume_form.spec.tsx` (신규 — AC-2)
+- `podo/apps/web/test/resume_upload.spec.tsx` (AC-1 파일 모드 / AC-3 preview·start 재작성)
+- `podo/apps/web/test/resume_states.spec.tsx`·`resume_feed.spec.tsx`·`a11y.spec.tsx` (재설계 귀결 — paste textarea → 파일 업로드 입력으로 전환, 동작 동일)
 
 ## 5. 완료 조건
 사용자가 파일 업로드 또는 항목 폼 직접작성으로 이력서를 입력하고, 두 모드 모두 마스킹 preview 후 분석을 시작한다.

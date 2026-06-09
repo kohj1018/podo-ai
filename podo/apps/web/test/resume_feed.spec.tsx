@@ -56,7 +56,9 @@ describe('T-039 AC-1: 분석 시작 → feed 적합도 배지', () => {
     // ResumeUpload 렌더 → 업로드 → preview 수신 → 분석 시작 클릭
     render(<ResumeUpload onNavigateFeed={pushMock} />)
 
-    fireEvent.change(screen.getByRole('textbox'), { target: { value: '이름: 홍길동' } })
+    // T-095: 파일 모드(기본)에서 .txt 업로드(이전 paste textarea 대체).
+    const file = new File(['이름: 홍길동'], 'resume.txt', { type: 'text/plain' })
+    fireEvent.change(screen.getByTestId('file-input'), { target: { files: [file] } })
     fireEvent.click(screen.getByText('업로드'))
 
     // preview 수신 후 "이 이력서로 분석 시작" 버튼 활성
