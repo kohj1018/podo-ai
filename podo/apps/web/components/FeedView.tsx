@@ -99,7 +99,7 @@ export function FeedView({ domain }: { domain?: string } = {}) {
     )
   }
 
-  // 5) no-resume → 온보딩(1회성 dismiss, OnboardingGuide 내용 재사용)
+  // 5) no-resume → 온보딩. T-097부터 page 레벨이 /resume로 직행시키므로 보통 도달 안 함(fallback).
   if (!meta.has_resume) {
     return <Onboarding />
   }

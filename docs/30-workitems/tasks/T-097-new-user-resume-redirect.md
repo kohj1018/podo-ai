@@ -1,7 +1,7 @@
 # T-097-new-user-resume-redirect
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 feature
@@ -22,6 +22,9 @@ feature
 - 로그인 콜백 서버 리다이렉트(교차도메인 — client 가드로 처리).
 
 ## 4-1. 변경 예정 파일/경로
+- `podo/apps/web/app/page.tsx` (has_resume false → router.replace('/resume') + redirecting placeholder, 루프 방지)
+- `podo/apps/web/components/FeedView.tsx` (no-resume Onboarding 분기를 fallback로 명시 — 주석)
+- `podo/apps/web/test/new_user_redirect.spec.tsx` (신규 — AC-1/AC-2)
 
 ## 5. 완료 조건
 이력서 없는 인증 사용자가 진입 즉시 /resume로 안내되고, 이력서 있는 사용자는 피드를 정상적으로 본다.
