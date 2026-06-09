@@ -36,6 +36,22 @@
   --line: #f6e4ec;
   --line-strong: #edd0dc;
   --muted: #6c6475;
+  /* 단일 중앙 컬럼 폭(T-101, DESIGN §4) — 모바일 우선. 데스크톱은 아래 미디어쿼리에서 소폭 증가. */
+  --app-max-width: 430px;
+}
+
+/* 데스크톱: 단일 중앙 컬럼 유지 + 폭 소폭 증가(멀티컬럼 미사용 — DESIGN §4 "가로 확장은 컬럼 폭 소폭 증가"). */
+@media (min-width: 1024px) {
+  :root {
+    --app-max-width: 480px;
+  }
+}
+
+/* 앱 셸 — 전 화면을 단일 중앙 컬럼으로 정렬(margin auto). 컴포넌트 인라인 폭과 정합. */
+.app-shell {
+  width: 100%;
+  max-width: var(--app-max-width);
+  margin: 0 auto;
 }
 
 /* §5 기반 타이포·표면 — Pretendard 단일 family(§3, layout에서 CDN 로드) + 따뜻한 paper 배경.

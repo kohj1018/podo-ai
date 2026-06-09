@@ -1,7 +1,7 @@
 # T-101-desktop-responsive
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 feature
@@ -20,6 +20,9 @@ feature
 - 멀티컬럼/데스크톱 전용 레이아웃. 모바일 동작 변경.
 
 ## 4-1. 변경 예정 파일/경로
+- `podo/apps/web/app/globals.css` (--app-max-width 토큰 + 1024px 미디어쿼리 480px + .app-shell 중앙 컬럼)
+- `podo/apps/web/app/layout.tsx` (app-shell로 AppHeader+children 래핑)
+- `podo/apps/web/test/responsive.spec.tsx` (신규 — AC-1 CSS·layout 계약 감사)
 
 ## 5. 완료 조건
 데스크톱 폭에서 단일 중앙 컬럼이 유지되고 폭/여백이 정돈돼 레이아웃이 깨지지 않는다.

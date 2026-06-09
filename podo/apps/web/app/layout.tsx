@@ -23,8 +23,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       </head>
       <body>
         <SessionProvider>
-          <AppHeader />
-          {children}
+          {/* 단일 중앙 컬럼 셸(T-101) — 데스크톱에서도 멀티컬럼 없이 중앙 정렬 유지. */}
+          <div className="app-shell">
+            <AppHeader />
+            {children}
+          </div>
         </SessionProvider>
       </body>
     </html>
