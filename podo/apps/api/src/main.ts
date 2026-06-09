@@ -1,5 +1,6 @@
 import 'reflect-metadata'
 import { NestFactory } from '@nestjs/core'
+import type { NestExpressApplication } from '@nestjs/platform-express'
 import rateLimit from 'express-rate-limit'
 import session from 'express-session'
 import helmet from 'helmet'
@@ -8,7 +9,11 @@ import { AppModule } from './app.module'
 import { AllExceptionsFilter } from './common/error.filter'
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule)
+  const app = await NestFactory.create<NestExpressApplication>(AppModule)
+  // ALB가 TLS를 종단하고 컨테이너엔 HTTP로 전달한다. trust proxy가 없으면 req.secure=false라
+  // express-session이 secure 쿠키(SameSite=None;Secure)를 아예 안 내보내 세션이 누락된다(매 요청 401).
+  // 1 = 첫 홉(ALB)만 신뢰 → X-Forwarded-Proto:https를 읽어 secure 연결로 인식.
+  app.set('trust proxy', 1)
   app.useGlobalFilters(new AllExceptionsFilter()) // 단일 envelope { error: { code, message } } (ARCH §7-1)
 
   // 보안 헤더(HSTS·X-Content-Type-Options·frameguard 등) — 공개 배포 baseline(T-089).
