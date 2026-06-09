@@ -1,7 +1,7 @@
 # T-091-coarse-section-collapsed-mount
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 feature
@@ -22,6 +22,9 @@ feature
 - 마감 섹션·커버리지(T-090).
 
 ## 4-1. 변경 예정 파일/경로
+- `podo/apps/web/components/CoarseSection.tsx` (접힘 state + aria-expanded 토글, 펼침 시 목록)
+- `podo/apps/web/app/page.tsx` (CoarseSection을 FeedView 아래 최하단 마운트)
+- `podo/apps/web/test/coarse_section.spec.tsx` (collapsed+expand 동작에 맞춰 재작성 — AC-1/AC-2)
 
 ## 5. 완료 조건
 CoarseSection이 피드 하단에 접힌 진입으로 뜨고, 펼치면 배지 없는 공고 목록을 보여준다(coarse 0이면 미렌더).

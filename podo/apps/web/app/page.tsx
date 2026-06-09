@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { AuthGate } from '../components/AuthGate'
+import { CoarseSection } from '../components/CoarseSection'
 import { CoveragePanel } from '../components/CoveragePanel'
 import { DomainTabBar } from '../components/DomainTabBar'
 import { FeedView } from '../components/FeedView'
@@ -56,6 +57,8 @@ export default function HomePage() {
           />
         ) : null}
         <FeedView domain={active} />
+        {/* 피드 최하단 보조 진입(접힘) — deep 분석 전 공고(T-091, IA §2-A-1 ⑥). coarse 0이면 미렌더. */}
+        <CoarseSection />
       </div>
     </AuthGate>
   )

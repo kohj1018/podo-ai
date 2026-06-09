@@ -26,6 +26,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3001'
 
 export function CoarseSection() {
   const [page, setPage] = useState<CoarsePage | null>(null)
+  const [expanded, setExpanded] = useState(false)
 
   useEffect(() => {
     let alive = true
@@ -48,6 +49,7 @@ export function CoarseSection() {
     return null
   }
 
+  // 최하단 *접힌* 보조 진입(피로 최소 IA §2-A-1 ⑥). 기본 접힘 + 펼침 토글. 배지 0(ADR-108 D3).
   return (
     <section
       data-testid="coarse-section"
@@ -55,15 +57,34 @@ export function CoarseSection() {
       className="mx-auto max-w-[430px] rounded-xl border p-3 text-sm"
       style={{ borderColor: 'var(--faint)', color: 'var(--band-5-ink)' }}
     >
-      <h2 className="font-medium">아직 깊이 안 본 공고예요</h2>
-      <p style={{ color: 'var(--faint)' }}>원하면 분석할게요</p>
-      <ul>
-        {page.items.map((it) => (
-          <li key={it.posting?.id} data-testid="coarse-item" className="py-1">
-            {it.posting?.company ?? ''} · {it.posting?.title ?? ''}
-          </li>
-        ))}
-      </ul>
+      <button
+        type="button"
+        data-testid="coarse-toggle"
+        aria-expanded={expanded}
+        onClick={() => setExpanded((v) => !v)}
+        className="flex w-full items-center justify-between text-left font-medium"
+        style={{
+          background: 'none',
+          border: 'none',
+          padding: 0,
+          color: 'inherit',
+          cursor: 'pointer',
+        }}
+      >
+        <span>아직 깊이 안 본 공고 {page.items.length}개 · 원하면 분석할게요</span>
+        <span aria-hidden="true" style={{ color: 'var(--faint)' }}>
+          {expanded ? '접기 ▲' : '펼치기 ▼'}
+        </span>
+      </button>
+      {expanded ? (
+        <ul className="mt-2">
+          {page.items.map((it) => (
+            <li key={it.posting?.id} data-testid="coarse-item" className="py-1">
+              {it.posting?.company ?? ''} · {it.posting?.title ?? ''}
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </section>
   )
 }
