@@ -68,9 +68,11 @@ resource "aws_db_parameter_group" "main" {
 # SQS — 채점 트리거 큐 + 상태 큐 (ADR-106)
 # ---------------------------------------------------------------------------
 resource "aws_sqs_queue" "scoring" {
-  name                       = "podo-${var.env}-scoring-queue"
-  visibility_timeout_seconds = 300
-  message_retention_seconds  = 86400  # 24h
+  name = "podo-${var.env}-scoring-queue"
+  # 채점은 콜드 캐시 + 다수 공고(임베딩+deep)로 수 분 걸려 300s를 초과 → 처리 도중 재큐잉/중복처리됨.
+  # 30분으로 늘려 한 번에 완주(워커 OpenAI 호출 타임아웃과 함께 무한 행도 차단).
+  visibility_timeout_seconds = 1800
+  message_retention_seconds  = 86400 # 24h
 
   tags = { Name = "podo-${var.env}-scoring-queue" }
 }
