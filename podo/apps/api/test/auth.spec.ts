@@ -70,6 +70,48 @@ describe('AuthController test-session 발급 + SessionGuard 통과 (AC-1)', () =
   })
 })
 
+// OAuth 콜백이 세션을 직렬화(req.login)하는지 — AuthGuard는 req.user만 설정하므로 콜백에서 직접 login해야
+// 세션 쿠키가 발급된다(이게 없으면 인증돼도 세션 미생성 → /auth/me 등 401). 실 배포 로그인 회귀 방지.
+describe('AuthController OAuth 콜백 세션 발급', () => {
+  it('test_oauth_callback_calls_req_login_then_redirects_web', () => {
+    const controller = new AuthController()
+    const logged: Array<{ id: string }> = []
+    let redirectedTo = ''
+    const req = {
+      user: { id: 'u-cb' },
+      login: (u: { id: string }, cb: (err?: unknown) => void) => {
+        logged.push(u)
+        cb()
+      },
+    } as never
+    const res = {
+      redirect: (url: string) => {
+        redirectedTo = url
+      },
+    } as never
+    controller.googleCallback(req, res)
+    // 세션 직렬화 호출됨 + 성공 시 web(CORS_ALLOWED_ORIGIN fallback)으로 redirect
+    expect(logged).toEqual([{ id: 'u-cb' }])
+    expect(redirectedTo).toBe('http://localhost:3000')
+  })
+
+  it('test_oauth_callback_redirects_login_on_session_error', () => {
+    const controller = new AuthController()
+    let redirectedTo = ''
+    const req = {
+      user: { id: 'u-cb' },
+      login: (_u: { id: string }, cb: (err?: unknown) => void) => cb(new Error('session fail')),
+    } as never
+    const res = {
+      redirect: (url: string) => {
+        redirectedTo = url
+      },
+    } as never
+    controller.githubCallback(req, res)
+    expect(redirectedTo).toBe('http://localhost:3000/login?error=session')
+  })
+})
+
 // /auth/me — 인증 세션이면 userId 반환(web 클라이언트 가드 질의용). 비인증 401은 SessionGuard(AC-2)가 담당.
 describe('AuthController /auth/me 세션 확인', () => {
   it('test_me_returns_userid_for_authenticated_session', () => {

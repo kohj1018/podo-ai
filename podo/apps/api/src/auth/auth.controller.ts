@@ -19,6 +19,12 @@ interface SessionRequest {
 interface AuthedRequest {
   user?: { id: string }
 }
+// OAuth 콜백용 — @nestjs/passport AuthGuard는 req.user만 채우고 세션 직렬화는 안 하므로
+// 콜백에서 req.login을 직접 호출해야 한다(아래 콜백 핸들러 주석 참고).
+interface CallbackRequest {
+  user: { id: string }
+  login(user: { id: string }, done: (err?: unknown) => void): void
+}
 interface JsonResponse {
   status(code: number): { json(body: unknown): void }
   redirect(url: string): void
@@ -35,11 +41,15 @@ export class AuthController {
   @UseGuards(AuthGuard('github'))
   githubLogin(): void {}
 
-  // 콜백 — AuthGuard가 전략 validate→세션 직렬화 후, 웹 피드로 redirect.
+  // 콜백 — AuthGuard는 req.user만 설정하고 세션 직렬화(req.login)는 호출하지 않는다
+  // (@nestjs/passport canActivate가 logIn을 안 부름). 따라서 여기서 명시적으로 req.login해야
+  // serializeUser→세션 발급→Set-Cookie가 일어난다. 없으면 인증돼도 세션 미생성 → 모든 보호 요청 401.
   @Get('github/callback')
   @UseGuards(AuthGuard('github'))
-  githubCallback(@Res() res: JsonResponse): void {
-    res.redirect(webRedirectOrigin())
+  githubCallback(@Req() req: CallbackRequest, @Res() res: JsonResponse): void {
+    req.login(req.user, (err) =>
+      res.redirect(err ? `${webRedirectOrigin()}/login?error=session` : webRedirectOrigin()),
+    )
   }
 
   @Get('google')
@@ -48,8 +58,10 @@ export class AuthController {
 
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
-  googleCallback(@Res() res: JsonResponse): void {
-    res.redirect(webRedirectOrigin())
+  googleCallback(@Req() req: CallbackRequest, @Res() res: JsonResponse): void {
+    req.login(req.user, (err) =>
+      res.redirect(err ? `${webRedirectOrigin()}/login?error=session` : webRedirectOrigin()),
+    )
   }
 
   // 현재 세션 인증 상태 — web 클라이언트 가드(AuthGate)용. web(Vercel)↔api 교차 도메인이라
