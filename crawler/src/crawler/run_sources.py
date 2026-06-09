@@ -289,6 +289,11 @@ def run_all_sources(
     specs = _resolve_specs(sources)
     collected = 0
     failed = 0
+    # 사유별 집계 — 관측성(Fail #3). 게이트 실패·미구현도 로그에 남김.
+    by_status: dict[str, int] = {}
+
+    def _bump(status: str) -> None:
+        by_status[status] = by_status.get(status, 0) + 1
 
     with _get_connection() as conn:
         for spec in specs:
@@ -303,19 +308,31 @@ def run_all_sources(
                     tier=tier,
                     method=spec.method,
                 )
+                logger.warning(
+                    "source_skip company=%s reason=adapter-not-wired", spec.company
+                )
+                _bump("no-adapter")
                 failed += 1
                 continue
             try:
                 gate = adapter.gate_check()
                 if not gate.ok:
+                    gate_st = _gate_status(gate.reason)
                     record_source_crawl_status(
                         conn,
                         spec.company,
-                        status=_gate_status(gate.reason),
+                        status=gate_st,
                         last_error=gate.reason,
                         tier=tier,
                         method=spec.method,
                     )
+                    logger.warning(
+                        "source_gate_fail company=%s status=%s reason=%s",
+                        spec.company,
+                        gate_st,
+                        gate.reason,
+                    )
+                    _bump(gate_st)
                     failed += 1
                     continue
                 jobs = adapter.fetch_jobs(location=spec.location_filter or "KR")
@@ -329,6 +346,7 @@ def run_all_sources(
                     tier=tier,
                     method=spec.method,
                 )
+                _bump("active")
                 collected += 1
             except Exception as exc:  # 시스템 경계 — 소스 실패 격리(전체 중단 X)
                 logger.error("source_failed company=%s error=%s", spec.company, exc)
@@ -340,6 +358,14 @@ def run_all_sources(
                     tier=tier,
                     method=spec.method,
                 )
+                _bump("fetch-error")
                 failed += 1
 
+    # 전체 사유 분포 한 줄 — warning이라 CloudWatch 노출(로그만으로 분류 가능).
+    logger.warning(
+        "crawl_status_breakdown collected=%s failed=%s by_status=%s",
+        collected,
+        failed,
+        by_status,
+    )
     return {"collected": collected, "failed": failed}
