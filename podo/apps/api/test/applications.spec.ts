@@ -3,12 +3,47 @@
  * DATABASE_URL 없으면 전체 skip(로컬 게이트 보호).
  */
 import { ForbiddenException } from '@nestjs/common'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { ApplicationsService } from '../src/applications/applications.service'
 import { FeedService } from '../src/feed/feed.service'
 import { PrismaService } from '../src/prisma/prisma.service'
 
 const hasDb = Boolean(process.env.DATABASE_URL)
+
+// T-094 — getActions가 표시용 job_posting(company/title/url)을 include 하는지(응답 shape 회귀 차단, repair-plan P2).
+// fake Prisma로 키리스 게이트에서 결정적 검증(mock 뒤 가려지는 shape 고정).
+describe('ApplicationsService getActions shape (T-094)', () => {
+  it('test_getActions_includes_posting_company_title_url', async () => {
+    let captured: { include?: { job_posting?: { select?: Record<string, boolean> } } } = {}
+    const prisma = {
+      applicationEvent: {
+        findMany: vi.fn(async (args: { include?: typeof captured.include }) => {
+          captured = args as typeof captured
+          return [
+            {
+              id: 1,
+              user_id: 'u',
+              job_posting_id: 9,
+              action: 'favorite',
+              created_at: new Date(0),
+              job_posting: { company: 'Toss', title: 'FE', url: 'https://x/j' },
+            },
+          ]
+        }),
+      },
+    }
+    const service = new ApplicationsService(prisma as unknown as PrismaService)
+    const rows = await service.getActions('u', 'favorite')
+
+    // include로 공고 요약(company/title/url) 동반
+    expect(captured.include?.job_posting?.select).toMatchObject({
+      company: true,
+      title: true,
+      url: true,
+    })
+    expect(rows[0].job_posting).toMatchObject({ company: 'Toss', title: 'FE', url: 'https://x/j' })
+  })
+})
 
 describe.skipIf(!hasDb)('ApplicationsService (DB)', () => {
   let prisma: PrismaService

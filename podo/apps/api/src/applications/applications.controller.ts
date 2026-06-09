@@ -15,6 +15,7 @@ import { SessionGuard } from '../auth/session.guard'
 import {
   type ApplicationAction,
   type ApplicationEventRow,
+  type ApplicationEventWithPosting,
   ApplicationsService,
 } from './applications.service'
 import type { CreateApplicationDto } from './dto/create-application.dto'
@@ -44,7 +45,7 @@ export class ApplicationsController {
   async list(
     @Req() req: AuthedRequest,
     @Query('filter') filter?: ApplicationAction,
-  ): Promise<{ data: ApplicationEventRow[] }> {
+  ): Promise<{ data: ApplicationEventWithPosting[] }> {
     const userId = req.user?.id ?? ''
     return { data: await this.applications.getActions(userId, filter) }
   }

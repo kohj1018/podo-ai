@@ -14,6 +14,11 @@ export interface ApplicationEventRow {
   created_at: Date
 }
 
+// 활동 뷰(T-094) 표시용 — 이벤트 + 공고 요약(company/title/url). 격리·envelope 무변경.
+export interface ApplicationEventWithPosting extends ApplicationEventRow {
+  job_posting: { company: string; title: string; url: string | null }
+}
+
 // 지원/스킵·즐겨찾기 이벤트 기록(api 소유, ARCH §3-2). 사용자 격리 — 본인 기록만(F-016).
 @Injectable()
 export class ApplicationsService {
@@ -34,12 +39,16 @@ export class ApplicationsService {
     })
   }
 
-  // 본인 기록만 조회(filter 지정 시 해당 action만 — 예: favorite).
-  async getActions(userId: string, filter?: ApplicationAction): Promise<ApplicationEventRow[]> {
+  // 본인 기록만 조회(filter 지정 시 해당 action만 — 예: favorite). 표시용 공고 요약 include(T-094).
+  async getActions(
+    userId: string,
+    filter?: ApplicationAction,
+  ): Promise<ApplicationEventWithPosting[]> {
     return this.prisma.applicationEvent.findMany({
       where: { user_id: userId, ...(filter ? { action: filter } : {}) },
       orderBy: { created_at: 'desc' },
-    })
+      include: { job_posting: { select: { company: true, title: true, url: true } } },
+    }) as Promise<ApplicationEventWithPosting[]>
   }
 
   // 본인 기록만 삭제 — 타인 기록 삭제 시도는 403(횡단 접근 차단, F-016 정합).

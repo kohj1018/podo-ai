@@ -1,7 +1,7 @@
 # T-094-activity-views
 
 ## 0. Status
-draft
+done
 
 ## 0-1. Type
 feature
@@ -22,6 +22,12 @@ feature
 - 마이페이지 허브/네비(T-093).
 
 ## 4-1. 변경 예정 파일/경로
+- `podo/apps/web/components/ActivityList.tsx` (신규 — filter별 목록 + 빈/로딩/에러)
+- `podo/apps/web/app/favorites/page.tsx` · `podo/apps/web/app/applications/page.tsx` (신규 — AuthGate + ActivityList)
+- `podo/apps/api/src/applications/applications.service.ts` (getActions에 job_posting include + ApplicationEventWithPosting)
+- `podo/apps/api/src/applications/applications.controller.ts` (list 반환형 갱신)
+- `podo/apps/api/test/applications.spec.ts` (fake-prisma include shape 테스트)
+- `podo/apps/web/test/activity_views.spec.tsx` (신규 — AC-1/2/3)
 
 ## 5. 완료 조건
 즐겨찾기·지원기록 뷰가 실 API 목록을 빈/로딩/에러 처리와 함께 렌더한다.
