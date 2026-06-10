@@ -46,6 +46,55 @@ def _call_embed(text: str) -> list[float]:
     return cast("list[float]", resp.data[0].embedding)
 
 
+def _call_embed_batch(texts: list[str]) -> list[list[float]]:
+    """OpenAI embeddings 배치 호출 → 입력 순서대로 벡터 리스트. 무키면 raise(폴백 신호).
+
+    임베딩 API는 input 배열을 1회로 처리(N→ceil(N/batch) 호출). 응답은 입력 순서 보존.
+    """
+    if openai_client is None:
+        raise RuntimeError("OPENAI_API_KEY 미설정 — 임베딩 불가(무키 모드)")
+    resp = openai_client.embeddings.create(
+        model=_EMBEDDING_MODEL,
+        input=texts,
+        encoding_format="float",
+    )
+    return [cast("list[float]", d.embedding) for d in resp.data]
+
+
+def embed_jds_batch(
+    conn: psycopg.Connection[tuple[Any, ...]],
+    items: list[tuple[int, str]],
+    batch_size: int = 64,
+) -> int:
+    """미임베딩 JD 다건을 배치 임베딩·bulk upsert, 처리 건수 반환.
+
+    호출부가 *미임베딩 JD만* 선별해 넘긴다(버전 체크 없음 — LEFT JOIN 선별).
+    배치 입력으로 N→ceil(N/batch) API 호출. 청크 단위 upsert(부분 진행 보존).
+    """
+    if not items:
+        return 0
+    count = 0
+    for start in range(0, len(items), batch_size):
+        chunk = items[start : start + batch_size]
+        vectors = _call_embed_batch([text for _, text in chunk])
+        with conn.cursor() as cur:
+            for (jid, _text), vector in zip(chunk, vectors):
+                vec_str = "[" + ",".join(str(v) for v in vector) + "]"
+                cur.execute(
+                    "INSERT INTO job_embeddings "
+                    "(job_posting_id, embedding, embedding_version, model_id) "
+                    "VALUES (%s, %s::vector, %s, %s) "
+                    "ON CONFLICT (job_posting_id) DO UPDATE SET "
+                    "embedding = EXCLUDED.embedding, "
+                    "embedding_version = EXCLUDED.embedding_version, "
+                    "model_id = EXCLUDED.model_id, "
+                    "created_at = now()",
+                    (jid, vec_str, EMBEDDING_VERSION, _EMBEDDING_MODEL),
+                )
+        count += len(chunk)
+    return count
+
+
 def embed_jd(
     conn: psycopg.Connection[tuple[Any, ...]],
     job_posting_id: int,

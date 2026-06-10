@@ -115,6 +115,65 @@ def test_AC_1_new_job_embedded_and_persisted(
 
 
 # ---------------------------------------------------------------------------
+# 배치 임베딩 — N건을 ceil(N/batch) API 호출로(직렬 N회 아님). DB 불필요(fake_conn).
+# ---------------------------------------------------------------------------
+
+
+def _batch_client() -> MagicMock:
+    """embeddings.create가 input 길이만큼 벡터를 1회로 반환(배치 mock)."""
+    client = MagicMock()
+
+    def _create(**kwargs: Any) -> MagicMock:
+        texts = kwargs["input"]
+        resp = MagicMock()
+        resp.data = [MagicMock(embedding=[0.1] * 1536) for _ in texts]
+        return resp
+
+    client.embeddings.create.side_effect = _create
+    return client
+
+
+def _fake_conn() -> tuple[MagicMock, MagicMock]:
+    conn = MagicMock()
+    cur = MagicMock()
+    cur.__enter__ = MagicMock(return_value=cur)
+    cur.__exit__ = MagicMock(return_value=False)
+    conn.cursor.return_value = cur
+    return conn, cur
+
+
+def test_embed_jds_batch_one_call_per_chunk() -> None:
+    """5건 + batch_size 기본 → API 1회(직렬 5회 아님) + 5건 upsert."""
+    from worker.embedding import embed_jds_batch
+
+    client = _batch_client()
+    conn, cur = _fake_conn()
+    items = [(i, f"JD {i}") for i in range(5)]
+
+    with patch("worker.embedding.openai_client", client):
+        count = embed_jds_batch(conn, items)
+
+    assert count == 5
+    assert client.embeddings.create.call_count == 1, "5건이 1 API 호출로 배치돼야 함"
+    assert cur.execute.call_count == 5, "5건 upsert"
+
+
+def test_embed_jds_batch_chunks_by_batch_size() -> None:
+    """5건 + batch_size=2 → ceil(5/2)=3 API 호출."""
+    from worker.embedding import embed_jds_batch
+
+    client = _batch_client()
+    conn, _cur = _fake_conn()
+    items = [(i, f"JD {i}") for i in range(5)]
+
+    with patch("worker.embedding.openai_client", client):
+        count = embed_jds_batch(conn, items, batch_size=2)
+
+    assert count == 5
+    assert client.embeddings.create.call_count == 3
+
+
+# ---------------------------------------------------------------------------
 # AC-2: 동일 job_posting_id + 동일 embedding_version → API 0회 호출(skip)
 # ---------------------------------------------------------------------------
 
