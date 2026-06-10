@@ -15,9 +15,11 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     import psycopg
 
-# 기본 파라미터 (ADR-108 D2 — F-023 recall 측정 후 조정)
-DEFAULT_K_V: int = 50
-DEFAULT_K_MAX: int = 80
+# 기본 파라미터 (ADR-108 D2 — F-023 recall 측정 후 조정).
+# deep 채점은 후보당 ~3 LLM 호출이라 비용이 K에 선형. 피드 상위 N만 deep로 충분하므로
+# K를 80→24로 축소(지연·비용 ~3배 절감, 나머지는 coarse projection).
+DEFAULT_K_V: int = 24
+DEFAULT_K_MAX: int = 24
 
 
 @dataclass

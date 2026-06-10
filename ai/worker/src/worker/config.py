@@ -48,6 +48,10 @@ LLM_SEED: int = int(os.environ.get("LLM_SEED", "7"))
 # OpenAI API key — 시스템 경계에서만 사용
 OPENAI_API_KEY: str = os.environ.get("OPENAI_API_KEY", "")
 
+# 공고별 LLM 단계(구조화·매칭·검증) 병렬도 — 채점 지연의 주 레버(직렬 → 병렬 I/O).
+# 공고 독립·콘텐츠 캐시라 병렬화해도 결과 결정적(GS-1). rate-limit 고려 보수적 기본.
+SCORING_MAX_WORKERS: int = int(os.environ.get("SCORING_MAX_WORKERS", "8"))
+
 
 # 합성 seed 이력서 (SPEC §9-4 — M2는 실 PII 비범위, config 주입 합성만).
 # raw_text 안의 문장이 evidence 추출형 검증의 haystack이 된다.

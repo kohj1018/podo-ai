@@ -12,10 +12,12 @@ _rank: 단계 7~12 결정적 오케스트레이션 — 이미 계산된 tables/d
 
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Callable
 
 from core.models import MatchingTable, PairwiseResult, Resume, domain_alignment
 from worker.compare_pairwise import run_pairwise
+from worker.config import SCORING_MAX_WORKERS
 from worker.domain_classifier import CLASSIFIER_VERSION, classify_domains
 from worker.matching import build_matching_table
 from worker.parse_job import structure_job
@@ -162,6 +164,57 @@ def _build_pairwise_candidates(
 
 
 # ---------------------------------------------------------------------------
+# 공고별 LLM 단계(2·4·5) — 병렬 실행 단위
+# ---------------------------------------------------------------------------
+
+
+def _score_job_llm(
+    job: dict[str, str],
+    evidence: Any,
+    primary_domains: list[str],
+    secondary_domains: list[str],
+    resume_full: Resume,
+    structured_call_fn: Callable[..., Any] | None,
+) -> tuple[str, MatchingTable | None, str, str, str]:
+    """공고 1개의 LLM 단계(2 JD구조화·4 매칭·5 검증)를 실행한다(병렬 실행 단위).
+
+    LLM 실패(LLMError/LLMCallError)면 table=None을 돌려 호출부가 보류(pending) 처리한다
+    (가짜 점수 금지 — FAC-5). compute_fit(단계 6)은 *여기서 호출하지 않는다* — 호출부가
+    원본 jobs 순서로 순차 실행해 dict 삽입 순서·호출 횟수 계약을 보존한다.
+    """
+    from worker.llm import LLMError
+
+    jid = job["job_id"]
+    try:
+        # 단계 2: JD 요구사항 구조화 (LLM)
+        jp = structure_job(
+            job_id=jid,
+            company=job.get("company", ""),
+            title=job.get("title", ""),
+            url=job.get("url", ""),
+            raw_text=job.get("raw_text", ""),
+            _call_fn=structured_call_fn,
+        )
+        # 단계 3: 도메인 정렬 컨텍스트 (결정적, ai/core)
+        tier, reason = domain_alignment(
+            jp.role_family, primary_domains, secondary_domains
+        )
+        # 단계 4: 요구↔근거 매칭 (LLM)
+        table = build_matching_table(jp, evidence, _call_fn=structured_call_fn)
+        # 단계 5: 매칭 검증 (결정적 추출 + 보수적 LLM verifier)
+        table = verify_table(table, resume_full, _call_fn=structured_call_fn)
+    except (LLMError, LLMCallError):
+        return (
+            jid,
+            None,
+            "",
+            "",
+            "",
+        )  # table=None → 호출부가 보류 처리(placeholder str 무시)
+    return jid, table, tier, reason, jp.role_family
+
+
+# ---------------------------------------------------------------------------
 # run_scoring: 단계 1~12 단일 진입점 (SPEC §2)
 # ---------------------------------------------------------------------------
 
@@ -195,8 +248,6 @@ def run_scoring(
         _rank와 동일 계약 (final_ranking / matching_tables / pairwise_comparisons /
         pending_job_ids).
     """
-    from worker.llm import LLMError
-
     # 단계 1: 이력서 evidence 추출 (LLM, 전역 — 실패 시 채점 불가하므로 전파)
     evidence = extract_evidence(resume.raw_text, _call_fn=structured_call_fn)
 
@@ -222,39 +273,43 @@ def run_scoring(
     fits: dict[str, dict[str, Any]] = {}
     pending: set[str] = set()
 
+    # 공고별 LLM 단계(2·4·5)를 병렬 실행 — 채점 지연의 주 비용(직렬 N×3 호출) 제거.
+    # 결과는 jid별 map에 모은 뒤 원본 jobs 순서로 조립(결정성·prompt 순서 보존).
+    results_by_jid: dict[str, tuple[MatchingTable | None, str, str, str]] = {}
+    if jobs:
+        max_workers = max(1, min(SCORING_MAX_WORKERS, len(jobs)))
+        with ThreadPoolExecutor(max_workers=max_workers) as ex:
+            futures = [
+                ex.submit(
+                    _score_job_llm,
+                    job,
+                    evidence,
+                    primary_domains,
+                    secondary_domains,
+                    resume_full,
+                    structured_call_fn,
+                )
+                for job in jobs
+            ]
+            for fut in futures:
+                # 비-LLM 예외는 전파(시스템 경계). LLM 실패는 table=None으로 표지됨.
+                jid, table, tier, reason, role_family = fut.result()
+                results_by_jid[jid] = (table, tier, reason, role_family)
+
+    # 원본 jobs 순서로 조립 + compute_fit(단계 6) 순차 — 삽입 순서·호출 횟수 계약 보존.
     for job in jobs:
         jid = job["job_id"]
-        try:
-            # 단계 2: JD 요구사항 구조화 (LLM)
-            jp = structure_job(
-                job_id=jid,
-                company=job.get("company", ""),
-                title=job.get("title", ""),
-                url=job.get("url", ""),
-                raw_text=job.get("raw_text", ""),
-                _call_fn=structured_call_fn,
-            )
-            # 단계 3: 도메인 정렬 컨텍스트 (결정적, ai/core)
-            tier, reason = domain_alignment(
-                jp.role_family,
-                primary_domains,
-                secondary_domains,
-            )
-            # 단계 4: 요구↔근거 매칭 (LLM)
-            table = build_matching_table(jp, evidence, _call_fn=structured_call_fn)
-            # 단계 5: 매칭 검증 (결정적 추출 + 보수적 LLM verifier)
-            table = verify_table(table, resume_full, _call_fn=structured_call_fn)
-            # 단계 6: compute_fit (결정적, 공고당 1회 — 다운스트림 공유, 재계산 금지)
-            fit = compute_fit(table, tier)
-        except (LLMError, LLMCallError):
+        table, tier, reason, role_family = results_by_jid[jid]
+        if table is None:
             # 가짜 점수 금지 — 해당 공고만 보류, 파이프라인은 나머지로 계속 (FAC-5)
             pending.add(jid)
             continue
-
+        # 단계 6: compute_fit (결정적, 공고당 1회 — 다운스트림 공유, 재계산 금지)
+        fit = compute_fit(table, tier)
         tables[jid] = table
         domain_ctx[jid] = {
             "domain_alignment": tier,
-            "role_family": jp.role_family,
+            "role_family": role_family,
             "domain_alignment_reason": reason,
         }
         fits[jid] = fit
